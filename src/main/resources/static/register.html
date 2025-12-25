@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kalyan Kosh Registration</title>
+    <style>
+        body { font-family: Arial; background:#f4f4f4; padding:20px; }
+        .container{
+            max-width:820px; margin:auto; background:white; padding:20px;
+            border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1);
+        }
+        label{ font-weight:bold; margin-top:10px; display:block; }
+        input, select, textarea {
+            width:100%; padding:8px; margin-top:5px;
+            border:1px solid #ccc; border-radius:5px;
+        }
+        .row { display:flex; gap:12px; }
+        .col { flex:1; }
+        .half { width:48%; display:inline-block; vertical-align:top; }
+        button {
+            background:#007bff; color:white; padding:10px 16px;
+            border:none; border-radius:6px; margin-top:15px; cursor:pointer;
+        }
+        .error { color:#b91c1c; font-size:13px; margin-top:6px; }
+        .muted { color:#6b7280; font-size:13px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kalyan Kosh Registration Form</h2>
+
+    <form id="regForm">
+
+        <div class="row">
+            <div class="col">
+                <label>First Name *</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="col">
+                <label>Surname</label>
+                <input type="text" id="surname">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Country Code *</label>
+                <input type="text" id="countryCode" value="+91" required>
+            </div>
+            <div class="col">
+                <label>Mobile Number *</label>
+                <input type="text" id="mobileNumber" required>
+            </div>
+        </div>
+
+        <label>Phone Number (Landline)</label>
+        <input type="text" id="phoneNumber">
+
+        <label>Email *</label>
+        <input type="email" id="email" required>
+
+        <div class="row">
+            <div class="col">
+                <label>Gender</label>
+                <select id="gender">
+                    <option value="">--Select--</option>
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>Marital Status</label>
+                <input type="text" id="maritalStatus">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Username *</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="col">
+                <label>Password *</label>
+                <input type="password" id="password" required>
+            </div>
+        </div>
+
+        <label>Home Address</label>
+        <textarea id="homeAddress"></textarea>
+
+        <div class="row">
+            <div class="col">
+                <label>Date of Birth</label>
+                <input type="date" id="dateOfBirth">
+            </div>
+            <div class="col">
+                <label>School / Office Name</label>
+                <input type="text" id="schoolOfficeName">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Department</label>
+                <input type="text" id="department">
+            </div>
+            <div class="col">
+                <label>Department Unique ID</label>
+                <input type="text" id="departmentUniqueId">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Department District *</label>
+                <select id="departmentDistrict" required>
+                    <option value="">Loading districts...</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>Department Block *</label>
+                <select id="departmentBlock" required>
+                    <option value="">Select district first</option>
+                </select>
+            </div>
+        </div>
+
+        <h3>Nominee Details</h3>
+
+        <div class="row">
+            <div class="col">
+                <label>Nominee 1 Name</label>
+                <input type="text" id="nominee1Name">
+            </div>
+            <div class="col">
+                <label>Nominee 1 Relation</label>
+                <input type="text" id="nominee1Relation">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <label>Nominee 2 Name</label>
+                <input type="text" id="nominee2Name">
+            </div>
+            <div class="col">
+                <label>Nominee 2 Relation</label>
+                <input type="text" id="nominee2Relation">
+            </div>
+        </div>
+
+        <label><input type="checkbox" id="acceptedTerms"> I accept terms & conditions</label>
+        <div id="formError" class="error" style="display:none"></div>
+
+        <button type="button" id="submitBtn">Submit</button>
+
+        <p class="muted">Fields marked * are required.</p>
+    </form>
+</div>
+
+<script>
+/*
+  Behavior:
+  - Loads districts from /api/locations/districts
+  - On district change loads blocks from /api/locations/districts/{id}/blocks
+  - When submitting, validates required fields, builds payload using selected district/block names,
+    posts to /api/auth/register, shows success alert and redirects to success.html
+*/
+
+async function loadDistricts() {
+    const sel = document.getElementById('departmentDistrict');
+    try {
+        const res = await fetch('/api/locations/districts');
+        if(!res.ok) throw new Error('Failed to load districts');
+        const districts = await res.json();
+        sel.innerHTML = '<option value="">--Select District--</option>';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id; // UUID
+            opt.textContent = d.name;
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        sel.innerHTML = '<option value="">Failed to load</option>';
+        console.error(e);
+    }
+}
+
+async function loadBlocksForDistrict(districtId) {
+    const sel = document.getElementById('departmentBlock');
+    if(!districtId) {
+        sel.innerHTML = '<option value="">Select district first</option>';
+        return;
+    }
+    try {
+        sel.innerHTML = '<option>Loading blocks...</option>';
+        const res = await fetch(`/api/locations/districts/${districtId}/blocks`);
+        if(!res.ok) throw new Error('Failed to load blocks');
+        const blocks = await res.json();
+        sel.innerHTML = '<option value="">--Select Block--</option>';
+        blocks.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        sel.innerHTML = '<option value="">Failed to load</option>';
+        console.error(e);
+    }
+}
+
+document.getElementById('departmentDistrict').addEventListener('change', function(e){
+    loadBlocksForDistrict(e.target.value);
+});
+
+// initial load
+loadDistricts();
+
+/* small helper to get selected option text or empty */
+function selectedText(selectEl) {
+    const idx = selectEl.selectedIndex;
+    return idx >= 0 ? selectEl.options[idx].text : '';
+}
+
+document.getElementById('submitBtn').addEventListener('click', async function(){
+    const errBox = document.getElementById('formError');
+    errBox.style.display = 'none';
+    errBox.innerText = '';
+
+    // basic validation
+    const required = [
+        { id: 'name', label: 'First name' },
+        { id: 'countryCode', label: 'Country code' },
+        { id: 'mobileNumber', label: 'Mobile number' },
+        { id: 'email', label: 'Email' },
+        { id: 'username', label: 'Username' },
+        { id: 'password', label: 'Password' },
+        { id: 'departmentDistrict', label: 'Department district' },
+        { id: 'departmentBlock', label: 'Department block' }
+    ];
+    for(const r of required){
+        const el = document.getElementById(r.id);
+        const val = (el.tagName === 'SELECT') ? el.value : el.value && el.value.trim();
+        if(!val){
+            errBox.style.display = 'block';
+            errBox.innerText = r.label + ' is required.';
+            el.focus();
+            return;
+        }
+    }
+
+    // terms
+    if(!document.getElementById('acceptedTerms').checked){
+        errBox.style.display = 'block';
+        errBox.innerText = 'Please accept terms & conditions.';
+        return;
+    }
+
+    // build payload (send district/block as *names* to keep backend unchanged)
+    const districtSelect = document.getElementById('departmentDistrict');
+    const blockSelect = document.getElementById('departmentBlock');
+
+    const payload = {
+        name: document.getElementById('name').value.trim(),
+        surname: document.getElementById('surname').value.trim(),
+        countryCode: document.getElementById('countryCode').value.trim(),
+        phoneNumber: document.getElementById('phoneNumber').value.trim(),
+        mobileNumber: document.getElementById('mobileNumber').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        gender: document.getElementById('gender').value,
+        maritalStatus: document.getElementById('maritalStatus').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+        homeAddress: document.getElementById('homeAddress').value.trim(),
+        dateOfBirth: document.getElementById('dateOfBirth').value,
+        schoolOfficeName: document.getElementById('schoolOfficeName').value.trim(),
+        department: document.getElementById('department').value.trim(),
+        departmentUniqueId: document.getElementById('departmentUniqueId').value.trim(),
+        departmentDistrict: selectedText(districtSelect),
+        departmentBlock: selectedText(blockSelect),
+        nominee1Name: document.getElementById('nominee1Name').value.trim(),
+        nominee1Relation: document.getElementById('nominee1Relation').value.trim(),
+        nominee2Name: document.getElementById('nominee2Name').value.trim(),
+        nominee2Relation: document.getElementById('nominee2Relation').value.trim(),
+        acceptedTerms: document.getElementById('acceptedTerms').checked
+    };
+
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const text = await res.text();
+        if(!res.ok){
+            // try parse JSON error or show text
+            let msg = text;
+            try{ const j = JSON.parse(text); msg = j.message || JSON.stringify(j); } catch(e){}
+            alert('❌ Registration failed: ' + msg);
+            return;
+        }
+        // success, try parse message
+        let msg = '🎉 Successfully Registered!';
+        try{
+            const j = JSON.parse(text || '{}');
+            if(j.message) msg = j.message;
+        }catch(e){ /* ignore */ }
+
+        alert(msg);
+        // reset form and redirect
+        document.getElementById('regForm').reset();
+        window.location.href = 'success.html';
+    } catch (err) {
+        console.error(err);
+        alert('❌ Registration failed: ' + err.message);
+    }
+});
+</script>
+
+</body>
+</html>

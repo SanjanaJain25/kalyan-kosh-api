@@ -1,0 +1,427 @@
+{
+  "Agar Malwa": [
+    "Agar",
+    "Badod",
+    "Susner",
+    "Nalkheda"
+  ],
+  "Alirajpur": [
+    "Alirajpur",
+    "Jobat",
+    "Sondwa"
+  ],
+  "Anuppur": [
+    "Anuppur",
+    "Pushprajgarh",
+    "Jaithari",
+    "Kotma"
+  ],
+  "Ashoknagar": [
+    "Ashoknagar",
+    "Chanderi",
+    "Mungaoli",
+    "Isagarh"
+  ],
+  "Balaghat": [
+    "Balaghat",
+    "Baihar",
+    "Birsa",
+    "Katangi",
+    "Khairlanji",
+    "Kirnapur",
+    "Lanji",
+    "Paraswada",
+    "Tirodi",
+    "Waraseoni"
+  ],
+  "Barwani": [
+    "Barwani",
+    "Pansemal",
+    "Niwali",
+    "Sendhwa",
+    "Pati",
+    "Warla",
+    "Anjad",
+    "Thikri",
+    "Rajpur"
+  ],
+  "Betul": [
+    "Betul",
+    "Bhainsdehi",
+    "Multai",
+    "Amla",
+    "Shahpur",
+    "Athner",
+    "Ghodadongri",
+    "Chicholi"
+  ],
+  "Bhind": [
+    "Bhind",
+    "Ater",
+    "Lahar",
+    "Mehgaon",
+    "Gohad",
+    "Raun",
+    "Endori"
+  ],
+  "Bhopal": [
+    "Huzur",
+    "Berasia"
+  ],
+  "Burhanpur": [
+    "Burhanpur",
+    "Khaknar"
+  ],
+  "Chhatarpur": [
+    "Chhatarpur",
+    "Rajnagar",
+    "Nowgong",
+    "Lavkush Nagar",
+    "Gaurihar",
+    "Bijawar",
+    "Bada Malhara",
+    "Ghuwara"
+  ],
+  "Chhindwara": [
+    "Chhindwara",
+    "Amarwara",
+    "Bichhua",
+    "Chaurai",
+    "Harrai",
+    "Junnardeo",
+    "Mohkhed",
+    "Pandhurna",
+    "Sausar",
+    "Tamia",
+    "Umreth"
+  ],
+  "Damoh": [
+    "Damoh",
+    "Patharia",
+    "Hatta",
+    "Jabera",
+    "Tendukheda",
+    "Patera",
+    "Batiyagarh"
+  ],
+  "Datia": [
+    "Datia",
+    "Seondha",
+    "Bhander"
+  ],
+  "Dewas": [
+    "Dewas",
+    "Sonkatch",
+    "Kannod",
+    "Bagli",
+    "Hatpipliya",
+    "Tonk Khurd"
+  ],
+  "Dhar": [
+    "Dhar",
+    "Sardarpur",
+    "Badnawar",
+    "Gandhwani",
+    "Kukshi",
+    "Manawar",
+    "Nalchha",
+    "Tirla"
+  ],
+  "Dindori": [
+    "Dindori",
+    "Bajag",
+    "Shahpura",
+    "Karanjiya",
+    "Mehandwani",
+    "Samnapur",
+    "Amarpur"
+  ],
+  "Guna": [
+    "Guna",
+    "Aron",
+    "Raghogarh",
+    "Chachaura",
+    "Maksoodangarh"
+  ],
+  "Gwalior": [
+    "Gwalior",
+    "Dabra",
+    "Bhitarwar",
+    "Morar"
+  ],
+  "Harda": [
+    "Harda",
+    "Khirkiya",
+    "Sirali"
+  ],
+  "Narmadapuram (Hoshangabad)": [
+    "Hoshangabad",
+    "Itarsi",
+    "Seoni Malwa",
+    "Babai",
+    "Sohagpur",
+    "Pipariya",
+    "Bankhedi"
+  ],
+  "Indore": [
+    "Indore",
+    "Depalpur",
+    "Sanwer",
+    "Mhow"
+  ],
+  "Jabalpur": [
+    "Jabalpur",
+    "Kundam",
+    "Panagar",
+    "Majholi",
+    "Shahpura",
+    "Patan",
+    "Sihora"
+  ],
+  "Jhabua": [
+    "Jhabua",
+    "Meghnagar",
+    "Ranapur",
+    "Rama",
+    "Thandla"
+  ],
+  "Katni": [
+    "Katni",
+    "Bahoriband",
+    "Barhi",
+    "Vijayraghavgarh"
+  ],
+  "Khandwa": [
+    "Khandwa",
+    "Punasa",
+    "Harsud",
+    "Khalwa",
+    "Pandhana",
+    "Bhagwanpura"
+  ],
+  "Khargone": [
+    "Khargone",
+    "Bhagwanpura",
+    "Maheshwar",
+    "Barwaha",
+    "Segaon",
+    "Bhikangaon",
+    "Jhirniya",
+    "Gogawa",
+    "Kasrawad"
+  ],
+  "Mandla": [
+    "Mandla",
+    "Nainpur",
+    "Bichhiya",
+    "Mawai",
+    "Ghughari",
+    "Narayanganj",
+    "Mohgaon",
+    "Niwas"
+  ],
+  "Mandsaur": [
+    "Mandsaur",
+    "Malhargarh",
+    "Sitamau",
+    "Shamgarh",
+    "Suwasra",
+    "Bhanpura",
+    "Daloda",
+    "Garoth"
+  ],
+  "Morena": [
+    "Morena",
+    "Ambah",
+    "Porsa",
+    "Kailaras",
+    "Joura",
+    "Sumawali",
+    "Banmore"
+  ],
+  "Narsinghpur": [
+    "Narsinghpur",
+    "Gadarwara",
+    "Gotegaon",
+    "Kareli"
+  ],
+  "Neemuch": [
+    "Neemuch",
+    "Manasa",
+    "Jawad"
+  ],
+  "Panna": [
+    "Panna",
+    "Ajaygarh",
+    "Amanganj",
+    "Gunnor",
+    "Shahnagar"
+  ],
+  "Raisen": [
+    "Raisen",
+    "Begumganj",
+    "Gairatganj",
+    "Bareli",
+    "Silwani",
+    "Udaipura",
+    "Sanchi"
+  ],
+  "Rajgarh": [
+    "Rajgarh",
+    "Biaora",
+    "Khilchipur",
+    "Narsinghgarh",
+    "Jeerapur",
+    "Zirapur"
+  ],
+  "Ratlam": [
+    "Ratlam",
+    "Jaora",
+    "Sailana",
+    "Bajna",
+    "Piploda"
+  ],
+  "Rewa": [
+    "Rewa",
+    "Huzur",
+    "Hanumana",
+    "Jawa",
+    "Sirmour",
+    "Mangawan",
+    "Naigarhi",
+    "Semariya",
+    "Raipur Karchuliyan"
+  ],
+  "Sagar": [
+    "Sagar",
+    "Rahatgarh",
+    "Khurai",
+    "Bina",
+    "Banda",
+    "Rehli",
+    "Deori",
+    "Shahgarh",
+    "Kesli",
+    "Malthone",
+    "Garhakota"
+  ],
+  "Satna": [
+    "Satna",
+    "Amarpatan",
+    "Nagod",
+    "Maihar",
+    "Rampur Baghelan",
+    "Ramnagar",
+    "Chitrakoot",
+    "Sohawal"
+  ],
+  "Sehore": [
+    "Sehore",
+    "Ashta",
+    "Ichhawar",
+    "Nasrullaganj",
+    "Budni"
+  ],
+  "Seoni": [
+    "Seoni",
+    "Lakhnadon",
+    "Dhanaura",
+    "Koregaon",
+    "Keolari",
+    "Ghansor",
+    "Kurai",
+    "Barghat"
+  ],
+  "Shahdol": [
+    "Shahdol",
+    "Jaitpur",
+    "Beohari",
+    "Gohparu"
+  ],
+  "Shajapur": [
+    "Shajapur",
+    "Shujalpur",
+    "Moman Badodiya",
+    "Nalkheda",
+    "Kalapipal"
+  ],
+  "Sheopur": [
+    "Sheopur",
+    "Baroda",
+    "Vijaypur"
+  ],
+  "Shivpuri": [
+    "Shivpuri",
+    "Kolaras",
+    "Pohari",
+    "Badarwas",
+    "Karera",
+    "Narwar",
+    "Pichhore",
+    "Khaniyadhana"
+  ],
+  "Sidhi": [
+    "Sidhi",
+    "Churhat",
+    "Rampur Naikin",
+    "Majhauli",
+    "Kusmi",
+    "Sihawal"
+  ],
+  "Singrauli": [
+    "Singrauli",
+    "Chitrangi",
+    "Deosar"
+  ],
+  "Tikamgarh": [
+    "Tikamgarh",
+    "Jatara",
+    "Baldevgarh",
+    "Khargapur",
+    "Palera"
+  ],
+  "Ujjain": [
+    "Ujjain",
+    "Ghatiya",
+    "Mahidpur",
+    "Tarana",
+    "Badnagar",
+    "Barnagar",
+    "Khachrod"
+  ],
+  "Umaria": [
+    "Umaria",
+    "Pali",
+    "Manpur"
+  ],
+  "Vidisha": [
+    "Vidisha",
+    "Basoda",
+    "Gyaraspur",
+    "Kurwai",
+    "Lateri",
+    "Syr",
+    "Tyonda"
+  ],
+
+  "Niwari": [
+    "Niwari",
+    "Prithvipur",
+    "Orchha"
+  ],
+  "Mauganj": [
+    "Mauganj",
+    "Hanumana",
+    "Jawa",
+    "Naigarhi"
+  ],
+  "Pandhurna": [
+    "Pandhurna",
+    "Sausar",
+    "Mohkhed"
+  ],
+  "Nagda": [
+    "Nagda",
+    "Khachrod"
+  ]
+}
