@@ -4,6 +4,7 @@ import com.example.kalyan_kosh_api.dto.CreateDeathCaseRequest;
 import com.example.kalyan_kosh_api.dto.UpdateDeathCaseRequest;
 import com.example.kalyan_kosh_api.dto.DeathCaseResponse;
 import com.example.kalyan_kosh_api.entity.DeathCase;
+import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class DeathCaseService {
                 .nomineeIfsc(req.getNomineeIfsc())
                 .caseMonth(req.getCaseMonth())
                 .caseYear(req.getCaseYear())
+                .status(DeathCaseStatus.OPEN)
                 .createdBy(adminUsername)
                 .build();
 
@@ -69,6 +71,7 @@ public class DeathCaseService {
         dc.setNomineeIfsc(req.getNomineeIfsc());
         dc.setCaseMonth(req.getCaseMonth());
         dc.setCaseYear(req.getCaseYear());
+        dc.setStatus(req.getStatus());
         dc.setUpdatedBy(adminUsername);
 
         return mapper.map(repository.save(dc), DeathCaseResponse.class);

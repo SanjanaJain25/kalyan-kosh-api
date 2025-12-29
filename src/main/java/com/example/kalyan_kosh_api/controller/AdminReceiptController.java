@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.AdminReceiptResponse;
+import com.example.kalyan_kosh_api.dto.DonorResponse;
 import com.example.kalyan_kosh_api.service.AdminReceiptService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,4 +40,15 @@ public class AdminReceiptController {
         service.reject(id);
         return ResponseEntity.ok("Receipt rejected");
     }
+
+    @GetMapping("/donors")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<DonorResponse>> donors(
+            @RequestParam int month,
+            @RequestParam int year) {
+
+        return ResponseEntity.ok(
+                service.getDonors(month, year));
+    }
+
 }

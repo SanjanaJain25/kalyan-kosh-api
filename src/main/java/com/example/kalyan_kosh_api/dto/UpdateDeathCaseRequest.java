@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.dto;
 
+import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -33,4 +34,7 @@ public class UpdateDeathCaseRequest {
 
     @NotNull
     private Integer caseYear;
+
+    @NotNull
+    private DeathCaseStatus status;
 }

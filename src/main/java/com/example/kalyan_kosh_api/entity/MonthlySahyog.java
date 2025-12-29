@@ -27,7 +27,7 @@ public class MonthlySahyog {
     private int totalMembers;
     private int totalDeathCases;
 
-    private double expectedAmount;
+
     private double receivedAmount;
 
     @Enumerated(EnumType.STRING)
