@@ -32,6 +32,10 @@ public class DeathCase {
     private String createdBy;
     private String updatedBy;
 
+    @Enumerated(EnumType.STRING)
+    private DeathCaseStatus status;
+
+
     private Instant createdAt = Instant.now();
     private Instant updatedAt = Instant.now();
 

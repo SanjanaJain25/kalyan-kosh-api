@@ -51,8 +51,13 @@ public class SecurityConfig {
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
                         // Public APIs
-                        .requestMatchers("/api/auth/**", "/api/locations/**").permitAll()
-
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/auth/otp/**",
+                                "/api/auth/forgot-password/**",
+                                "/api/locations/**",
+                                "/error"
+                        ).permitAll()
                         // Admin APIs
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

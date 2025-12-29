@@ -45,4 +45,43 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
             @Param("month") int month,
             @Param("year") int year
     );
+
+    @Query("""
+select COALESCE(SUM(r.amount), 0)
+from Receipt r
+where r.user.id = :userId
+and r.month = :month
+and r.year = :year
+and r.status = 'VERIFIED'
+""")
+    double sumPaidAmount(Long userId, int month, int year);
+
+    @Query("""
+select r
+from Receipt r
+where r.month = :month
+and r.year = :year
+and r.status = com.example.kalyan_kosh_api.entity.ReceiptStatus.VERIFIED
+""")
+    List<Receipt> findVerifiedReceipts(int month, int year);
+
+    @Query("""
+select count(distinct r.user.id)
+from Receipt r
+where r.month = :month
+and r.year = :year
+and r.status = 'VERIFIED'
+""")
+    long countDonors(int month, int year);
+
+
+    @Query("""
+select coalesce(sum(r.amount), 0)
+from Receipt r
+where r.month = :month
+and r.year = :year
+and r.status = 'VERIFIED'
+""")
+    double sumVerifiedAmount(int month, int year);
+
 }
