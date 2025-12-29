@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class DonorResponse {
 
-    private Long userId;
+    private String userId;
     private String username;
     private String name;
 

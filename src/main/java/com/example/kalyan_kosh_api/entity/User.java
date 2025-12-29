@@ -10,8 +10,9 @@ import java.time.Instant;
 @Table(name = "users")
 @Getter @Setter @NoArgsConstructor
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    @Column(length = 20)
+    private String id;
 
     private String name;
     private String surname;

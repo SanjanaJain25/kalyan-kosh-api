@@ -1,11 +1,14 @@
 package com.example.kalyan_kosh_api.service;
 
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
+import com.example.kalyan_kosh_api.dto.LoginResponse;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.security.CustomUserDetailsService;
 import com.example.kalyan_kosh_api.security.JwtUtil;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 @Service
 public class AuthService {
@@ -23,17 +27,24 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
+    private final ModelMapper mapper;
+    private final IdGeneratorService idGeneratorService;
 
+    // Constructor with required dependencies (Spring will autowire)
     public AuthService(UserRepository userRepo,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        CustomUserDetailsService userDetailsService,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       ModelMapper mapper,
+                       IdGeneratorService idGeneratorService) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
+        this.mapper = mapper;
+        this.idGeneratorService = idGeneratorService;
     }
 
     @Transactional
@@ -49,6 +60,20 @@ public class AuthService {
         u.setUsername(req.getUsername());
         u.setEmail(req.getEmail());
         u.setMobileNumber(req.getMobileNumber());
+        u.setEmail(req.getEmail());
+        u.setGender(req.getGender());
+        u.setMaritalStatus(req.getMaritalStatus());
+        u.setUsername(req.getUsername());
+        u.setHomeAddress(req.getHomeAddress());
+        u.setSchoolOfficeName(req.getSchoolOfficeName());
+        u.setDepartment(req.getDepartment());
+        u.setDepartmentUniqueId(req.getDepartmentUniqueId());
+        u.setDepartmentDistrict(req.getDepartmentDistrict());
+        u.setDepartmentBlock(req.getDepartmentBlock());
+        u.setNominee1Name(req.getNominee1Name());
+        u.setNominee1Relation(req.getNominee1Relation());
+        u.setNominee2Name(req.getNominee2Name());
+        u.setNominee2Relation(req.getNominee2Relation());
         u.setAcceptedTerms(req.isAcceptedTerms());
 
         if (req.getDateOfBirth() != null) {
@@ -60,6 +85,10 @@ public class AuthService {
         );
 
         u.setRole(Role.ROLE_USER);
+
+        // Generate custom ID (PMUMS2024XXXXX format)
+        String userId = idGeneratorService.generateNextUserId();
+        u.setId(userId);
 
         return userRepo.save(u);
     }
@@ -79,6 +108,28 @@ public class AuthService {
                 userDetailsService.loadUserByUsername(username);
 
         return jwtUtil.generateToken(ud);
+    }
+
+    /**
+     * Authenticate credentials and return login response with both JWT token and user details.
+     * Throws AuthenticationException (runtime) if credentials invalid.
+     */
+    public LoginResponse authenticateAndGetLoginResponse(String username, String rawPassword) {
+        // this will throw a subclass of AuthenticationException if auth fails
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, rawPassword));
+
+        // Load UserDetails (so roles/authorities are available)
+        UserDetails ud = userDetailsService.loadUserByUsername(username);
+
+        // Generate JWT using JwtUtil
+        String token = jwtUtil.generateToken(ud);
+
+        // Get user entity and map to response DTO
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found after authentication"));
+        UserResponse userResponse = mapper.map(user, UserResponse.class);
+
+        return new LoginResponse(token, userResponse);
     }
 
     @Transactional

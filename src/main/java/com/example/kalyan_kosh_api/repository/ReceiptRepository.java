@@ -54,7 +54,7 @@ and r.month = :month
 and r.year = :year
 and r.status = 'VERIFIED'
 """)
-    double sumPaidAmount(Long userId, int month, int year);
+    double sumPaidAmount(String userId, int month, int year);
 
     @Query("""
 select r

@@ -135,7 +135,7 @@ public class MonthlySahyogService {
 
     public List<NonDonorResponse> getDonors(int month, int year) {
 
-        List<Long> nonDonorUserIds = getNonDonors(month, year)
+        List<String> nonDonorUserIds = getNonDonors(month, year)
                 .stream()
                 .map(NonDonorResponse::getUserId)
                 .toList();

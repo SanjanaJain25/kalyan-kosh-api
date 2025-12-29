@@ -11,6 +11,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/non-donors")
 @PreAuthorize("hasRole('ADMIN')")
+@CrossOrigin(origins = "*")
 public class NonDonorController {
 
     private final NonDonorService service;

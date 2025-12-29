@@ -34,6 +34,20 @@ public class LocationService {
                 .collect(Collectors.toList());
     }
 
+    // Accept either a UUID string or a district name; resolve to UUID and return blocks
+    public List<BlockDto> getBlocksForDistrict(String districtIdOrName) {
+        // Try parse UUID first
+        try {
+            UUID id = UUID.fromString(districtIdOrName);
+            return getBlocksForDistrict(id);
+        } catch (IllegalArgumentException ex) {
+            // not a UUID, try by name
+            District d = districtRepository.findByName(districtIdOrName);
+            if (d == null) return null; // indicate not found
+            return getBlocksForDistrict(d.getId());
+        }
+    }
+
     public List<DistrictWithCountDto> getDistrictsWithCounts() {
         return districtRepository.findAll().stream()
                 .map(d -> new DistrictWithCountDto(d.getId(), d.getName(), blockRepository.countByDistrictId(d.getId())))
