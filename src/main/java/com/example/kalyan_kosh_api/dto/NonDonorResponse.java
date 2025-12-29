@@ -7,7 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class NonDonorResponse {
 
-    private Long userId;
+    private String userId;
     private String username;
     private double paidAmount;
     private String status; // UNPAID / PARTIAL / PAID

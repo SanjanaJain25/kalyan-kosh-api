@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/death-cases")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@CrossOrigin(origins = "*")
 public class DeathCaseController {
 
     private final DeathCaseService service;

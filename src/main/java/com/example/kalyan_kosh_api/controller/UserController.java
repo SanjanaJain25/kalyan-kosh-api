@@ -11,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
@@ -21,7 +22,7 @@ public class UserController {
 
     // GET USER BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> getUser(@PathVariable String id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
@@ -34,7 +35,7 @@ public class UserController {
     // UPDATE USER
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody UpdateUserRequest req) {
         return ResponseEntity.ok(userService.updateUser(id, req));
     }

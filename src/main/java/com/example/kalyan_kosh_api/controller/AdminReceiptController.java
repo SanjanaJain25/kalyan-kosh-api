@@ -12,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/receipts")
 @PreAuthorize("hasRole('ADMIN')")
+@CrossOrigin(origins = "*")
 public class AdminReceiptController {
 
     private final AdminReceiptService service;

@@ -13,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/monthly-sahyog")
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@CrossOrigin(origins = "*")
 public class AdminMonthlySahyogController {
 
     private final MonthlySahyogService service;

@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/receipts")
 @PreAuthorize("hasRole('USER')")
+@CrossOrigin(origins = "*")
 public class ReceiptController {
 
     private final ReceiptService service;
