@@ -61,7 +61,7 @@ public class AuthService {
     @Transactional
     public User registerAfterOtp(RegisterRequest req) {
 
-        if (userRepo.existsByUsername(req.getUsername())) {
+        if (userRepo.existsById(req.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
 
