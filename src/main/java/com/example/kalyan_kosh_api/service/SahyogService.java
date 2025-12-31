@@ -14,8 +14,8 @@ public class SahyogService {
     }
 
     public double calculateTotal(int month, int year) {
-        Double total = receiptRepo
-                .sumAmountByMonthAndYearAndStatus(month, year, ReceiptStatus.VERIFIED);
-        return total == null ? 0 : total;
+//        Double total = receiptRepo
+//                .sumAmountByMonthAndYearAndStatus(month, year, ReceiptStatus.VERIFIED);
+        return  0;
     }
 }

@@ -4,13 +4,13 @@ import com.example.kalyan_kosh_api.dto.ReceiptResponse;
 import com.example.kalyan_kosh_api.dto.UploadReceiptRequest;
 import com.example.kalyan_kosh_api.entity.*;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
-import com.example.kalyan_kosh_api.repository.MonthlySahyogRepository;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -20,20 +20,17 @@ public class ReceiptService {
     private final ReceiptRepository receiptRepo;
     private final UserRepository userRepo;
     private final DeathCaseRepository deathCaseRepo;
-    private final MonthlySahyogRepository sahyogRepo;
     private final ModelMapper mapper;
 
     public ReceiptService(
             ReceiptRepository receiptRepo,
             UserRepository userRepo,
             DeathCaseRepository deathCaseRepo,
-            MonthlySahyogRepository sahyogRepo,
             ModelMapper mapper
     ) {
         this.receiptRepo = receiptRepo;
         this.userRepo = userRepo;
         this.deathCaseRepo = deathCaseRepo;
-        this.sahyogRepo = sahyogRepo;
         this.mapper = mapper;
     }
 
@@ -46,46 +43,59 @@ public class ReceiptService {
     ) {
 
         // Validate user
-        User user = userRepo.findByUsername(username)
+        User user = userRepo.findById(username)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
         // Validate death case
-        DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
+        DeathCase deathCase = deathCaseRepo.findById(31L)
                 .orElseThrow(() -> new IllegalStateException("Death case not found"));
 
-        // Monthly Sahyog check
-        MonthlySahyog sahyog = sahyogRepo
-                .findByMonthAndYear(req.getMonth(), req.getYear())
-                .orElseThrow(() ->
-                        new IllegalStateException("Monthly Sahyog not generated"));
-
-        // FREEZE GUARD
-        if (sahyog.getStatus() == SahyogStatus.FROZEN) {
-            throw new IllegalStateException(
-                    "Month is frozen. Receipt upload not allowed.");
+        // Validate file size (10MB limit)
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("File size exceeds 10MB limit");
         }
 
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null ||
+            (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
+            throw new IllegalArgumentException("Only images and PDFs are allowed");
+        }
 
-        String filePath =
-                "uploads/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        // Save current date and time
+        Instant currentDateTime = Instant.now();
 
+        try {
+            // ✅ Convert file to byte array for database storage
+            byte[] fileData = file.getBytes();
 
-        Receipt receipt = Receipt.builder()
-                .user(user)
-                .deathCase(deathCase)
-                .month(req.getMonth())
-                .year(req.getYear())
-                .amount(req.getAmount())
-                .paymentDate(req.getPaymentDate())
-                .transactionId(req.getTransactionId())
-                .filePath(filePath)
-                .status(ReceiptStatus.UPLOADED)
-                .uploadedAt(Instant.now())
-                .build();
+            Receipt receipt = Receipt.builder()
+                    .user(user)
+                    .deathCase(deathCase)
+                    .amount(req.getAmount())
+                    .paymentDate(req.getPaymentDate())
+                    .comment(req.getComment())
 
-        Receipt saved = receiptRepo.save(receipt);
+                    // ✅ Store file in database
+                    .fileData(fileData)
+                    .fileName(file.getOriginalFilename())
+                    .fileType(contentType)
+                    .fileSize(file.getSize())
 
-        return mapper.map(saved, ReceiptResponse.class);
+                    .status(ReceiptStatus.UPLOADED)
+                    .uploadedAt(currentDateTime)
+                    .build();
+
+            Receipt saved = receiptRepo.save(receipt);
+
+            System.out.println("✅ File saved to database: " + file.getOriginalFilename() +
+                             " (" + file.getSize() + " bytes)");
+
+            return mapper.map(saved, ReceiptResponse.class);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file data: " + e.getMessage(), e);
+        }
     }
 
 

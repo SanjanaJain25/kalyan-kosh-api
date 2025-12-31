@@ -17,7 +17,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     @Override public String getPassword() { return user.getPasswordHash(); }   // matches your entity
-    @Override public String getUsername() { return user.getUsername(); }
+    @Override public String getUsername() { return user.getId(); } // Return user ID for JWT subject
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }

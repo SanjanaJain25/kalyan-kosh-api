@@ -162,6 +162,7 @@ public class AuthService {
             String username,
             String rawPassword) {
 
+        // Authenticate with username/password
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         username,
@@ -169,8 +170,12 @@ public class AuthService {
                 )
         );
 
-        UserDetails ud =
-                userDetailsService.loadUserByUsername(username);
+        // Find user by username to get userId
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found after authentication"));
+
+        // Load UserDetails using userId (for JWT generation)
+        UserDetails ud = userDetailsService.loadUserByUsername(user.getId());
 
         return jwtUtil.generateToken(ud);
     }
@@ -183,15 +188,17 @@ public class AuthService {
         // this will throw a subclass of AuthenticationException if auth fails
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, rawPassword));
 
-        // Load UserDetails (so roles/authorities are available)
-        UserDetails ud = userDetailsService.loadUserByUsername(username);
-
-        // Generate JWT using JwtUtil
-        String token = jwtUtil.generateToken(ud);
-
-        // Get user entity and map to response DTO
+        // Find user by username to get the user entity and userId
         User user = userRepo.findById(username)
                 .orElseThrow(() -> new RuntimeException("User not found after authentication"));
+
+        // Load UserDetails using userId (this is what goes into JWT)
+        UserDetails ud = userDetailsService.loadUserByUsername(user.getId());
+
+        // Generate JWT using JwtUtil (will contain userId as subject)
+        String token = jwtUtil.generateToken(ud);
+
+        // Map user entity to response DTO
         UserResponse userResponse = mapper.map(user, UserResponse.class);
 
         return new LoginResponse(token, userResponse);

@@ -11,14 +11,14 @@ import java.util.List;
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
-
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
 
+    // Note: The following queries have been commented out because Receipt entity
+    // no longer has 'month' and 'year' fields. If you need monthly tracking,
+    // you'll need to extract month/year from paymentDate or add these fields back.
 
-
-
+    /*
     List<Receipt> findByMonthAndYear(int month, int year);
-
 
     @Query("""
         SELECT COALESCE(SUM(r.amount), 0)
@@ -32,7 +32,6 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
             @Param("year") int year,
             @Param("status") ReceiptStatus status
     );
-
 
     @Query("""
         SELECT DISTINCT r.user
@@ -74,7 +73,6 @@ and r.status = 'VERIFIED'
 """)
     long countDonors(int month, int year);
 
-
     @Query("""
 select coalesce(sum(r.amount), 0)
 from Receipt r
@@ -83,5 +81,6 @@ and r.year = :year
 and r.status = 'VERIFIED'
 """)
     double sumVerifiedAmount(int month, int year);
+    */
 
 }

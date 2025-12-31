@@ -26,9 +26,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                String username = jwtUtil.extractUsername(token);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    var ud = uds.loadUserByUsername(username);
+                String userId = jwtUtil.extractUsername(token); // Actually extracts userId now
+                if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    var ud = uds.loadUserByUsername(userId); // Pass userId to loadUserByUsername
                     jwtUtil.validate(token); // throws if invalid/expired
                     var auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));

@@ -28,14 +28,26 @@ public class Receipt {
     @JoinColumn(name = "death_case_id", nullable = false)
     private DeathCase deathCase;
 
-    private int month;
-    private int year;
-
     private double amount;
     private LocalDate paymentDate;
 
-    private String transactionId;
-    private String filePath;
+    private String comment;
+    private String filePath;  // Keep for backward compatibility
+
+    // ✅ NEW: Database storage fields
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "file_data", columnDefinition = "LONGBLOB")
+    private byte[] fileData;
+
+    @Column(name = "file_name", length = 500)
+    private String fileName;
+
+    @Column(name = "file_type", length = 100)
+    private String fileType;
+
+    @Column(name = "file_size")
+    private Long fileSize;
 
     @Enumerated(EnumType.STRING)
     private ReceiptStatus status;

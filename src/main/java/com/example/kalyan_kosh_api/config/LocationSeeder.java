@@ -41,7 +41,7 @@ public class LocationSeeder {
 
             try {
                 ClassPathResource resource =
-                        new ClassPathResource("data/mp_state_sambhag_district_block_data.json");
+                        new ClassPathResource("data/mp_district_block_data.json");
 
                 InputStream is = resource.getInputStream();
                 ObjectMapper mapper = new ObjectMapper();

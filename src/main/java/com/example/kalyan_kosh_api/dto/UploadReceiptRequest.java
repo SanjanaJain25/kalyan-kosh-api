@@ -9,11 +9,6 @@ import java.time.LocalDate;
 @Data
 public class UploadReceiptRequest {
 
-    @NotNull
-    private Integer month;
-
-    @NotNull
-    private Integer year;
 
     @NotNull
     private Long deathCaseId;
@@ -26,5 +21,5 @@ public class UploadReceiptRequest {
     private LocalDate paymentDate;
 
     // optional
-    private String transactionId;
+    private String comment;
 }

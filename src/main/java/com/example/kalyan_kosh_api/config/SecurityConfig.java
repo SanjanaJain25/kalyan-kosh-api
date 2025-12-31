@@ -107,6 +107,7 @@ public class SecurityConfig {
 
                         // User APIs - requires USER role
                         .requestMatchers("/api/receipts/**").hasRole("USER")
+                        .requestMatchers("/api/death-cases/**").hasRole("USER")
 
                         // Any other request needs authentication
                         .anyRequest().authenticated()
@@ -123,7 +124,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow the dev frontend (change to specific origin(s) in production)
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000", "*"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000", "http://13.204.36.38:3000","*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

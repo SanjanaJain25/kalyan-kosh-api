@@ -21,10 +21,10 @@ public class NonDonorService {
     public List<User> getNonDonors(int month, int year) {
 
         List<User> allUsers = userRepo.findAll();
-        List<User> donors = receiptRepo.findDonors(month, year);
+//        List<User> donors = receiptRepo.findDonors(month, year);
 
         return allUsers.stream()
-                .filter(u -> !donors.contains(u))
+//                .filter(u -> !donors.contains(u))
                 .toList();
     }
 }

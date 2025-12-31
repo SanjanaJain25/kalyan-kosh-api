@@ -16,7 +16,7 @@ public class ReceiptResponse {
 
     private double amount;
     private LocalDate paymentDate;
-    private String transactionId;
+    private String comment;
 
     private ReceiptStatus status;
 

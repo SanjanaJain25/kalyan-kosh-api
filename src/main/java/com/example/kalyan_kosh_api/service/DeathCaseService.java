@@ -22,7 +22,7 @@ public class DeathCaseService {
         this.mapper = mapper;
     }
 
-    public DeathCaseResponse create(CreateDeathCaseRequest req, String adminUsername) {
+    public DeathCaseResponse create(CreateDeathCaseRequest req, String userId) {
 
         DeathCase deathCase = DeathCase.builder()
                 .deceasedName(req.getDeceasedName())
@@ -35,7 +35,7 @@ public class DeathCaseService {
                 .caseMonth(req.getCaseMonth())
                 .caseYear(req.getCaseYear())
                 .status(DeathCaseStatus.OPEN)
-                .createdBy(adminUsername)
+                .createdBy(userId) // Now receives userId instead of username
                 .build();
 
         return mapper.map(repository.save(deathCase), DeathCaseResponse.class);
@@ -57,7 +57,7 @@ public class DeathCaseService {
     public DeathCaseResponse update(
             Long id,
             UpdateDeathCaseRequest req,
-            String adminUsername) {
+            String userId) { // Now receives userId instead of adminUsername
 
         DeathCase dc = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Death case not found"));
@@ -72,7 +72,7 @@ public class DeathCaseService {
         dc.setCaseMonth(req.getCaseMonth());
         dc.setCaseYear(req.getCaseYear());
         dc.setStatus(req.getStatus());
-        dc.setUpdatedBy(adminUsername);
+        dc.setUpdatedBy(userId); // Now receives userId instead of username
 
         return mapper.map(repository.save(dc), DeathCaseResponse.class);
     }

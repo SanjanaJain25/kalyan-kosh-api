@@ -20,10 +20,11 @@ public class AdminReceiptService {
     }
 
     public List<AdminReceiptResponse> list(int month, int year) {
-        return receiptRepo.findByMonthAndYear(month, year)
-                .stream()
-                .map(r -> AdminReceiptResponse.from(r))
-                .toList();
+//        return receiptRepo.findByMonthAndYear(month, year)
+//                .stream()
+//                .map(r -> AdminReceiptResponse.from(r))
+//                .toList();
+        return List.of();
     }
 
     public void verify(Long id) {
@@ -41,32 +42,32 @@ public class AdminReceiptService {
     }
 
     public List<DonorResponse> getDonors(int month, int year) {
-
-        return receiptRepo.findVerifiedReceipts(month, year)
-                .stream()
-                .map(r -> {
-                    User u = r.getUser();
-
-                    String sambhagName = u.getDepartmentSambhag() != null
-                            ? u.getDepartmentSambhag().getName() : null;
-                    String districtName = u.getDepartmentDistrict() != null
-                            ? u.getDepartmentDistrict().getName() : null;
-                    String blockName = u.getDepartmentBlock() != null
-                            ? u.getDepartmentBlock().getName() : null;
-
-                    return new DonorResponse(
-                            u.getId(),
-                            u.getUsername(),
-                            u.getName(),
-                            sambhagName,   // sambhag
-                            districtName,  // district
-                            blockName,     // block
-                            u.getDepartment(),
-                            r.getPaymentDate(),
-                            r.getAmount()
-                    );
-                })
-                .toList();
+return List.of();
+//        return receiptRepo.findVerifiedReceipts(month, year)
+//                .stream()
+//                .map(r -> {
+//                    User u = r.getUser();
+//
+//                    String sambhagName = u.getDepartmentSambhag() != null
+//                            ? u.getDepartmentSambhag().getName() : null;
+//                    String districtName = u.getDepartmentDistrict() != null
+//                            ? u.getDepartmentDistrict().getName() : null;
+//                    String blockName = u.getDepartmentBlock() != null
+//                            ? u.getDepartmentBlock().getName() : null;
+//
+//                    return new DonorResponse(
+//                            u.getId(),
+//                            u.getUsername(),
+//                            u.getName(),
+//                            sambhagName,   // sambhag
+//                            districtName,  // district
+//                            blockName,     // block
+//                            u.getDepartment(),
+//                            null,
+//                            0
+//                    );
+//                })
+//                .toList();
     }
 
 }

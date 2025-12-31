@@ -15,6 +15,18 @@ import java.io.PrintWriter;
 import java.time.Instant;
 import java.util.List;
 
+/*
+ * NOTE: This service is commented out because it depends on ReceiptRepository methods
+ * that reference month/year fields which were removed from Receipt entity.
+ * The admin controllers that use this service are also commented out.
+ *
+ * To re-enable:
+ * 1. Add back month/year fields to Receipt entity, OR
+ * 2. Update ReceiptRepository queries to extract month/year from paymentDate, OR
+ * 3. Remove this service entirely if monthly tracking is not needed
+ */
+
+/*
 @Service
 public class MonthlySahyogService {
 
@@ -211,3 +223,4 @@ public class MonthlySahyogService {
 
 
 }
+*/

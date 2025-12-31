@@ -26,9 +26,9 @@ public class AdminController {
     @PostMapping("/dashboard")
     public ResponseEntity<?> adminDashboard(@RequestBody Map<String, String> body) {
 
-        String username = body.get("username");
+        String userId = body.get("userId");
 
-        User user = userRepo.findByUsername(username).orElse(null);
+        User user = userRepo.findById(userId).orElse(null);
 
         if (user == null) {
             return ResponseEntity.status(404).body("User not found");
