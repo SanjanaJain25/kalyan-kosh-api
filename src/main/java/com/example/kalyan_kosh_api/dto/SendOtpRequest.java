@@ -7,5 +7,5 @@ import lombok.Data;
 public class SendOtpRequest {
 
     @NotBlank(message = "Mobile number is required")
-    private String mobile;
+    private String email;
 }

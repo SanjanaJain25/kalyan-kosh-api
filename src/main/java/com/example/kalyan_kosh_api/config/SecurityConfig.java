@@ -71,6 +71,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/").permitAll()
                         // Allow the Spring error page/endpoint (so errors can be returned to anonymous callers)
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/auth/email-otp/send").permitAll()
+                        .requestMatchers("/api/auth/otp/verify").permitAll()
 
                         .requestMatchers(
                                 "/api/auth/**",

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth/otp")
+@CrossOrigin(origins = "*")
 public class OtpAuthController {
 
     private final OtpService otpService;
@@ -27,7 +28,7 @@ public class OtpAuthController {
     public ResponseEntity<String> sendOtp(
             @Valid @RequestBody SendOtpRequest request) {
 
-        otpService.sendOtp(request.getMobile());
+        otpService.sendOtp(request.getEmail());
         return ResponseEntity.ok("OTP sent successfully");
     }
 
