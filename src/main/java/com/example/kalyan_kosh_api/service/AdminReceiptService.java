@@ -47,13 +47,20 @@ public class AdminReceiptService {
                 .map(r -> {
                     User u = r.getUser();
 
+                    String sambhagName = u.getDepartmentSambhag() != null
+                            ? u.getDepartmentSambhag().getName() : null;
+                    String districtName = u.getDepartmentDistrict() != null
+                            ? u.getDepartmentDistrict().getName() : null;
+                    String blockName = u.getDepartmentBlock() != null
+                            ? u.getDepartmentBlock().getName() : null;
+
                     return new DonorResponse(
                             u.getId(),
                             u.getUsername(),
                             u.getName(),
-                            u.getDepartmentDistrict(), // sambhag (temporary mapping)
-                            u.getDepartmentDistrict(),
-                            u.getDepartmentBlock(),
+                            sambhagName,   // sambhag
+                            districtName,  // district
+                            blockName,     // block
                             u.getDepartment(),
                             r.getPaymentDate(),
                             r.getAmount()

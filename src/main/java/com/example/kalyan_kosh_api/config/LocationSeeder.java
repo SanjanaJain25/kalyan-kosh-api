@@ -2,9 +2,13 @@ package com.example.kalyan_kosh_api.config;
 
 import com.example.kalyan_kosh_api.entity.Block;
 import com.example.kalyan_kosh_api.entity.District;
+import com.example.kalyan_kosh_api.entity.Sambhag;
+import com.example.kalyan_kosh_api.entity.State;
 import com.example.kalyan_kosh_api.repository.BlockRepository;
 import com.example.kalyan_kosh_api.repository.DistrictRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.example.kalyan_kosh_api.repository.SambhagRepository;
+import com.example.kalyan_kosh_api.repository.StateRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.InputStream;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 
 @Configuration
@@ -20,54 +24,91 @@ public class LocationSeeder {
 
     @Bean
     public CommandLineRunner seedData(
+            StateRepository stateRepo,
+            SambhagRepository sambhagRepo,
             DistrictRepository districtRepo,
             BlockRepository blockRepo
     ) {
         return args -> {
 
-            // ✅ Seed ONLY if no district data exists
-            if (districtRepo.count() > 0) {
-                System.out.println("ℹ District & Block data already exists. Skipping seeding.");
+            // ✅ Seed ONLY if no state data exists
+            if (stateRepo.count() > 0) {
+                System.out.println("ℹ Location hierarchy data already exists. Skipping seeding.");
                 return;
             }
 
-            System.out.println("🚀 Seeding district & block master data...");
+            System.out.println("🚀 Seeding State → Sambhag → District → Block hierarchy...");
 
             try {
                 ClassPathResource resource =
-                        new ClassPathResource("data/mp_district_block_data.json");
+                        new ClassPathResource("data/mp_state_sambhag_district_block_data.json");
 
                 InputStream is = resource.getInputStream();
                 ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(is);
 
-                // Map<districtName, List<blockNames>>
-                Map<String, List<String>> map =
-                        mapper.readValue(is,
-                                new TypeReference<Map<String, List<String>>>() {});
+                // Get state node
+                JsonNode stateNode = root.get("state");
+                String stateName = stateNode.get("name").asText();
+                String stateCode = stateNode.get("code").asText();
 
-                for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                // Create State
+                State state = new State();
+                state.setName(stateName);
+                state.setCode(stateCode);
+                state = stateRepo.save(state);
+                System.out.println("✅ Created State: " + stateName);
 
-                    String districtName = entry.getKey().trim();
-                    List<String> blocks = entry.getValue();
+                // Get sambhags array
+                JsonNode sambhagsArray = stateNode.get("sambhags");
 
-                    District district = new District();
-                    district.setName(districtName);
-                    district = districtRepo.save(district);
+                for (JsonNode sambhagNode : sambhagsArray) {
+                    String sambhagName = sambhagNode.get("name").asText();
 
-                    if (blocks != null) {
-                        for (String blockName : blocks) {
+                    // Create Sambhag
+                    Sambhag sambhag = new Sambhag();
+                    sambhag.setName(sambhagName);
+                    sambhag.setState(state);
+                    sambhag = sambhagRepo.save(sambhag);
+                    System.out.println("  ✅ Created Sambhag: " + sambhagName);
+
+                    // Get districts object
+                    JsonNode districtsNode = sambhagNode.get("districts");
+                    Iterator<Map.Entry<String, JsonNode>> districtFields = districtsNode.fields();
+
+                    while (districtFields.hasNext()) {
+                        Map.Entry<String, JsonNode> districtEntry = districtFields.next();
+                        String districtName = districtEntry.getKey();
+                        JsonNode blocksArray = districtEntry.getValue();
+
+                        // Create District
+                        District district = new District();
+                        district.setName(districtName);
+                        district.setSambhag(sambhag);
+                        district = districtRepo.save(district);
+
+                        // Create Blocks
+                        int blockCount = 0;
+                        for (JsonNode blockNameNode : blocksArray) {
+                            String blockName = blockNameNode.asText();
+
                             Block block = new Block();
-                            block.setName(blockName.trim());
+                            block.setName(blockName);
                             block.setDistrict(district);
                             blockRepo.save(block);
+                            blockCount++;
                         }
+                        System.out.println("    ✅ Created District: " + districtName + " with " + blockCount + " blocks");
                     }
                 }
 
-                System.out.println("✅ District & Block master data seeded successfully.");
+                System.out.println("✅ Location hierarchy seeded successfully!");
+                System.out.println("   State: 1, Sambhags: " + sambhagRepo.count() +
+                                   ", Districts: " + districtRepo.count() +
+                                   ", Blocks: " + blockRepo.count());
 
             } catch (Exception ex) {
-                System.err.println("❌ Failed to seed district/block data");
+                System.err.println("❌ Failed to seed location hierarchy");
                 ex.printStackTrace();
             }
         };

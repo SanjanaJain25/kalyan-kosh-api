@@ -22,8 +22,18 @@ public class AdminReceiptResponse {
         AdminReceiptResponse dto = new AdminReceiptResponse();
         dto.setRegNo(r.getUser().getUsername());
         dto.setName(r.getUser().getName());
-        dto.setDistrict(r.getUser().getDepartmentDistrict());
-        dto.setBlock(r.getUser().getDepartmentBlock());
+
+        // Extract names from entity relationships
+        if (r.getUser().getDepartmentSambhag() != null) {
+            dto.setSambhag(r.getUser().getDepartmentSambhag().getName());
+        }
+        if (r.getUser().getDepartmentDistrict() != null) {
+            dto.setDistrict(r.getUser().getDepartmentDistrict().getName());
+        }
+        if (r.getUser().getDepartmentBlock() != null) {
+            dto.setBlock(r.getUser().getDepartmentBlock().getName());
+        }
+
         dto.setDepartment(r.getUser().getDepartment());
         dto.setPaymentDate(r.getPaymentDate());
         dto.setAmount(r.getAmount());

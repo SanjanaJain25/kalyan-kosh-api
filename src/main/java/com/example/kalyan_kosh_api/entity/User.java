@@ -34,9 +34,25 @@ public class User {
     private LocalDate dateOfBirth;
     private String schoolOfficeName;
     private String department;
+    @Column(unique = true, nullable = false)
     private String departmentUniqueId;
-    private String departmentDistrict;
-    private String departmentBlock;
+
+    // Department location hierarchy - using entity relationships
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_state_id")
+    private State departmentState;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_sambhag_id")
+    private Sambhag departmentSambhag;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_district_id")
+    private District departmentDistrict;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_block_id")
+    private Block departmentBlock;
     private String nominee1Name;
     private String nominee1Relation;
     private String nominee2Name;
