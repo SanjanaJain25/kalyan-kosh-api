@@ -23,6 +23,8 @@ public class RegisterRequest {
     private String schoolOfficeName;
     private String department;
     private String departmentUniqueId;
+    private String departmentState;      // NEW: "Madhya Pradesh"
+    private String departmentSambhag;    // NEW: "Chambal"
     private String departmentDistrict;
     private String departmentBlock;
     private String nominee1Name;

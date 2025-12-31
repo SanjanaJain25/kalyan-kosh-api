@@ -16,6 +16,8 @@ public class UpdateUserRequest {
     private String schoolOfficeName;
     private String department;
     private String departmentUniqueId;
+    private String departmentState;      // NEW
+    private String departmentSambhag;    // NEW
     private String departmentDistrict;
     private String departmentBlock;
     private String nominee1Name;

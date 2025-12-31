@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.OtpRegisterRequest;
+import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.SendOtpRequest;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.service.AuthService;
@@ -35,18 +36,16 @@ public class OtpAuthController {
     // 2️⃣ VERIFY OTP + REGISTER USER
     @PostMapping("/verify")
     public ResponseEntity<String> verifyOtpAndRegister(
-            @Valid @RequestBody OtpRegisterRequest request) {
+            @Valid @RequestBody RegisterRequest request) {
 
-        // verify OTP
-        otpService.verifyOtp(
-                request.getOtp().getMobile(),
-                request.getOtp().getOtp()
-        );
+//        // verify OTP
+//        otpService.verifyOtp(
+//                request.getOtp().getMobile(),
+//                request.getOtp().getOtp()
+//        );
 
         // register user
-        User user = authService.registerAfterOtp(
-                request.getUser()
-        );
+        User user = authService.registerAfterOtp(request);
 
         return ResponseEntity.ok(
                 "User registered successfully with username: "

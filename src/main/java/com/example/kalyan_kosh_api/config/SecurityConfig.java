@@ -6,17 +6,20 @@ import com.example.kalyan_kosh_api.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.List;
 
 @Configuration
@@ -29,6 +32,19 @@ public class SecurityConfig {
     public SecurityConfig(CustomUserDetailsService uds, JwtUtil jwtUtil) {
         this.uds = uds;
         this.jwtUtil = jwtUtil;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(uds);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 
     @Bean
@@ -57,37 +73,39 @@ public class SecurityConfig {
                 .sessionManagement(sm ->
                         sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // Set authentication provider
+                .authenticationProvider(authenticationProvider())
+
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public APIs
-                        // Allow unauthenticated GET access to location endpoints used by frontend
-                        .requestMatchers(HttpMethod.GET, "/api/locations/**").permitAll()
-                        // Allow preflight OPTIONS for any endpoint (so browser preflight won't be blocked)
+                        // Allow preflight OPTIONS for any endpoint (CORS)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Keep auth endpoints public
+
+                        // Public endpoints - Authentication & Registration
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Make only GET /api/users (getAllUsers) public, not individual user access
-                        // Allow both /api/users and /api/users/ (with trailing slash)
+
+                        // Public endpoints - Email OTP
+                        .requestMatchers("/api/auth/email-otp/**").permitAll()
+
+                        // Public endpoints - Locations
+                        .requestMatchers("/api/locations/**").permitAll()
+
+                        // Public endpoint - Get all users
                         .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/").permitAll()
-                        // Allow the Spring error page/endpoint (so errors can be returned to anonymous callers)
+
+                        // Public endpoint - Error handling
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/email-otp/send").permitAll()
                         .requestMatchers("/api/auth/otp/verify").permitAll()
 
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/auth/otp/**",
-                                "/api/auth/forgot-password/**",
-                                "/api/locations/**",
-                                "/error"
-                        ).permitAll()
-                        // Admin APIs
+                        // Admin APIs - requires ADMIN role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/login").permitAll()
 
-                        // Manager APIs
+                        // Manager APIs - requires MANAGER or ADMIN role
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
 
-                        // ✅ USER can upload receipts
+                        // User APIs - requires USER role
                         .requestMatchers("/api/receipts/**").hasRole("USER")
 
                         // Any other request needs authentication
