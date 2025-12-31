@@ -32,6 +32,7 @@ public class AuthService {
     private final DistrictRepository districtRepo;
     private final SambhagRepository sambhagRepo;
     private final StateRepository stateRepo;
+    private final EmailService emailService;
 
     // Constructor with required dependencies (Spring will autowire)
     public AuthService(UserRepository userRepo,
@@ -44,7 +45,8 @@ public class AuthService {
                        BlockRepository blockRepo,
                        DistrictRepository districtRepo,
                        SambhagRepository sambhagRepo,
-                       StateRepository stateRepo) {
+                       StateRepository stateRepo,
+                       EmailService emailService) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -56,6 +58,7 @@ public class AuthService {
         this.districtRepo = districtRepo;
         this.sambhagRepo = sambhagRepo;
         this.stateRepo = stateRepo;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -155,7 +158,30 @@ public class AuthService {
         String userId = idGeneratorService.generateNextUserId();
         u.setId(userId);
 
-        return userRepo.save(u);
+        // Save the user to database
+        User savedUser = userRepo.save(u);
+
+        // Send registration confirmation email
+        try {
+            String userName = (savedUser.getName() != null && !savedUser.getName().isEmpty())
+                ? savedUser.getName()
+                : "सदस्य"; // Default to "Member" in Hindi if name is not available
+
+            emailService.sendRegistrationConfirmationEmail(
+                savedUser.getEmail(),
+                userName,
+                savedUser.getId()
+            );
+
+            System.out.println("📧 Registration confirmation email sent/printed for user: " + savedUser.getId());
+        } catch (Exception e) {
+            // Log the error but don't fail the registration
+            System.err.println("⚠️ Failed to send registration confirmation email for user: " + savedUser.getId());
+            System.err.println("Error: " + e.getMessage());
+            System.out.println("✅ User registration completed successfully despite email issue");
+        }
+
+        return savedUser;
     }
 
     public String authenticateAndGetToken(
