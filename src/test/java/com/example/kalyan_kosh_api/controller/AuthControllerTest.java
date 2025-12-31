@@ -64,7 +64,6 @@ public class AuthControllerTest {
         response.setEmail("test@example.com");
         response.setRole(Role.ROLE_USER);
 
-        when(authService.register(any(RegisterRequest.class))).thenReturn(user);
         when(modelMapper.map(user, UserResponse.class)).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")

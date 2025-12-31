@@ -84,6 +84,7 @@ public class AuthService {
                 passwordEncoder.encode(req.getPassword())
         );
 
+        // default role (entity already had ROLE_USER default but set explicitly)
         u.setRole(Role.ROLE_USER);
 
         // Generate custom ID (PMUMS2024XXXXX format)
@@ -145,118 +146,4 @@ public class AuthService {
 
         userRepo.save(user);
     }
-
 }
-
-//package com.example.kalyan_kosh_api.service;
-//
-//import com.example.kalyan_kosh_api.dto.RegisterRequest;
-//import com.example.kalyan_kosh_api.entity.Role;
-//import com.example.kalyan_kosh_api.entity.User;
-//import com.example.kalyan_kosh_api.repository.UserRepository;
-//import com.example.kalyan_kosh_api.security.CustomUserDetailsService;
-//import com.example.kalyan_kosh_api.security.JwtUtil;
-//import org.springframework.security.authentication.AuthenticationManager;
-//import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-//import org.springframework.security.core.userdetails.UserDetails;
-//import org.springframework.security.crypto.password.PasswordEncoder;
-//import org.springframework.stereotype.Service;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import java.time.LocalDate;
-//import java.time.format.DateTimeParseException;
-//
-//@Service
-//public class AuthService {
-//
-//    private final UserRepository userRepo;
-//    private final PasswordEncoder passwordEncoder;
-//    private final AuthenticationManager authenticationManager;
-//    private final CustomUserDetailsService userDetailsService;
-//    private final JwtUtil jwtUtil;
-//
-//    // Constructor with required dependencies (Spring will autowire)
-//    public AuthService(UserRepository userRepo,
-//                       PasswordEncoder passwordEncoder,
-//                       AuthenticationManager authenticationManager,
-//                       CustomUserDetailsService userDetailsService,
-//                       JwtUtil jwtUtil) {
-//        this.userRepo = userRepo;
-//        this.passwordEncoder = passwordEncoder;
-//        this.authenticationManager = authenticationManager;
-//        this.userDetailsService = userDetailsService;
-//        this.jwtUtil = jwtUtil;
-//    }
-//
-//    @Transactional
-//    public User register(RegisterRequest req) {
-//
-//        // basic validation
-//        if (req.getUsername() == null || req.getUsername().isBlank()) {
-//            throw new IllegalArgumentException("Username is required");
-//        }
-//        if (req.getPassword() == null || req.getPassword().length() < 6) {
-//            throw new IllegalArgumentException("Password must be at least 6 characters");
-//        }
-//        if (userRepo.existsByUsername(req.getUsername())) {
-//            throw new IllegalArgumentException("Username already exists");
-//        }
-//
-//        // map DTO -> entity
-//        User u = new User();
-//        u.setName(req.getName());
-//        u.setSurname(req.getSurname());
-//        u.setCountryCode(req.getCountryCode());
-//        u.setPhoneNumber(req.getPhoneNumber());
-//        u.setMobileNumber(req.getMobileNumber());
-//        u.setEmail(req.getEmail());
-//        u.setGender(req.getGender());
-//        u.setMaritalStatus(req.getMaritalStatus());
-//        u.setUsername(req.getUsername());
-//        u.setHomeAddress(req.getHomeAddress());
-//        u.setSchoolOfficeName(req.getSchoolOfficeName());
-//        u.setDepartment(req.getDepartment());
-//        u.setDepartmentUniqueId(req.getDepartmentUniqueId());
-//        u.setDepartmentDistrict(req.getDepartmentDistrict());
-//        u.setDepartmentBlock(req.getDepartmentBlock());
-//        u.setNominee1Name(req.getNominee1Name());
-//        u.setNominee1Relation(req.getNominee1Relation());
-//        u.setNominee2Name(req.getNominee2Name());
-//        u.setNominee2Relation(req.getNominee2Relation());
-//        u.setAcceptedTerms(req.isAcceptedTerms());
-//
-//        // parse dateOfBirth if provided
-//        if (req.getDateOfBirth() != null && !req.getDateOfBirth().isBlank()) {
-//            try {
-//                LocalDate dob = LocalDate.parse(req.getDateOfBirth()); // expects yyyy-MM-dd
-//                u.setDateOfBirth(dob);
-//            } catch (DateTimeParseException ex) {
-//                throw new IllegalArgumentException("dateOfBirth must be in yyyy-MM-dd format");
-//            }
-//        }
-//
-//        // hash password
-//        String hashed = passwordEncoder.encode(req.getPassword());
-//        u.setPasswordHash(hashed);
-//
-//        // default role (entity already had ROLE_USER default but set explicitly)
-//        u.setRole(Role.ROLE_USER);
-//
-//        return userRepo.save(u);
-//    }
-//
-//    /**
-//     * Authenticate credentials and return JWT token.
-//     * Throws AuthenticationException (runtime) if credentials invalid.
-//     */
-//    public String authenticateAndGetToken(String username, String rawPassword) {
-//        // this will throw a subclass of AuthenticationException if auth fails
-//        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, rawPassword));
-//
-//        // Load UserDetails (so roles/authorities are available)
-//        UserDetails ud = userDetailsService.loadUserByUsername(username);
-//
-//        // Generate JWT using JwtUtil
-//        return jwtUtil.generateToken(ud);
-//    }
-//}
