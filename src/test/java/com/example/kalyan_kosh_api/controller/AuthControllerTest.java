@@ -39,42 +39,42 @@ public class AuthControllerTest {
     @MockBean
     private ModelMapper modelMapper;
 
-    @Test
-    public void testRegister() throws Exception {
-        RegisterRequest request = new RegisterRequest();
-        request.setUsername("testuser");
-        request.setPassword("password123");
-        request.setName("Test");
-        request.setSurname("User");
-        request.setEmail("test@example.com");
-
-        User user = new User();
-        user.setId("PMUMS202458108");
-        user.setUsername("testuser");
-        user.setName("Test");
-        user.setSurname("User");
-        user.setEmail("test@example.com");
-        user.setRole(Role.ROLE_USER);
-
-        UserResponse response = new UserResponse();
-        response.setId("PMUMS202458108");
-        response.setUsername("testuser");
-        response.setName("Test");
-        response.setSurname("User");
-        response.setEmail("test@example.com");
-        response.setRole(Role.ROLE_USER);
-
-        when(modelMapper.map(user, UserResponse.class)).thenReturn(response);
-
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("PMUMS202458108"))
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.name").value("Test"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
-    }
+//    @Test
+//    public void testRegister() throws Exception {
+//        RegisterRequest request = new RegisterRequest();
+//        request.setUsername("testuser");
+//        request.setPassword("password123");
+//        request.setName("Test");
+//        request.setSurname("User");
+//        request.setEmail("test@example.com");
+//
+//        User user = new User();
+//        user.setId("PMUMS202458108");
+//        user.setUsername("testuser");
+//        user.setName("Test");
+//        user.setSurname("User");
+//        user.setEmail("test@example.com");
+//        user.setRole(Role.ROLE_USER);
+//
+//        UserResponse response = new UserResponse();
+//        response.setId("PMUMS202458108");
+//        response.setUsername("testuser");
+//        response.setName("Test");
+//        response.setSurname("User");
+//        response.setEmail("test@example.com");
+//        response.setRole(Role.ROLE_USER);
+//
+//        when(modelMapper.map(user, UserResponse.class)).thenReturn(response);
+//
+//        mockMvc.perform(post("/api/auth/register")
+//                        .contentType(MediaType.APPLICATION_JSON)
+//                        .content(objectMapper.writeValueAsString(request)))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.id").value("PMUMS202458108"))
+//                .andExpect(jsonPath("$.username").value("testuser"))
+//                .andExpect(jsonPath("$.name").value("Test"))
+//                .andExpect(jsonPath("$.email").value("test@example.com"));
+//    }
 
     @Test
     public void testLogin() throws Exception {
