@@ -46,7 +46,11 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-
+		<!-- Mail (for sending OTP emails) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 
 		<!-- Validation (Jakarta Bean Validation) -->
 		<dependency>

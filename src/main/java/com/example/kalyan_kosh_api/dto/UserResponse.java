@@ -3,6 +3,8 @@ package com.example.kalyan_kosh_api.dto;
 import com.example.kalyan_kosh_api.entity.Role;
 import lombok.Data;
 
+import java.time.Instant;
+
 @Data
 public class UserResponse {
     private String id;
@@ -18,6 +20,8 @@ public class UserResponse {
     private String schoolOfficeName;
     private String department;
     private String departmentUniqueId;
+    private String departmentState;      // NEW
+    private String departmentSambhag;    // NEW
     private String departmentDistrict;
     private String departmentBlock;
     private String nominee1Name;
@@ -26,4 +30,5 @@ public class UserResponse {
     private String nominee2Relation;
     private boolean acceptedTerms;
     private Role role;
+    private Instant createdAt;
 }
