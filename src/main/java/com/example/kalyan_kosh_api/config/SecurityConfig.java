@@ -127,7 +127,8 @@ public class SecurityConfig {
 //        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedOrigins(List.of(
                 "https://pmums.com",
-                "https://www.pmums.com"
+                "https://www.pmums.com",
+                "http://13.204.36.38:8080/api"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
