@@ -128,7 +128,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "https://pmums.com",
                 "https://www.pmums.com",
-                "https://backend.pmums.com",      // ✅ Backend domain (NEW)
+                "https://backend.pmums.com",     
                 "http://localhost:3000"
         ));
 
