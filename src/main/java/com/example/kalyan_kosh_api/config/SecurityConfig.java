@@ -128,7 +128,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "https://pmums.com",
                 "https://www.pmums.com",
-                "http://13.204.36.38:8080/api"
+                "https://backend.pmums.com",      // ✅ Backend domain (NEW)
+                "http://localhost:3000"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
