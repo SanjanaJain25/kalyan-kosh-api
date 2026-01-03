@@ -28,6 +28,10 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final ModelMapper mapper;
     private final IdGeneratorService idGeneratorService;
+    private final StateRepository stateRepo;
+    private final SambhagRepository sambhagRepo;
+    private final DistrictRepository districtRepo;
+    private final BlockRepository blockRepo;
 
     // Constructor with required dependencies (Spring will autowire)
     public AuthService(UserRepository userRepo,
@@ -36,7 +40,11 @@ public class AuthService {
                        CustomUserDetailsService userDetailsService,
                        JwtUtil jwtUtil,
                        ModelMapper mapper,
-                       IdGeneratorService idGeneratorService) {
+                       IdGeneratorService idGeneratorService,
+                       StateRepository stateRepo,
+                       SambhagRepository sambhagRepo,
+                       DistrictRepository districtRepo,
+                       BlockRepository blockRepo) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -44,68 +52,128 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
         this.mapper = mapper;
         this.idGeneratorService = idGeneratorService;
+        this.stateRepo = stateRepo;
+        this.sambhagRepo = sambhagRepo;
+        this.districtRepo = districtRepo;
+        this.blockRepo = blockRepo;
     }
 
     @Transactional
     public User registerAfterOtp(RegisterRequest req) {
-
-        if (userRepo.existsById(req.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+        // Check if user with this email already exists
+        if (userRepo.findByEmail(req.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("User with this email already exists");
         }
 
         User u = new User();
-        u.setName(req.getName());
-        u.setSurname(req.getSurname());
-        u.setUsername(req.getUsername());
-        u.setEmail(req.getEmail());
-        u.setMobileNumber(req.getMobileNumber());
-        u.setPhoneNumber(req.getPhoneNumber());
-        u.setCountryCode(req.getCountryCode());
-        u.setGender(req.getGender());
-        u.setMaritalStatus(req.getMaritalStatus());
-        u.setHomeAddress(req.getHomeAddress());
-        u.setSchoolOfficeName(req.getSchoolOfficeName());
-        u.setDepartment(req.getDepartment());
-        u.setDepartmentUniqueId(req.getDepartmentUniqueId());
-        // Note: departmentDistrict and departmentBlock removed due to entity type mismatch
-        u.setNominee1Name(req.getNominee1Name());
-        u.setNominee1Relation(req.getNominee1Relation());
-        u.setNominee2Name(req.getNominee2Name());
-        u.setNominee2Relation(req.getNominee2Relation());
-        u.setAcceptedTerms(req.isAcceptedTerms());
 
-        if (req.getDateOfBirth() != null && !req.getDateOfBirth().isEmpty()) {
-            try {
-                u.setDateOfBirth(LocalDate.parse(req.getDateOfBirth()));
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException("Invalid date format. Use yyyy-MM-dd");
+        try {
+            // Set basic fields
+            u.setName(req.getName());
+            u.setSurname(req.getSurname());
+            u.setFatherName(req.getFatherName());
+            u.setEmail(req.getEmail());
+            u.setMobileNumber(req.getMobileNumber());
+            u.setPhoneNumber(req.getPhoneNumber());
+            u.setCountryCode(req.getCountryCode());
+            u.setGender(req.getGender());
+            u.setMaritalStatus(req.getMaritalStatus());
+            u.setHomeAddress(req.getHomeAddress());
+
+            // Set school/office fields
+            u.setSchoolOfficeName(req.getSchoolOfficeName());
+            u.setSankulName(req.getSankulName());
+            u.setDepartment(req.getDepartment());
+            u.setDepartmentUniqueId(req.getDepartmentUniqueId());
+
+            // Set location entities (State, Sambhag, District, Block)
+            if (req.getDepartmentState() != null && !req.getDepartmentState().isEmpty()) {
+                State state = stateRepo.findByName(req.getDepartmentState())
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid state: " + req.getDepartmentState()));
+                u.setDepartmentState(state);
+
+                if (req.getDepartmentSambhag() != null && !req.getDepartmentSambhag().isEmpty()) {
+                    Sambhag sambhag = sambhagRepo.findByNameAndState(req.getDepartmentSambhag(), state)
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid sambhag: " + req.getDepartmentSambhag()));
+                    u.setDepartmentSambhag(sambhag);
+
+                    if (req.getDepartmentDistrict() != null && !req.getDepartmentDistrict().isEmpty()) {
+                        District district = districtRepo.findByNameAndSambhag(req.getDepartmentDistrict(), sambhag)
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid district: " + req.getDepartmentDistrict()));
+                        u.setDepartmentDistrict(district);
+
+                        if (req.getDepartmentBlock() != null && !req.getDepartmentBlock().isEmpty()) {
+                            Block block = blockRepo.findByNameAndDistrict(req.getDepartmentBlock(), district)
+                                    .orElseThrow(() -> new IllegalArgumentException("Invalid block: " + req.getDepartmentBlock()));
+                            u.setDepartmentBlock(block);
+                        }
+                    }
+                }
             }
+
+            // Set nominee information
+            u.setNominee1Name(req.getNominee1Name());
+            u.setNominee1Relation(req.getNominee1Relation());
+            u.setNominee2Name(req.getNominee2Name());
+            u.setNominee2Relation(req.getNominee2Relation());
+            u.setAcceptedTerms(req.isAcceptedTerms());
+
+            // Parse dates
+            if (req.getDateOfBirth() != null && !req.getDateOfBirth().isEmpty()) {
+                try {
+                    u.setDateOfBirth(LocalDate.parse(req.getDateOfBirth()));
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Invalid date format. Use yyyy-MM-dd");
+                }
+            }
+
+            if (req.getJoiningDate() != null && !req.getJoiningDate().isEmpty()) {
+                try {
+                    u.setJoiningDate(LocalDate.parse(req.getJoiningDate()));
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Invalid joining date format. Use yyyy-MM-dd");
+                }
+            }
+
+            if (req.getRetirementDate() != null && !req.getRetirementDate().isEmpty()) {
+                try {
+                    u.setRetirementDate(LocalDate.parse(req.getRetirementDate()));
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Invalid retirement date format. Use yyyy-MM-dd");
+                }
+            }
+
+            // Encode password and set role
+            u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+            u.setRole(Role.ROLE_USER);
+
+            // Generate user ID
+            String userId = idGeneratorService.generateNextUserId();
+            u.setId(userId);
+
+            // Save user
+            User savedUser = userRepo.save(u);
+            return savedUser;
+
+        } catch (Exception e) {
+            throw e;
         }
-
-        u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        u.setRole(Role.ROLE_USER);
-
-        // Generate custom ID (PMUMS2024XXXXX format)
-        String userId = idGeneratorService.generateNextUserId();
-        u.setId(userId);
-
-        return userRepo.save(u);
     }
 
     public String authenticateAndGetToken(
-            String username,
+            String email,
             String rawPassword) {
 
-        // Authenticate with username/password
+        // Authenticate with email/password
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        username,
+                        email,
                         rawPassword
                 )
         );
 
-        // Find user by username to get userId
-        User user = userRepo.findByUsername(username)
+        // Find user by email to get userId
+        User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found after authentication"));
 
         // Load UserDetails using userId (for JWT generation)
@@ -118,12 +186,12 @@ public class AuthService {
      * Authenticate credentials and return login response with both JWT token and user details.
      * Throws AuthenticationException (runtime) if credentials invalid.
      */
-    public LoginResponse authenticateAndGetLoginResponse(String username, String rawPassword) {
+    public LoginResponse authenticateAndGetLoginResponse(String email, String rawPassword) {
         // this will throw a subclass of AuthenticationException if auth fails
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, rawPassword));
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, rawPassword));
 
-        // Find user by username to get the user entity and userId
-        User user = userRepo.findByUsername(username)
+        // Find user by email to get the user entity and userId
+        User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found after authentication"));
 
         // Load UserDetails using userId (this is what goes into JWT)

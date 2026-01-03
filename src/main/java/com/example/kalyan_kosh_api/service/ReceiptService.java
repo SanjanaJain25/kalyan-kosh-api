@@ -39,11 +39,11 @@ public class ReceiptService {
     public ReceiptResponse upload(
             UploadReceiptRequest req,
             MultipartFile file,
-            String username
+            String userId  // Changed from username to userId
     ) {
 
         // Validate user
-        User user = userRepo.findById(username)
+        User user = userRepo.findById(userId)  // Changed from findByUsername to findById
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
         // Validate death case
@@ -100,9 +100,9 @@ public class ReceiptService {
 
 
     // USER RECEIPT HISTORY
-    public List<ReceiptResponse> getMyReceipts(String username) {
+    public List<ReceiptResponse> getMyReceipts(String userId) {  // Changed parameter name from username to userId
 
-        User user = userRepo.findByUsername(username)
+        User user = userRepo.findById(userId)  // Changed from findByUsername to findById
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
         return receiptRepo.findByUserOrderByUploadedAtDesc(user)

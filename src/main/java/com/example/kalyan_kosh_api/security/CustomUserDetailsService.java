@@ -15,4 +15,11 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
         return new CustomUserDetails(user);
     }
+
+    // Method to load user by email for authentication
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        var user = repo.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        return new CustomUserDetails(user);
+    }
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 public class UpdateUserRequest {
     private String name;
     private String surname;
+    private String fatherName;          // Added father name
     private String email;
     private String phoneNumber;
     private String countryCode;
@@ -13,11 +14,15 @@ public class UpdateUserRequest {
     private String gender;
     private String maritalStatus;
     private String homeAddress;
-    private String schoolOfficeName;
+    private String dateOfBirth;         // Added date of birth
+    private String joiningDate;         // Added joining date
+    private String retirementDate;      // Added retirement date
+    private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
+    private String sankulName;          // संकुल का नाम
     private String department;
     private String departmentUniqueId;
-    private String departmentState;      // NEW
-    private String departmentSambhag;    // NEW
+    private String departmentState;
+    private String departmentSambhag;
     private String departmentDistrict;
     private String departmentBlock;
     private String nominee1Name;

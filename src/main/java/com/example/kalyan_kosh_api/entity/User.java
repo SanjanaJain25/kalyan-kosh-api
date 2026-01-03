@@ -16,14 +16,14 @@ public class User {
 
     private String name;
     private String surname;
+    private String fatherName;          // Added father name
     private String countryCode;
     private String phoneNumber;
     private String email;
     private String gender;
     private String maritalStatus;
 
-    @Column(unique = true, nullable = false)
-    private String username;
+    // Removed username field
 
     private String mobileNumber;
 
@@ -32,7 +32,10 @@ public class User {
 
     private String homeAddress;
     private LocalDate dateOfBirth;
-    private String schoolOfficeName;
+    private LocalDate joiningDate;      // Added joining date
+    private LocalDate retirementDate;   // Added retirement date
+    private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
+    private String sankulName;          // संकुल का नाम
     private String department;
     @Column(unique = true, nullable = false)
     private String departmentUniqueId;
@@ -53,6 +56,7 @@ public class User {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_block_id")
     private Block departmentBlock;
+
     private String nominee1Name;
     private String nominee1Relation;
     private String nominee2Name;

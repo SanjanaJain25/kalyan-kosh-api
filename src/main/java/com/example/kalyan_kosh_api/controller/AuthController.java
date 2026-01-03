@@ -21,28 +21,53 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
-        LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getUsername(), req.getPassword());
+        // Using email instead of username for authentication
+        LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getEmail(), req.getPassword());
         return ResponseEntity.ok(loginResponse);
     }
 
-
-    // 2️⃣ VERIFY OTP + REGISTER USER
     @PostMapping("/register")
     public ResponseEntity<String> verifyOtpAndRegister(
             @Valid @RequestBody RegisterRequest request) {
 
-//        // verify OTP
-//        otpService.verifyOtp(
-//                request.getOtp().getMobile(),
-//                request.getOtp().getOtp()
-//        );
+        System.out.println("========================================");
+        System.out.println("🔍 REGISTRATION REQUEST RECEIVED");
+        System.out.println("========================================");
+        System.out.println("📧 Email: " + request.getEmail());
+        System.out.println("👤 Name: " + request.getName() + " " + request.getSurname());
+        System.out.println("👨 Father Name: " + request.getFatherName());
+        System.out.println("📱 Mobile: " + request.getMobileNumber());
+        System.out.println("🏫 School: " + request.getSchoolOfficeName());
+        System.out.println("🏢 Department: " + request.getDepartment());
+        System.out.println("📍 State: " + request.getDepartmentState());
+        System.out.println("📍 Sambhag: " + request.getDepartmentSambhag());
+        System.out.println("📍 District: " + request.getDepartmentDistrict());
+        System.out.println("📍 Block: " + request.getDepartmentBlock());
+        System.out.println("========================================");
 
-        // register user
-        User user = authService.registerAfterOtp(request);
+        try {
+            System.out.println("➡️ Calling authService.registerAfterOtp()...");
 
-        return ResponseEntity.ok(
-                "User registered successfully with username: "
-                        + user.getUsername()
-        );
+            // register user
+            User user = authService.registerAfterOtp(request);
+
+            System.out.println("✅ User registered successfully!");
+            System.out.println("🆔 User ID: " + user.getId());
+            System.out.println("========================================");
+
+            return ResponseEntity.ok(
+                    "User registered successfully with ID: " + user.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("========================================");
+            System.err.println("❌ REGISTRATION ERROR!");
+            System.err.println("========================================");
+            System.err.println("Error Type: " + e.getClass().getName());
+            System.err.println("Error Message: " + e.getMessage());
+            System.err.println("Stack Trace:");
+            e.printStackTrace();
+            System.err.println("========================================");
+            throw e;
+        }
     }
 }

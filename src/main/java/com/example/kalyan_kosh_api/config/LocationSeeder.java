@@ -41,39 +41,38 @@ public class LocationSeeder {
 
             try {
                 ClassPathResource resource =
-                        new ClassPathResource("data/mp_district_block_data.json");
+                        new ClassPathResource("data/mp_state_division_district_block.json");
 
                 InputStream is = resource.getInputStream();
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode root = mapper.readTree(is);
 
-                // Get state node
-                JsonNode stateNode = root.get("state");
-                String stateName = stateNode.get("name").asText();
-                String stateCode = stateNode.get("code").asText();
+                // Get "Madhya Pradesh" node
+                JsonNode mpNode = root.get("Madhya Pradesh");
 
                 // Create State
                 State state = new State();
-                state.setName(stateName);
-                state.setCode(stateCode);
+                state.setName("Madhya Pradesh");
+                state.setCode("MP");
                 state = stateRepo.save(state);
-                System.out.println("✅ Created State: " + stateName);
+                System.out.println("✅ Created State: Madhya Pradesh");
 
-                // Get sambhags array
-                JsonNode sambhagsArray = stateNode.get("sambhags");
+                // Iterate through divisions (Bhopal, Chambal, Gwalior, etc.)
+                Iterator<Map.Entry<String, JsonNode>> divisionFields = mpNode.fields();
 
-                for (JsonNode sambhagNode : sambhagsArray) {
-                    String sambhagName = sambhagNode.get("name").asText();
+                while (divisionFields.hasNext()) {
+                    Map.Entry<String, JsonNode> divisionEntry = divisionFields.next();
+                    String sambhagName = divisionEntry.getKey().trim(); // Division name
+                    JsonNode districtsNode = divisionEntry.getValue();
 
-                    // Create Sambhag
+                    // Create Sambhag (Division)
                     Sambhag sambhag = new Sambhag();
                     sambhag.setName(sambhagName);
                     sambhag.setState(state);
                     sambhag = sambhagRepo.save(sambhag);
                     System.out.println("  ✅ Created Sambhag: " + sambhagName);
 
-                    // Get districts object
-                    JsonNode districtsNode = sambhagNode.get("districts");
+                    // Iterate through districts in this division
                     Iterator<Map.Entry<String, JsonNode>> districtFields = districtsNode.fields();
 
                     while (districtFields.hasNext()) {

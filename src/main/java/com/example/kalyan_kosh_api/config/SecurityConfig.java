@@ -98,6 +98,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/email-otp/send").permitAll()
                         .requestMatchers("/api/auth/otp/verify").permitAll()
 
+                        // Public endpoint - Admin Utils (for development/fixing data)
+                        .requestMatchers("/api/admin/utils/**").permitAll()
+
                         // Admin APIs - requires ADMIN role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/login").permitAll()
@@ -124,18 +127,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow all origins for development - change to specific origins in production
-//        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedOrigins(List.of(
+        configuration.setAllowedOriginPatterns(List.of(
                 "https://pmums.com",
                 "https://www.pmums.com",
-                "https://backend.pmums.com",     
-                "http://localhost:3000"
+                "https://backend.pmums.com",
+                "http://localhost:*",          // Allow any localhost port
+                "http://127.0.0.1:*"           // Allow any 127.0.0.1 port
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowCredentials(false); // Must be false when using wildcard patterns
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

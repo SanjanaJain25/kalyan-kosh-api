@@ -9,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class IdGeneratorService {
 
     private static final String USER_ID_SEQUENCE = "USER_ID";
-    private static final String ID_PREFIX = "PMUMS2024";
-    private static final long INITIAL_VALUE = 58108L;
+    private static final String ID_PREFIX = "PMUMS20";
+    private static final long INITIAL_VALUE = 2501L;
 
     private final IdSequenceRepository idSequenceRepository;
 

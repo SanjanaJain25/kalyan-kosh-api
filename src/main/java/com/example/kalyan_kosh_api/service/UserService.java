@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;  // Added missing import
 import java.util.List;
 
 @Service
@@ -41,15 +42,28 @@ public class UserService {
     }
 
     public UserResponse getUserById(String id) {
-        User user = userRepo.findById(id)
+        System.out.println("🔍 Fetching user with ID: " + id + " WITH location relationships");
+
+        User user = userRepo.findByIdWithLocations(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        System.out.println("✅ User loaded: " + user.getName());
+        System.out.println("   State: " + (user.getDepartmentState() != null ? user.getDepartmentState().getName() : "NULL"));
+        System.out.println("   Sambhag: " + (user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : "NULL"));
+        System.out.println("   District: " + (user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : "NULL"));
+        System.out.println("   Block: " + (user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : "NULL"));
 
         return toUserResponse(user);
     }
 
     public List<UserResponse> getAllUsers() {
-        return userRepo.findAll()
-                .stream()
+        System.out.println("📋 Fetching ALL users WITH location relationships");
+
+        List<User> users = userRepo.findAllWithLocations();
+
+        System.out.println("✅ Loaded " + users.size() + " users");
+
+        return users.stream()
                 .map(this::toUserResponse)
                 .toList();
     }
@@ -61,6 +75,7 @@ public class UserService {
         // Update simple fields
         if (req.getName() != null) user.setName(req.getName());
         if (req.getSurname() != null) user.setSurname(req.getSurname());
+        if (req.getFatherName() != null) user.setFatherName(req.getFatherName());  // Added father name
         if (req.getEmail() != null) user.setEmail(req.getEmail());
         if (req.getPhoneNumber() != null) user.setPhoneNumber(req.getPhoneNumber());
         if (req.getCountryCode() != null) user.setCountryCode(req.getCountryCode());
@@ -68,7 +83,34 @@ public class UserService {
         if (req.getGender() != null) user.setGender(req.getGender());
         if (req.getMaritalStatus() != null) user.setMaritalStatus(req.getMaritalStatus());
         if (req.getHomeAddress() != null) user.setHomeAddress(req.getHomeAddress());
+
+        // Handle date fields
+        if (req.getDateOfBirth() != null && !req.getDateOfBirth().isEmpty()) {
+            try {
+                user.setDateOfBirth(LocalDate.parse(req.getDateOfBirth()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for dateOfBirth. Use yyyy-MM-dd");
+            }
+        }
+
+        if (req.getJoiningDate() != null && !req.getJoiningDate().isEmpty()) {
+            try {
+                user.setJoiningDate(LocalDate.parse(req.getJoiningDate()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for joiningDate. Use yyyy-MM-dd");
+            }
+        }
+
+        if (req.getRetirementDate() != null && !req.getRetirementDate().isEmpty()) {
+            try {
+                user.setRetirementDate(LocalDate.parse(req.getRetirementDate()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for retirementDate. Use yyyy-MM-dd");
+            }
+        }
+
         if (req.getSchoolOfficeName() != null) user.setSchoolOfficeName(req.getSchoolOfficeName());
+        if (req.getSankulName() != null) user.setSankulName(req.getSankulName());
         if (req.getDepartment() != null) user.setDepartment(req.getDepartment());
         if (req.getDepartmentUniqueId() != null) user.setDepartmentUniqueId(req.getDepartmentUniqueId());
 
@@ -156,34 +198,62 @@ public class UserService {
      * Convert User entity to UserResponse DTO
      */
     private UserResponse toUserResponse(User user) {
+        System.out.println("🔄 Converting User to UserResponse: " + user.getName());
+
         UserResponse response = new UserResponse();
 
         response.setId(user.getId());
         response.setName(user.getName());
         response.setSurname(user.getSurname());
-        response.setUsername(user.getUsername());
+        response.setFatherName(user.getFatherName());  // Added father name
+        // Removed username - no longer exists
         response.setEmail(user.getEmail());
         response.setPhoneNumber(user.getPhoneNumber());
         response.setMobileNumber(user.getMobileNumber());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setHomeAddress(user.getHomeAddress());
-        response.setSchoolOfficeName(user.getSchoolOfficeName());
+        response.setDateOfBirth(user.getDateOfBirth());      // Added date of birth
+        response.setJoiningDate(user.getJoiningDate());      // Added joining date
+        response.setRetirementDate(user.getRetirementDate()); // Added retirement date
+        response.setSchoolOfficeName(user.getSchoolOfficeName()); // पदस्थ स्कूल/कार्यालय का नाम
+        response.setSankulName(user.getSankulName());        // संकुल का नाम
         response.setDepartment(user.getDepartment());
         response.setDepartmentUniqueId(user.getDepartmentUniqueId());
 
-        // Convert entity relationships to string names
+        // Convert entity relationships to string names with detailed logging
+        System.out.println("📍 Converting location entities:");
+
         if (user.getDepartmentState() != null) {
-            response.setDepartmentState(user.getDepartmentState().getName());
+            String stateName = user.getDepartmentState().getName();
+            response.setDepartmentState(stateName);
+            System.out.println("   ✅ State: " + stateName);
+        } else {
+            System.out.println("   ⚠️  State: NULL");
         }
+
         if (user.getDepartmentSambhag() != null) {
-            response.setDepartmentSambhag(user.getDepartmentSambhag().getName());
+            String sambhagName = user.getDepartmentSambhag().getName();
+            response.setDepartmentSambhag(sambhagName);
+            System.out.println("   ✅ Sambhag: " + sambhagName);
+        } else {
+            System.out.println("   ⚠️  Sambhag: NULL");
         }
+
         if (user.getDepartmentDistrict() != null) {
-            response.setDepartmentDistrict(user.getDepartmentDistrict().getName());
+            String districtName = user.getDepartmentDistrict().getName();
+            response.setDepartmentDistrict(districtName);
+            System.out.println("   ✅ District: " + districtName);
+        } else {
+            System.out.println("   ⚠️  District: NULL");
         }
+
         if (user.getDepartmentBlock() != null) {
-            response.setDepartmentBlock(user.getDepartmentBlock().getName());
+            String blockName = user.getDepartmentBlock().getName();
+            response.setDepartmentBlock(blockName);
+            System.out.println("   ✅ Block: " + blockName);
+        } else {
+            System.out.println("   ⚠️  Block: NULL");
         }
 
         response.setNominee1Name(user.getNominee1Name());
@@ -193,6 +263,8 @@ public class UserService {
         response.setAcceptedTerms(user.isAcceptedTerms());
         response.setRole(user.getRole());
         response.setCreatedAt(user.getCreatedAt());
+
+        System.out.println("✅ UserResponse created successfully");
 
         return response;
     }

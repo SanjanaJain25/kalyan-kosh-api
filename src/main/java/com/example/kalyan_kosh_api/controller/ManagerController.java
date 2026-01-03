@@ -26,9 +26,9 @@ public class ManagerController {
     @PostMapping("/reports")
     public ResponseEntity<?> managerReports(@RequestBody Map<String, String> body) {
 
-        String username = body.get("username");
+        String userId = body.get("userId");  // Changed from username to userId
 
-        User user = userRepo.findByUsername(username).orElse(null);
+        User user = userRepo.findById(userId).orElse(null);  // Changed from findByUsername to findById
 
         if (user == null) {
             return ResponseEntity.status(404).body("User not found");

@@ -1,6 +1,5 @@
 package com.example.kalyan_kosh_api.controller;
 
-import com.example.kalyan_kosh_api.dto.OtpRegisterRequest;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.SendOtpRequest;
 import com.example.kalyan_kosh_api.entity.User;
@@ -48,8 +47,8 @@ public class OtpAuthController {
         User user = authService.registerAfterOtp(request);
 
         return ResponseEntity.ok(
-                "User registered successfully with username: "
-                        + user.getUsername()
+                "User registered successfully with ID: "
+                        + user.getId()
         );
     }
 }

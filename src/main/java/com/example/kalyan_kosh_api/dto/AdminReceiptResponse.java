@@ -20,7 +20,7 @@ public class AdminReceiptResponse {
 
     public static AdminReceiptResponse from(Receipt r) {
         AdminReceiptResponse dto = new AdminReceiptResponse();
-        dto.setRegNo(r.getUser().getUsername());
+        dto.setRegNo(r.getUser().getId());
         dto.setName(r.getUser().getName());
 
         // Extract names from entity relationships

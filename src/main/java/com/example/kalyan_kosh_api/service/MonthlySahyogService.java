@@ -111,7 +111,7 @@ public class MonthlySahyogService {
 
                     return new NonDonorResponse(
                             user.getId(),
-                            user.getUsername(),
+                            user.getId(),  // Using user ID instead of username
                             paidAmount,
                             status
                     );
@@ -134,7 +134,7 @@ public class MonthlySahyogService {
             writer.printf(
                     "%d,%s,%d,%d,%.2f,%s%n",
                     r.getUserId(),
-                    r.getUsername(),
+                    r.getUserId(),  // Using user ID instead of username
                     month,
                     year,
                     r.getPaidAmount(),
@@ -158,7 +158,7 @@ public class MonthlySahyogService {
                 .filter(u -> !nonDonorUserIds.contains(u.getId()))
                 .map(u -> new NonDonorResponse(
                         u.getId(),
-                        u.getUsername(),
+                        u.getId(),  // Using user ID instead of username
                         receiptRepo.sumPaidAmount(u.getId(), month, year),
                         "DONOR"
                 ))
