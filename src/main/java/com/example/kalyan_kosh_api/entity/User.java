@@ -37,7 +37,7 @@ public class User {
     private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
     private String sankulName;          // संकुल का नाम
     private String department;
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = true)  // ✅ Made nullable - users may not have this during registration
     private String departmentUniqueId;
 
     // Department location hierarchy - using entity relationships

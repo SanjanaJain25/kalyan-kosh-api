@@ -84,7 +84,13 @@ public class AuthService {
             u.setSchoolOfficeName(req.getSchoolOfficeName());
             u.setSankulName(req.getSankulName());
             u.setDepartment(req.getDepartment());
-            u.setDepartmentUniqueId(req.getDepartmentUniqueId());
+
+            // Set department unique ID only if provided
+            if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().trim().isEmpty()) {
+                u.setDepartmentUniqueId(req.getDepartmentUniqueId().trim());
+            } else {
+                u.setDepartmentUniqueId(null);  // Allow NULL for users without employee ID
+            }
 
             // Set location entities (State, Sambhag, District, Block)
             if (req.getDepartmentState() != null && !req.getDepartmentState().isEmpty()) {
