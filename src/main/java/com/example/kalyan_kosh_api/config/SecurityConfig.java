@@ -126,19 +126,25 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow all origins for development - change to specific origins in production
+
+        // Allow development and production origins
         configuration.setAllowedOriginPatterns(List.of(
-                "https://pmums.com",
-                "https://www.pmums.com",
-                "https://backend.pmums.com",
-                "http://localhost:*",          // Allow any localhost port
-                "http://127.0.0.1:*"           // Allow any 127.0.0.1 port
+                "http://localhost:*",           // Local development
+                "http://127.0.0.1:*",           // Local IP
+                "http://13.204.36.38:*",        // Production IP
+                "https://pmums.com",            // Production domain
+                "https://www.pmums.com",        // Production www
+                "https://backend.pmums.com",// Production backend
+                "http://localhost:3000",
+                "*"                             // Allow all (development only!)
         ));
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(false); // Must be false when using wildcard patterns
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
