@@ -129,19 +129,19 @@ public class SecurityConfig {
 
         // Allow development and production origins
         configuration.setAllowedOriginPatterns(List.of(
-                     // Local development
+                "http://localhost:*",           // Local development
                 "http://127.0.0.1:*",           // Local IP
-                "https://pmums.com",            // Production domain
+                "https://pmums.com",            // Production domain (frontend)
                 "https://www.pmums.com",        // Production www
-                "https://backend.pmums.com"// Production backend
-
+                "https://backend.pmums.com",    // Production backend
+                "http://pmums.com",             // HTTP version
+                "http://www.pmums.com"          // HTTP www
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
-//        configuration.setAllowCredentials(false);
-        configuration.setAllowCredentials(true);   // ✅ Correct - Allow auth!
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowCredentials(true);   // ✅ Allow credentials (cookies, auth headers)
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
