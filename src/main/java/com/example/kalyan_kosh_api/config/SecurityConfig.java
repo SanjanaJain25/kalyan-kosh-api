@@ -129,7 +129,7 @@ public class SecurityConfig {
 
         // Allow development and production origins
         configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",           // Local development
+                     // Local development
                 "http://127.0.0.1:*",           // Local IP
                 "https://pmums.com",            // Production domain
                 "https://www.pmums.com",        // Production www
