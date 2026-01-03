@@ -9,13 +9,27 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth/email-otp")
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+    origins = {"https://pmums.com", "https://www.pmums.com", "http://localhost:3000", "http://localhost:5173"},
+    allowedHeaders = "*",
+    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.DELETE},
+    allowCredentials = "true",
+    maxAge = 3600
+)
 public class EmailOtpController {
 
     private final EmailOtpService emailOtpService;
 
     public EmailOtpController(EmailOtpService emailOtpService) {
         this.emailOtpService = emailOtpService;
+    }
+
+    /**
+     * Handle CORS preflight OPTIONS request
+     */
+    @RequestMapping(method = RequestMethod.OPTIONS)
+    public ResponseEntity<Void> handleOptions() {
+        return ResponseEntity.ok().build();
     }
 
     /**

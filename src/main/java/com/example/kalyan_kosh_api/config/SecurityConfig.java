@@ -123,29 +123,56 @@ public class SecurityConfig {
                 .build();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+//    @Bean
+//    public CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration configuration = new CorsConfiguration();
+//
+//        // Allow development and production origins
+//        configuration.setAllowedOriginPatterns(List.of(
+//                "http://localhost:*",           // Local development
+//                "http://127.0.0.1:*",           // Local IP
+//                "https://pmums.com",            // Production domain (frontend)
+//                "https://www.pmums.com",        // Production www
+//                "https://backend.pmums.com",    // Production backend
+//                "http://pmums.com",             // HTTP version
+//                "http://www.pmums.com"          // HTTP www
+//        ));
+//
+//        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+//        configuration.setAllowedHeaders(List.of("*"));
+//        configuration.setExposedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+//        configuration.setAllowCredentials(true);   // ✅ Allow credentials (cookies, auth headers)
+//        configuration.setMaxAge(3600L);
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", configuration);
+//        return source;
+//    }
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow development and production origins
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",           // Local development
-                "http://127.0.0.1:*",           // Local IP
-                "https://pmums.com",            // Production domain (frontend)
-                "https://www.pmums.com",        // Production www
-                "https://backend.pmums.com",    // Production backend
-                "http://pmums.com",             // HTTP version
-                "http://www.pmums.com"          // HTTP www
-        ));
+    // ✅ Exact origins only (IMPORTANT)
+    configuration.setAllowedOrigins(List.of(
+            "https://pmums.com",
+            "https://www.pmums.com",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+    ));
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setAllowCredentials(true);   // ✅ Allow credentials (cookies, auth headers)
-        configuration.setMaxAge(3600L);
+    configuration.setAllowedMethods(List.of(
+            "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+    ));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+    configuration.setAllowedHeaders(List.of("*"));
+    configuration.setExposedHeaders(List.of("Authorization"));
+    configuration.setAllowCredentials(true); // works now
+    configuration.setMaxAge(3600L);
+
+    UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+}
+
 }
