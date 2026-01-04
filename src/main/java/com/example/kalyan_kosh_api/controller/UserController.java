@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.controller;
 
+import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.service.UserService;
@@ -19,6 +20,8 @@ public class UserController {
     public UserController(UserService userService) {
         this.userService = userService;
     }
+
+
 
     // GET USER BY ID
     @GetMapping("/{id}")

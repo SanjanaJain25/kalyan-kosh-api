@@ -3,6 +3,7 @@ package com.example.kalyan_kosh_api.controller;
 import com.example.kalyan_kosh_api.dto.LoginRequest;
 import com.example.kalyan_kosh_api.dto.LoginResponse;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,48 +27,29 @@ public class AuthController {
         return ResponseEntity.ok(loginResponse);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> verifyOtpAndRegister(
-            @Valid @RequestBody RegisterRequest request) {
 
-        System.out.println("========================================");
-        System.out.println("🔍 REGISTRATION REQUEST RECEIVED");
-        System.out.println("========================================");
-        System.out.println("📧 Email: " + request.getEmail());
-        System.out.println("👤 Name: " + request.getName() + " " + request.getSurname());
-        System.out.println("👨 Father Name: " + request.getFatherName());
-        System.out.println("📱 Mobile: " + request.getMobileNumber());
-        System.out.println("🏫 School: " + request.getSchoolOfficeName());
-        System.out.println("🏢 Department: " + request.getDepartment());
-        System.out.println("📍 State: " + request.getDepartmentState());
-        System.out.println("📍 Sambhag: " + request.getDepartmentSambhag());
-        System.out.println("📍 District: " + request.getDepartmentDistrict());
-        System.out.println("📍 Block: " + request.getDepartmentBlock());
-        System.out.println("========================================");
-
-        try {
-            System.out.println("➡️ Calling authService.registerAfterOtp()...");
-
-            // register user
-            User user = authService.registerAfterOtp(request);
-
-            System.out.println("✅ User registered successfully!");
-            System.out.println("🆔 User ID: " + user.getId());
-            System.out.println("========================================");
-
-            return ResponseEntity.ok(
-                    "User registered successfully with ID: " + user.getId()
-            );
-        } catch (Exception e) {
-            System.err.println("========================================");
-            System.err.println("❌ REGISTRATION ERROR!");
-            System.err.println("========================================");
-            System.err.println("Error Type: " + e.getClass().getName());
-            System.err.println("Error Message: " + e.getMessage());
-            System.err.println("Stack Trace:");
-            e.printStackTrace();
-            System.err.println("========================================");
-            throw e;
-        }
+//    // REGISTER USER
+//    @PostMapping("/register")
+//    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+//        try {
+//            User user = authService.registerAfterOtp(req);
+//            return ResponseEntity.ok("User registered successfully with ID: " + user.getId());
+//        } catch (IllegalArgumentException e) {
+//            return ResponseEntity.badRequest().body(e.getMessage());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
+//        }
+//    }
+@PostMapping("/register")
+public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+    try {
+        User user = authService.registerAfterOtp(req);
+        return ResponseEntity.ok(user);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.badRequest().body(e.getMessage());
     }
+}
+
 }
