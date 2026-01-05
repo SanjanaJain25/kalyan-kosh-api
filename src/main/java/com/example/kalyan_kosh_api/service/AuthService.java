@@ -32,6 +32,7 @@ public class AuthService {
     private final SambhagRepository sambhagRepo;
     private final DistrictRepository districtRepo;
     private final BlockRepository blockRepo;
+    private final EmailService emailService;
 
     // Constructor with required dependencies (Spring will autowire)
     public AuthService(UserRepository userRepo,
@@ -44,7 +45,8 @@ public class AuthService {
                        StateRepository stateRepo,
                        SambhagRepository sambhagRepo,
                        DistrictRepository districtRepo,
-                       BlockRepository blockRepo) {
+                       BlockRepository blockRepo,
+                       EmailService emailService) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -56,6 +58,7 @@ public class AuthService {
         this.sambhagRepo = sambhagRepo;
         this.districtRepo = districtRepo;
         this.blockRepo = blockRepo;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -74,8 +77,8 @@ public class AuthService {
             u.setFatherName(req.getFatherName());
             u.setEmail(req.getEmail());
             u.setMobileNumber(req.getMobileNumber());
-            u.setPhoneNumber(req.getPhoneNumber());
             u.setCountryCode(req.getCountryCode());
+            u.setPincode(req.getPincode());
             u.setGender(req.getGender());
             u.setMaritalStatus(req.getMaritalStatus());
             u.setHomeAddress(req.getHomeAddress());
@@ -122,7 +125,6 @@ public class AuthService {
             u.setNominee1Relation(req.getNominee1Relation());
             u.setNominee2Name(req.getNominee2Name());
             u.setNominee2Relation(req.getNominee2Relation());
-            u.setAcceptedTerms(req.isAcceptedTerms());
 
             // Parse dates
             if (req.getDateOfBirth() != null && !req.getDateOfBirth().isEmpty()) {
@@ -159,6 +161,11 @@ public class AuthService {
 
             // Save user
             User savedUser = userRepo.save(u);
+
+            // Send registration confirmation email
+            String fullName = savedUser.getName() + (savedUser.getSurname() != null ? " " + savedUser.getSurname() : "");
+            emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName, savedUser.getId());
+
             return savedUser;
 
         } catch (Exception e) {
@@ -192,12 +199,12 @@ public class AuthService {
      * Authenticate credentials and return login response with both JWT token and user details.
      * Throws AuthenticationException (runtime) if credentials invalid.
      */
-    public LoginResponse authenticateAndGetLoginResponse(String email, String rawPassword) {
+    public LoginResponse authenticateAndGetLoginResponse(String userId, String rawPassword) {
         // this will throw a subclass of AuthenticationException if auth fails
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, rawPassword));
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userId, rawPassword));
 
-        // Find user by email to get the user entity and userId
-        User user = userRepo.findByEmail(email)
+        // Find user by userId to get the user entity
+        User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found after authentication"));
 
         // Load UserDetails using userId (this is what goes into JWT)

@@ -1,9 +1,11 @@
 package com.example.kalyan_kosh_api.service;
 
+import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.Block;
 import com.example.kalyan_kosh_api.entity.District;
+import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.Sambhag;
 import com.example.kalyan_kosh_api.entity.State;
 import com.example.kalyan_kosh_api.entity.User;
@@ -14,10 +16,12 @@ import com.example.kalyan_kosh_api.repository.StateRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;  // Added missing import
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -28,17 +32,26 @@ public class UserService {
     private final DistrictRepository districtRepo;
     private final SambhagRepository sambhagRepo;
     private final StateRepository stateRepo;
+    private final PasswordEncoder passwordEncoder;
+    private final IdGeneratorService idGeneratorService;
+    private final EmailService emailService;
 
     public UserService(UserRepository userRepo,
                        BlockRepository blockRepo,
                        DistrictRepository districtRepo,
                        SambhagRepository sambhagRepo,
-                       StateRepository stateRepo) {
+                       StateRepository stateRepo,
+                       PasswordEncoder passwordEncoder,
+                       IdGeneratorService idGeneratorService,
+                       EmailService emailService) {
         this.userRepo = userRepo;
         this.blockRepo = blockRepo;
         this.districtRepo = districtRepo;
         this.sambhagRepo = sambhagRepo;
         this.stateRepo = stateRepo;
+        this.passwordEncoder = passwordEncoder;
+        this.idGeneratorService = idGeneratorService;
+        this.emailService = emailService;
     }
 
     public UserResponse getUserById(String id) {
@@ -77,9 +90,9 @@ public class UserService {
         if (req.getSurname() != null) user.setSurname(req.getSurname());
         if (req.getFatherName() != null) user.setFatherName(req.getFatherName());  // Added father name
         if (req.getEmail() != null) user.setEmail(req.getEmail());
-        if (req.getPhoneNumber() != null) user.setPhoneNumber(req.getPhoneNumber());
         if (req.getCountryCode() != null) user.setCountryCode(req.getCountryCode());
         if (req.getMobileNumber() != null) user.setMobileNumber(req.getMobileNumber());
+        if (req.getPincode() != null) user.setPincode(req.getPincode());
         if (req.getGender() != null) user.setGender(req.getGender());
         if (req.getMaritalStatus() != null) user.setMaritalStatus(req.getMaritalStatus());
         if (req.getHomeAddress() != null) user.setHomeAddress(req.getHomeAddress());
@@ -195,6 +208,116 @@ public class UserService {
     }
 
     /**
+     * Register a new user
+     */
+    @Transactional
+    public UserResponse register(RegisterRequest req) {
+        // Check if user with this email already exists
+        if (userRepo.findByEmail(req.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("User with this email already exists");
+        }
+
+        User u = new User();
+
+        // Set basic fields
+        u.setName(req.getName());
+        u.setSurname(req.getSurname());
+        u.setFatherName(req.getFatherName());
+        u.setEmail(req.getEmail());
+        u.setMobileNumber(req.getMobileNumber());
+        u.setCountryCode(req.getCountryCode());
+        u.setPincode(req.getPincode());
+        u.setGender(req.getGender());
+        u.setMaritalStatus(req.getMaritalStatus());
+        u.setHomeAddress(req.getHomeAddress());
+
+        // Set school/office fields
+        u.setSchoolOfficeName(req.getSchoolOfficeName());
+        u.setSankulName(req.getSankulName());
+        u.setDepartment(req.getDepartment());
+
+        // Set department unique ID only if provided
+        if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().trim().isEmpty()) {
+            u.setDepartmentUniqueId(req.getDepartmentUniqueId().trim());
+        } else {
+            u.setDepartmentUniqueId(null);
+        }
+
+        // Set location entities (State, Sambhag, District, Block)
+        if (req.getDepartmentState() != null && !req.getDepartmentState().isEmpty()) {
+            State state = stateRepo.findByName(req.getDepartmentState())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid state: " + req.getDepartmentState()));
+            u.setDepartmentState(state);
+
+            if (req.getDepartmentSambhag() != null && !req.getDepartmentSambhag().isEmpty()) {
+                Sambhag sambhag = sambhagRepo.findByNameAndState(req.getDepartmentSambhag(), state)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid sambhag: " + req.getDepartmentSambhag()));
+                u.setDepartmentSambhag(sambhag);
+
+                if (req.getDepartmentDistrict() != null && !req.getDepartmentDistrict().isEmpty()) {
+                    District district = districtRepo.findByNameAndSambhag(req.getDepartmentDistrict(), sambhag)
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid district: " + req.getDepartmentDistrict()));
+                    u.setDepartmentDistrict(district);
+
+                    if (req.getDepartmentBlock() != null && !req.getDepartmentBlock().isEmpty()) {
+                        Block block = blockRepo.findByNameAndDistrict(req.getDepartmentBlock(), district)
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid block: " + req.getDepartmentBlock()));
+                        u.setDepartmentBlock(block);
+                    }
+                }
+            }
+        }
+
+        // Set nominee information
+        u.setNominee1Name(req.getNominee1Name());
+        u.setNominee1Relation(req.getNominee1Relation());
+        u.setNominee2Name(req.getNominee2Name());
+        u.setNominee2Relation(req.getNominee2Relation());
+
+        // Parse dates
+        if (req.getDateOfBirth() != null && !req.getDateOfBirth().isEmpty()) {
+            try {
+                u.setDateOfBirth(LocalDate.parse(req.getDateOfBirth()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for dateOfBirth. Use yyyy-MM-dd");
+            }
+        }
+
+        if (req.getJoiningDate() != null && !req.getJoiningDate().isEmpty()) {
+            try {
+                u.setJoiningDate(LocalDate.parse(req.getJoiningDate()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for joiningDate. Use yyyy-MM-dd");
+            }
+        }
+
+        if (req.getRetirementDate() != null && !req.getRetirementDate().isEmpty()) {
+            try {
+                u.setRetirementDate(LocalDate.parse(req.getRetirementDate()));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid date format for retirementDate. Use yyyy-MM-dd");
+            }
+        }
+
+        // Encode password and set role
+        u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        u.setRole(Role.ROLE_USER);
+
+        // Generate user ID
+        String userId = idGeneratorService.generateNextUserId();
+        u.setId(userId);
+
+        // Save user
+        User savedUser = userRepo.save(u);
+
+        // Send registration confirmation email
+        String fullName = savedUser.getName() + (savedUser.getSurname() != null ? " " + savedUser.getSurname() : "");
+        emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName, savedUser.getId());
+
+        return toUserResponse(savedUser);
+    }
+
+    /**
      * Convert User entity to UserResponse DTO
      */
     private UserResponse toUserResponse(User user) {
@@ -208,8 +331,8 @@ public class UserService {
         response.setFatherName(user.getFatherName());  // Added father name
         // Removed username - no longer exists
         response.setEmail(user.getEmail());
-        response.setPhoneNumber(user.getPhoneNumber());
         response.setMobileNumber(user.getMobileNumber());
+        response.setPincode(user.getPincode());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setHomeAddress(user.getHomeAddress());
@@ -260,7 +383,6 @@ public class UserService {
         response.setNominee1Relation(user.getNominee1Relation());
         response.setNominee2Name(user.getNominee2Name());
         response.setNominee2Relation(user.getNominee2Relation());
-        response.setAcceptedTerms(user.isAcceptedTerms());
         response.setRole(user.getRole());
         response.setCreatedAt(user.getCreatedAt());
 

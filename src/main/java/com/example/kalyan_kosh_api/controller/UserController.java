@@ -21,7 +21,19 @@ public class UserController {
         this.userService = userService;
     }
 
-
+    // REGISTER USER
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+        try {
+            UserResponse user = userService.register(req);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
+        }
+    }
 
     // GET USER BY ID
     @GetMapping("/{id}")

@@ -14,11 +14,11 @@ public class UserResponse {
     private String fatherName;          // Added father name
     // Removed username field
     private String email;
-    private String phoneNumber;
     private String mobileNumber;
     private String gender;
     private String maritalStatus;
     private String homeAddress;
+    private Integer pincode;            // Added pincode
     private LocalDate dateOfBirth;
     private LocalDate joiningDate;      // Added joining date
     private LocalDate retirementDate;   // Added retirement date
@@ -34,7 +34,6 @@ public class UserResponse {
     private String nominee1Relation;
     private String nominee2Name;
     private String nominee2Relation;
-    private boolean acceptedTerms;
     private Role role;
     private Instant createdAt;
 
@@ -57,8 +56,6 @@ public class UserResponse {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public String getMobileNumber() { return mobileNumber; }
     public void setMobileNumber(String mobileNumber) { this.mobileNumber = mobileNumber; }
@@ -71,6 +68,9 @@ public class UserResponse {
 
     public String getHomeAddress() { return homeAddress; }
     public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+
+    public Integer getPincode() { return pincode; }
+    public void setPincode(Integer pincode) { this.pincode = pincode; }
 
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
@@ -117,8 +117,6 @@ public class UserResponse {
     public String getNominee2Relation() { return nominee2Relation; }
     public void setNominee2Relation(String nominee2Relation) { this.nominee2Relation = nominee2Relation; }
 
-    public boolean isAcceptedTerms() { return acceptedTerms; }
-    public void setAcceptedTerms(boolean acceptedTerms) { this.acceptedTerms = acceptedTerms; }
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }

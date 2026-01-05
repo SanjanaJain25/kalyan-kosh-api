@@ -4,8 +4,7 @@ import jakarta.validation.constraints.*;
 
 public class LoginRequest {
     @NotBlank
-    @Email
-    private String email;  // Changed from username to email
+    private String userId;
 
     @NotBlank
     private String password;
@@ -14,18 +13,18 @@ public class LoginRequest {
     public LoginRequest() {}
 
     // Constructor with parameters
-    public LoginRequest(String email, String password) {
-        this.email = email;
+    public LoginRequest(String userId, String password) {
+        this.userId = userId;
         this.password = password;
     }
 
     // Getters and setters
-    public String getEmail() {
-        return email;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getPassword() {

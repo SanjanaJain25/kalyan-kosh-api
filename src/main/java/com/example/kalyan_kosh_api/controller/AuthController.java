@@ -22,8 +22,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
-        // Using email instead of username for authentication
-        LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getEmail(), req.getPassword());
+        // Using userId for authentication
+        LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getUserId(), req.getPassword());
         return ResponseEntity.ok(loginResponse);
     }
 

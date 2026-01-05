@@ -93,6 +93,9 @@ public class SecurityConfig {
                         // Public endpoint - Get all users
                         .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/").permitAll()
 
+                        // Public endpoint - User registration
+                        .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
+
                         // Public endpoint - Error handling
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/email-otp/send").permitAll()

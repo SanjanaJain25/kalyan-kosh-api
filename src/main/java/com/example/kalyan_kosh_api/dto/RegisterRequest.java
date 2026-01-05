@@ -9,7 +9,6 @@ public class RegisterRequest {
     private String surname;
     private String fatherName;          // Added father name
     private String countryCode;
-    private String phoneNumber;
     private String mobileNumber;
     private String email;
     private String gender;
@@ -17,6 +16,7 @@ public class RegisterRequest {
     // Removed username field - now using email for authentication
     private String password;
     private String homeAddress;
+    private Integer pincode;            // Added pincode
     private String dateOfBirth;         // "1999-09-11"
     private String joiningDate;         // Added joining date
     private String retirementDate;      // Added retirement date
@@ -32,7 +32,6 @@ public class RegisterRequest {
     private String nominee1Relation;
     private String nominee2Name;
     private String nominee2Relation;
-    private boolean acceptedTerms;
 
     // Default constructor
     public RegisterRequest() {}
@@ -50,8 +49,6 @@ public class RegisterRequest {
     public String getCountryCode() { return countryCode; }
     public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public String getMobileNumber() { return mobileNumber; }
     public void setMobileNumber(String mobileNumber) { this.mobileNumber = mobileNumber; }
@@ -70,6 +67,9 @@ public class RegisterRequest {
 
     public String getHomeAddress() { return homeAddress; }
     public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+
+    public Integer getPincode() { return pincode; }
+    public void setPincode(Integer pincode) { this.pincode = pincode; }
 
     public String getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
@@ -115,7 +115,4 @@ public class RegisterRequest {
 
     public String getNominee2Relation() { return nominee2Relation; }
     public void setNominee2Relation(String nominee2Relation) { this.nominee2Relation = nominee2Relation; }
-
-    public boolean isAcceptedTerms() { return acceptedTerms; }
-    public void setAcceptedTerms(boolean acceptedTerms) { this.acceptedTerms = acceptedTerms; }
 }

@@ -8,12 +8,12 @@ public class UpdateUserRequest {
     private String surname;
     private String fatherName;          // Added father name
     private String email;
-    private String phoneNumber;
     private String countryCode;
     private String mobileNumber;
     private String gender;
     private String maritalStatus;
     private String homeAddress;
+    private Integer pincode;            // Added pincode
     private String dateOfBirth;         // Added date of birth
     private String joiningDate;         // Added joining date
     private String retirementDate;      // Added retirement date
