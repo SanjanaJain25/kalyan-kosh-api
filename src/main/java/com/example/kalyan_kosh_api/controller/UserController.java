@@ -2,6 +2,7 @@ package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
+import com.example.kalyan_kosh_api.dto.UpdatePasswordRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.service.UserService;
@@ -9,7 +10,9 @@ import com.example.kalyan_kosh_api.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -69,5 +72,41 @@ public class UserController {
             @PathVariable String id,
             @RequestBody UpdateUserRequest req) {
         return ResponseEntity.ok(userService.updateUser(id, req));
+    }
+
+    /**
+     * UPDATE PASSWORD
+     * Requires: currentPassword, newPassword, confirmPassword
+     *
+     * Usage: PUT /api/users/{id}/password
+     *
+     * Response: { "success": true, "message": "Password changed successfully" }
+     */
+    @PutMapping("/{id}/password")
+    public ResponseEntity<?> updatePassword(
+            @PathVariable String id,
+            @Valid @RequestBody UpdatePasswordRequest req) {
+        try {
+            userService.updatePassword(
+                id,
+                req.getCurrentPassword(),
+                req.getNewPassword()
+            );
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password changed successfully"
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "Failed to update password: " + e.getMessage()
+            ));
+        }
     }
 }

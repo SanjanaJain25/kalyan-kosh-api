@@ -214,6 +214,34 @@ public class UserService {
     }
 
     /**
+     * Update user password
+     * Validates current password before updating to new password
+     */
+    @Transactional
+    public void updatePassword(String userId, String currentPassword, String newPassword) {
+
+        // Find user
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        // Check if new password is same as current
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password cannot be the same as current password");
+        }
+
+        // Update password
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepo.save(user);
+
+        System.out.println("✅ Password updated successfully for user: " + userId);
+    }
+
+    /**
      * Register a new user
      */
     @Transactional
