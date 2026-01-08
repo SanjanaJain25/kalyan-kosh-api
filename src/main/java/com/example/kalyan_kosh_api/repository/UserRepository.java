@@ -1,6 +1,8 @@
 package com.example.kalyan_kosh_api.repository;
 
 import com.example.kalyan_kosh_api.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -20,6 +22,15 @@ public interface UserRepository extends JpaRepository<User, String> {
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b")
     List<User> findAllWithLocations();
+
+    // ✅ Paginated query - fetch users with locations (insertion order by createdAt ASC)
+    @Query(value = "SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.departmentState s " +
+           "LEFT JOIN FETCH u.departmentSambhag sa " +
+           "LEFT JOIN FETCH u.departmentDistrict d " +
+           "LEFT JOIN FETCH u.departmentBlock b",
+           countQuery = "SELECT COUNT(u) FROM User u")
+    Page<User> findAllWithLocationsPaginated(Pageable pageable);
 
     // ✅ Fetch single user with location relationships
     @Query("SELECT u FROM User u " +

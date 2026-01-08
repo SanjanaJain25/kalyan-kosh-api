@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.controller;
 
+import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
@@ -41,11 +42,25 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    // GET ALL USERS
+    // GET ALL USERS (without pagination)
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * GET ALL USERS WITH PAGINATION - 20 records per page by default
+     * Sorted by insertion order (createdAt ASC)
+     *
+     * Usage: GET /api/users/paginated?page=0&size=20
+     */
+    @GetMapping("/paginated")
+    public ResponseEntity<PageResponse<UserResponse>> getAllUsersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageResponse<UserResponse> response = userService.getAllUsersPaginated(page, size);
+        return ResponseEntity.ok(response);
     }
 
     // UPDATE USER

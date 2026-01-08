@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.service;
 
+import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
@@ -15,6 +16,10 @@ import com.example.kalyan_kosh_api.repository.SambhagRepository;
 import com.example.kalyan_kosh_api.repository.StateRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -389,5 +395,35 @@ public class UserService {
         System.out.println("✅ UserResponse created successfully");
 
         return response;
+    }
+
+
+    /**
+     * Paginated method to get users - 20 users per page, sorted by insertion order (createdAt ASC)
+     * Optimized for large datasets (60000+ users)
+     */
+    public PageResponse<UserResponse> getAllUsersPaginated(int page, int size) {
+        System.out.println("📋 Fetching PAGINATED users - Page: " + page + ", Size: " + size);
+
+        // Sort by createdAt ASC to maintain insertion order
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+
+        Page<User> userPage = userRepo.findAllWithLocationsPaginated(pageable);
+
+        List<UserResponse> userResponses = userPage.getContent().stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+
+        System.out.println("✅ Loaded page " + page + " with " + userResponses.size() + " users (Total: " + userPage.getTotalElements() + ")");
+
+        return new PageResponse<>(
+                userResponses,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.isLast(),
+                userPage.isFirst()
+        );
     }
 }
