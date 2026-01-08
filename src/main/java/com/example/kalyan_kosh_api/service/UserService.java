@@ -365,24 +365,18 @@ public class UserService {
             String sambhagName = user.getDepartmentSambhag().getName();
             response.setDepartmentSambhag(sambhagName);
             System.out.println("   ✅ Sambhag: " + sambhagName);
-        } else {
-            System.out.println("   ⚠️  Sambhag: NULL");
         }
 
         if (user.getDepartmentDistrict() != null) {
             String districtName = user.getDepartmentDistrict().getName();
             response.setDepartmentDistrict(districtName);
             System.out.println("   ✅ District: " + districtName);
-        } else {
-            System.out.println("   ⚠️  District: NULL");
         }
 
         if (user.getDepartmentBlock() != null) {
             String blockName = user.getDepartmentBlock().getName();
             response.setDepartmentBlock(blockName);
             System.out.println("   ✅ Block: " + blockName);
-        } else {
-            System.out.println("   ⚠️  Block: NULL");
         }
 
         response.setNominee1Name(user.getNominee1Name());
@@ -391,8 +385,6 @@ public class UserService {
         response.setNominee2Relation(user.getNominee2Relation());
         response.setRole(user.getRole());
         response.setCreatedAt(user.getCreatedAt());
-
-        System.out.println("✅ UserResponse created successfully");
 
         return response;
     }
@@ -406,7 +398,7 @@ public class UserService {
         System.out.println("📋 Fetching PAGINATED users - Page: " + page + ", Size: " + size);
 
         // Sort by createdAt ASC to maintain insertion order
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<User> userPage = userRepo.findAllWithLocationsPaginated(pageable);
 
