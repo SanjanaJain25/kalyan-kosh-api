@@ -28,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -435,6 +436,52 @@ public class UserService {
                 .collect(Collectors.toList());
 
         System.out.println("✅ Loaded page " + page + " with " + userResponses.size() + " users (Total: " + userPage.getTotalElements() + ")");
+
+        return new PageResponse<>(
+                userResponses,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.isLast(),
+                userPage.isFirst()
+        );
+    }
+
+    /**
+     * Filtered + Paginated method to get users
+     * Filters: Sambhag, District, Block, Name (searches in name & surname), Mobile
+     * 20 users per page, sorted by insertion order (createdAt DESC - newest first)
+     */
+    public PageResponse<UserResponse> getAllUsersFiltered(
+            UUID sambhagId,
+            UUID districtId,
+            UUID blockId,
+            String name,
+            String mobile,
+            int page,
+            int size) {
+
+        System.out.println("📋 Fetching FILTERED users - Sambhag: " + sambhagId +
+                           ", District: " + districtId + ", Block: " + blockId +
+                           ", Name: " + name + ", Mobile: " + mobile);
+
+        // Sort by createdAt DESC to show newest first
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // Clean up empty strings to null for proper query handling
+        String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
+        String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
+
+        Page<User> userPage = userRepo.findAllWithFilters(
+                sambhagId, districtId, blockId, cleanName, cleanMobile, pageable);
+
+        List<UserResponse> userResponses = userPage.getContent().stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+
+        System.out.println("✅ Loaded page " + page + " with " + userResponses.size() +
+                           " users (Total matching: " + userPage.getTotalElements() + ")");
 
         return new PageResponse<>(
                 userResponses,

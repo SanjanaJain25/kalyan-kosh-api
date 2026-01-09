@@ -96,6 +96,11 @@ public class SecurityConfig {
                         // Public endpoint - Get users with pagination
                         .requestMatchers(HttpMethod.GET, "/api/users/paginated").permitAll()
 
+                        // Public endpoint - Get users with filters
+                        .requestMatchers(HttpMethod.GET, "/api/users/filter").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/filte/*r").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors").permitAll()
+
                         // Public endpoint - User registration
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
 

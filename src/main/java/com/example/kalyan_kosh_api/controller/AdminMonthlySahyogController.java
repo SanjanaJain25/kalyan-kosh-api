@@ -2,7 +2,7 @@ package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.NonDonorResponse;
 import com.example.kalyan_kosh_api.entity.MonthlySahyog;
-//import com.example.kalyan_kosh_api.service.MonthlySahyogService;
+import com.example.kalyan_kosh_api.service.MonthlySahyogService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,10 +18,9 @@ import java.util.List;
  * 2. Refactor to extract month/year from paymentDate field
  */
 
-/*
 @RestController
 @RequestMapping("/api/admin/monthly-sahyog")
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+//@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 @CrossOrigin(origins = "*")
 public class AdminMonthlySahyogController {
 
@@ -91,4 +90,3 @@ public class AdminMonthlySahyogController {
         service.exportNonDonorsCsv(month, year, response.getWriter());
     }
 }
-*/

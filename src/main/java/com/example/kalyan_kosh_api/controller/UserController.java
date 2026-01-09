@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -63,6 +64,32 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         PageResponse<UserResponse> response = userService.getAllUsersPaginated(page, size);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET ALL USERS WITH FILTERS AND PAGINATION
+     *
+     * Filters:
+     * - sambhagId: Filter by Sambhag (Division) ID
+     * - districtId: Filter by District ID
+     * - blockId: Filter by Block ID
+     * - name: Search by name or surname (partial match)
+     * - mobile: Search by mobile number (partial match)
+     *
+     * Usage: GET /api/users/filter?sambhagId=1&districtId=2&blockId=3&name=राहुल&mobile=98765&page=0&size=20
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<PageResponse<UserResponse>> getAllUsersFiltered(
+            @RequestParam(required = false) UUID sambhagId,
+            @RequestParam(required = false) UUID districtId,
+            @RequestParam(required = false) UUID blockId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String mobile,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageResponse<UserResponse> response = userService.getAllUsersFiltered(
+                sambhagId, districtId, blockId, name, mobile, page, size);
         return ResponseEntity.ok(response);
     }
 

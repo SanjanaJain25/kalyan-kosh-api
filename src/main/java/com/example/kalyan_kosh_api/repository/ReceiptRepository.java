@@ -13,18 +13,20 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
 
-    // Note: The following queries have been commented out because Receipt entity
-    // no longer has 'month' and 'year' fields. If you need monthly tracking,
-    // you'll need to extract month/year from paymentDate or add these fields back.
+    // ✅ Updated queries to use MONTH() and YEAR() functions on paymentDate
 
-    /*
-    List<Receipt> findByMonthAndYear(int month, int year);
+    @Query("""
+        SELECT r FROM Receipt r
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
+    """)
+    List<Receipt> findByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
     @Query("""
         SELECT COALESCE(SUM(r.amount), 0)
         FROM Receipt r
-        WHERE r.month = :month
-          AND r.year = :year
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
           AND r.status = :status
     """)
     double sumAmountByMonthAndYearAndStatus(
@@ -36,8 +38,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
     @Query("""
         SELECT DISTINCT r.user
         FROM Receipt r
-        WHERE r.month = :month
-          AND r.year = :year
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
           AND r.status = 'VERIFIED'
     """)
     List<User> findDonors(
@@ -46,41 +48,39 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
     );
 
     @Query("""
-select COALESCE(SUM(r.amount), 0)
-from Receipt r
-where r.user.id = :userId
-and r.month = :month
-and r.year = :year
-and r.status = 'VERIFIED'
-""")
-    double sumPaidAmount(String userId, int month, int year);
+        SELECT COALESCE(SUM(r.amount), 0)
+        FROM Receipt r
+        WHERE r.user.id = :userId
+          AND MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
+          AND r.status = 'VERIFIED'
+    """)
+    double sumPaidAmount(@Param("userId") String userId, @Param("month") int month, @Param("year") int year);
 
     @Query("""
-select r
-from Receipt r
-where r.month = :month
-and r.year = :year
-and r.status = com.example.kalyan_kosh_api.entity.ReceiptStatus.VERIFIED
-""")
-    List<Receipt> findVerifiedReceipts(int month, int year);
+        SELECT r
+        FROM Receipt r
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
+          AND r.status = com.example.kalyan_kosh_api.entity.ReceiptStatus.VERIFIED
+    """)
+    List<Receipt> findVerifiedReceipts(@Param("month") int month, @Param("year") int year);
 
     @Query("""
-select count(distinct r.user.id)
-from Receipt r
-where r.month = :month
-and r.year = :year
-and r.status = 'VERIFIED'
-""")
-    long countDonors(int month, int year);
+        SELECT COUNT(DISTINCT r.user.id)
+        FROM Receipt r
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
+          AND r.status = 'VERIFIED'
+    """)
+    long countDonors(@Param("month") int month, @Param("year") int year);
 
     @Query("""
-select coalesce(sum(r.amount), 0)
-from Receipt r
-where r.month = :month
-and r.year = :year
-and r.status = 'VERIFIED'
-""")
-    double sumVerifiedAmount(int month, int year);
-    */
-
+        SELECT COALESCE(SUM(r.amount), 0)
+        FROM Receipt r
+        WHERE MONTH(r.paymentDate) = :month
+          AND YEAR(r.paymentDate) = :year
+          AND r.status = 'VERIFIED'
+    """)
+    double sumVerifiedAmount(@Param("month") int month, @Param("year") int year);
 }

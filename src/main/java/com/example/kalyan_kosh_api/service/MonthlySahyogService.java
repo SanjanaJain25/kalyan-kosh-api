@@ -26,7 +26,7 @@ import java.util.List;
  * 3. Remove this service entirely if monthly tracking is not needed
  */
 
-/*
+
 @Service
 public class MonthlySahyogService {
 
@@ -93,9 +93,9 @@ public class MonthlySahyogService {
 
     public List<NonDonorResponse> getNonDonors(int month, int year) {
 
-        sahyogRepo.findByMonthAndYear(month, year)
-                .orElseThrow(() ->
-                        new IllegalStateException("Monthly Sahyog not generated"));
+//        sahyogRepo.findByMonthAndYear(month, year)
+//                .orElseThrow(() ->
+//                        new IllegalStateException("Monthly Sahyog not generated"));
 
         return userRepo.findAll().stream()
                 .filter(u -> u.getRole() == Role.ROLE_USER)
@@ -219,8 +219,4 @@ public class MonthlySahyogService {
 
         return sahyog;
     }
-
-
-
 }
-*/
