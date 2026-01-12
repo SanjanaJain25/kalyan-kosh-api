@@ -62,7 +62,7 @@ public class UserController {
     @GetMapping("/paginated")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsersPaginated(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "250") int size) {
         PageResponse<UserResponse> response = userService.getAllUsersPaginated(page, size);
         return ResponseEntity.ok(response);
     }
@@ -87,7 +87,7 @@ public class UserController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String mobile,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "250") int size) {
         PageResponse<UserResponse> response = userService.getAllUsersFiltered(
                 sambhagId, districtId, blockId, name, mobile, page, size);
         return ResponseEntity.ok(response);
