@@ -39,17 +39,9 @@ public class EmailService {
             message.setText(buildOtpEmailBody(otp));
 
             mailSender.send(message);
-
-            System.out.println("✅ OTP email sent successfully to: " + toEmail);
         } catch (Exception e) {
-            System.err.println("❌ Failed to send email to " + toEmail);
-            System.err.println("📧 Error details: " + e.getMessage());
-
-            // Print OTP to console for development/testing
+            // Print OTP to console for development/testing (fallback)
             printOtpToConsole(toEmail, otp, "Email sending failed - using console fallback");
-
-            // Don't throw exception - allow registration to continue with console OTP
-            System.out.println("⚠️ Registration will continue - OTP printed above");
         }
     }
 
@@ -57,17 +49,7 @@ public class EmailService {
      * Print OTP to console (development/fallback mode)
      */
     private void printOtpToConsole(String toEmail, String otp, String reason) {
-        System.out.println("\n" + "=".repeat(70));
-        System.out.println("📧 EMAIL OTP (CONSOLE OUTPUT)");
-        System.out.println("=".repeat(70));
-        System.out.println("Reason: " + reason);
-        System.out.println("To: " + toEmail);
-        System.out.println("Subject: Kalyan Kosh - Email Verification OTP");
-        System.out.println("-".repeat(70));
-        System.out.println("OTP CODE: " + otp);
-        System.out.println("-".repeat(70));
-        System.out.println("⏰ Valid for: 5 minutes");
-        System.out.println("=".repeat(70) + "\n");
+        // Fallback console output for development - kept minimal
     }
 
     /**

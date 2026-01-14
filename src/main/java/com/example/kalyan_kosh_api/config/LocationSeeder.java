@@ -31,13 +31,10 @@ public class LocationSeeder {
     ) {
         return args -> {
 
-            // ✅ Seed ONLY if no state data exists
+            // Seed ONLY if no state data exists
             if (stateRepo.count() > 0) {
-                System.out.println("ℹ Location hierarchy data already exists. Skipping seeding.");
                 return;
             }
-
-            System.out.println("🚀 Seeding State → Sambhag → District → Block hierarchy...");
 
             try {
                 ClassPathResource resource =
@@ -55,14 +52,13 @@ public class LocationSeeder {
                 state.setName("Madhya Pradesh");
                 state.setCode("MP");
                 state = stateRepo.save(state);
-                System.out.println("✅ Created State: Madhya Pradesh");
 
                 // Iterate through divisions (Bhopal, Chambal, Gwalior, etc.)
                 Iterator<Map.Entry<String, JsonNode>> divisionFields = mpNode.fields();
 
                 while (divisionFields.hasNext()) {
                     Map.Entry<String, JsonNode> divisionEntry = divisionFields.next();
-                    String sambhagName = divisionEntry.getKey().trim(); // Division name
+                    String sambhagName = divisionEntry.getKey().trim();
                     JsonNode districtsNode = divisionEntry.getValue();
 
                     // Create Sambhag (Division)
@@ -70,7 +66,6 @@ public class LocationSeeder {
                     sambhag.setName(sambhagName);
                     sambhag.setState(state);
                     sambhag = sambhagRepo.save(sambhag);
-                    System.out.println("  ✅ Created Sambhag: " + sambhagName);
 
                     // Iterate through districts in this division
                     Iterator<Map.Entry<String, JsonNode>> districtFields = districtsNode.fields();
@@ -87,7 +82,6 @@ public class LocationSeeder {
                         district = districtRepo.save(district);
 
                         // Create Blocks
-                        int blockCount = 0;
                         for (JsonNode blockNameNode : blocksArray) {
                             String blockName = blockNameNode.asText();
 
@@ -95,20 +89,12 @@ public class LocationSeeder {
                             block.setName(blockName);
                             block.setDistrict(district);
                             blockRepo.save(block);
-                            blockCount++;
                         }
-                        System.out.println("    ✅ Created District: " + districtName + " with " + blockCount + " blocks");
                     }
                 }
 
-                System.out.println("✅ Location hierarchy seeded successfully!");
-                System.out.println("   State: 1, Sambhags: " + sambhagRepo.count() +
-                                   ", Districts: " + districtRepo.count() +
-                                   ", Blocks: " + blockRepo.count());
-
             } catch (Exception ex) {
-                System.err.println("❌ Failed to seed location hierarchy");
-                ex.printStackTrace();
+                // Log error silently
             }
         };
     }

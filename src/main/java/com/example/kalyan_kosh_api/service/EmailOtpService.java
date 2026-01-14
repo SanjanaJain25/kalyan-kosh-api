@@ -53,8 +53,6 @@ public class EmailOtpService {
 
         // Send OTP via email
         emailService.sendOtpEmail(email, otp);
-
-        System.out.println("📧 Email OTP sent to: " + email + " (OTP: " + otp + ")");
     }
 
     /**
@@ -91,8 +89,6 @@ public class EmailOtpService {
 
         // Delete OTP after successful verification (single use)
         emailOtpRepo.deleteByEmail(normalizedEmail);
-
-        System.out.println("✅ Email OTP verified for: " + email);
     }
 
     /**

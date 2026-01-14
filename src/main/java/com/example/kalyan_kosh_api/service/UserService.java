@@ -62,26 +62,14 @@ public class UserService {
     }
 
     public UserResponse getUserById(String id) {
-        System.out.println("🔍 Fetching user with ID: " + id + " WITH location relationships");
-
         User user = userRepo.findByIdWithLocations(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        System.out.println("✅ User loaded: " + user.getName());
-        System.out.println("   State: " + (user.getDepartmentState() != null ? user.getDepartmentState().getName() : "NULL"));
-        System.out.println("   Sambhag: " + (user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : "NULL"));
-        System.out.println("   District: " + (user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : "NULL"));
-        System.out.println("   Block: " + (user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : "NULL"));
 
         return toUserResponse(user);
     }
 
     public List<UserResponse> getAllUsers() {
-        System.out.println("📋 Fetching ALL users WITH location relationships");
-
         List<User> users = userRepo.findAllWithLocations();
-
-        System.out.println("✅ Loaded " + users.size() + " users");
 
         return users.stream()
                 .map(this::toUserResponse)
@@ -238,8 +226,6 @@ public class UserService {
         // Update password
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepo.save(user);
-
-        System.out.println("✅ Password updated successfully for user: " + userId);
     }
 
     /**

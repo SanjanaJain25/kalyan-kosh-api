@@ -92,7 +92,6 @@ public class ReceiptService {
 
         Receipt saved = receiptRepo.save(receipt);
 
-        System.out.println("✅ File uploaded to S3: " + fileUrl);
 
         return mapper.map(saved, ReceiptResponse.class);
     }
