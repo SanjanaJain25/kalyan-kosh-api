@@ -11,9 +11,6 @@ public class ReceiptResponse {
 
     private Long id;
 
-    private int month;
-    private int year;
-
     private double amount;
     private LocalDate paymentDate;
     private String comment;
@@ -23,6 +20,11 @@ public class ReceiptResponse {
     private Long deathCaseId;
     private String deceasedName;
 
-    private String filePath;
+    // S3 file info
+    private String fileUrl;
+    private String fileName;
+    private String fileType;
+    private Long fileSize;
+
     private Instant uploadedAt;
 }

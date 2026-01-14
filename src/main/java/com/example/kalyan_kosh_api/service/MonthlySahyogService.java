@@ -13,19 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.PrintWriter;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
-
-/*
- * NOTE: This service is commented out because it depends on ReceiptRepository methods
- * that reference month/year fields which were removed from Receipt entity.
- * The admin controllers that use this service are also commented out.
- *
- * To re-enable:
- * 1. Add back month/year fields to Receipt entity, OR
- * 2. Update ReceiptRepository queries to extract month/year from paymentDate, OR
- * 3. Remove this service entirely if monthly tracking is not needed
- */
-
 
 @Service
 public class MonthlySahyogService {
@@ -47,19 +36,18 @@ public class MonthlySahyogService {
         this.receiptRepo = receiptRepo;
     }
 
-    public MonthlySahyog generate(int month, int year) {
+    public MonthlySahyog generate(LocalDate sahyogDate) {
 
-        sahyogRepo.findByMonthAndYear(month, year)
+        sahyogRepo.findBySahyogDate(sahyogDate)
                 .ifPresent(ms -> {
                     throw new IllegalStateException(
-                            "Monthly Sahyog already generated");
+                            "Monthly Sahyog already generated for this date");
                 });
 
         int totalMembers = (int) userRepo.count();
 
         MonthlySahyog sahyog = MonthlySahyog.builder()
-                .month(month)
-                .year(year)
+                .sahyogDate(sahyogDate)
                 .totalMembers(totalMembers)
                 .totalDeathCases(0)
                 .receivedAmount(0)
@@ -71,9 +59,9 @@ public class MonthlySahyogService {
     }
 
 
-    public MonthlySahyog updateDeathCases(int month, int year) {
+    public MonthlySahyog updateDeathCases(LocalDate sahyogDate) {
 
-        MonthlySahyog sahyog = sahyogRepo.findByMonthAndYear(month, year)
+        MonthlySahyog sahyog = sahyogRepo.findBySahyogDate(sahyogDate)
                 .orElseThrow(() ->
                         new IllegalStateException("Monthly Sahyog not generated"));
 
@@ -82,8 +70,11 @@ public class MonthlySahyogService {
                     "Month is frozen. Update not allowed.");
         }
 
-        int deathCases =
-                (int) deathCaseRepo.countByCaseMonthAndCaseYear(month, year);
+        // Count death cases for the date range (entire month)
+        LocalDate startDate = sahyogDate.withDayOfMonth(1);
+        LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
+
+        int deathCases = (int) deathCaseRepo.countByCaseDateBetween(startDate, endDate);
 
         sahyog.setTotalDeathCases(deathCases);
 
@@ -91,27 +82,23 @@ public class MonthlySahyogService {
     }
 
 
-    public List<NonDonorResponse> getNonDonors(int month, int year) {
+    public List<NonDonorResponse> getNonDonors(LocalDate sahyogDate) {
 
-//        sahyogRepo.findByMonthAndYear(month, year)
-//                .orElseThrow(() ->
-//                        new IllegalStateException("Monthly Sahyog not generated"));
+        LocalDate startDate = sahyogDate.withDayOfMonth(1);
+        LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
         return userRepo.findAll().stream()
                 .filter(u -> u.getRole() == Role.ROLE_USER)
                 .map(user -> {
 
-                    double paidAmount =
-                            receiptRepo.sumPaidAmount(
-                                    user.getId(), month, year);
+                    double paidAmount = receiptRepo.sumPaidAmountByDateRange(
+                            user.getId(), startDate, endDate);
 
-                    String status =
-                            paidAmount > 0 ? "DONOR" : "NON_DONOR";
-
+                    String status = paidAmount > 0 ? "DONOR" : "NON_DONOR";
 
                     return new NonDonorResponse(
                             user.getId(),
-                            user.getId(),  // Using user ID instead of username
+                            user.getId(),
                             paidAmount,
                             status
                     );
@@ -120,23 +107,17 @@ public class MonthlySahyogService {
                 .toList();
     }
 
-    public void exportNonDonorsCsv(
-            int month,
-            int year,
-            PrintWriter writer) {
+    public void exportNonDonorsCsv(LocalDate sahyogDate, PrintWriter writer) {
 
-        List<NonDonorResponse> nonDonors = getNonDonors(month, year);
+        List<NonDonorResponse> nonDonors = getNonDonors(sahyogDate);
 
-
-        writer.println("UserId,Username,Month,Year,PaidAmount,Status");
+        writer.println("UserId,SahyogDate,PaidAmount,Status");
 
         for (NonDonorResponse r : nonDonors) {
             writer.printf(
-                    "%d,%s,%d,%d,%.2f,%s%n",
+                    "%s,%s,%.2f,%s%n",
                     r.getUserId(),
-                    r.getUserId(),  // Using user ID instead of username
-                    month,
-                    year,
+                    sahyogDate,
                     r.getPaidAmount(),
                     r.getStatus()
             );
@@ -145,12 +126,15 @@ public class MonthlySahyogService {
         writer.flush();
     }
 
-    public List<NonDonorResponse> getDonors(int month, int year) {
+    public List<NonDonorResponse> getDonors(LocalDate sahyogDate) {
 
-        List<String> nonDonorUserIds = getNonDonors(month, year)
+        List<String> nonDonorUserIds = getNonDonors(sahyogDate)
                 .stream()
                 .map(NonDonorResponse::getUserId)
                 .toList();
+
+        LocalDate startDate = sahyogDate.withDayOfMonth(1);
+        LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
         return userRepo.findAll()
                 .stream()
@@ -158,36 +142,31 @@ public class MonthlySahyogService {
                 .filter(u -> !nonDonorUserIds.contains(u.getId()))
                 .map(u -> new NonDonorResponse(
                         u.getId(),
-                        u.getId(),  // Using user ID instead of username
-                        receiptRepo.sumPaidAmount(u.getId(), month, year),
+                        u.getId(),
+                        receiptRepo.sumPaidAmountByDateRange(u.getId(), startDate, endDate),
                         "DONOR"
                 ))
                 .toList();
     }
 
 
+    public AdminDashboardSummaryResponse getDashboardSummary(LocalDate sahyogDate) {
 
-    public AdminDashboardSummaryResponse getDashboardSummary(
-            int month,
-            int year) {
+        LocalDate startDate = sahyogDate.withDayOfMonth(1);
+        LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
         long totalMembers = userRepo.count();
 
-        long totalDeathCases =
-                deathCaseRepo.countByCaseMonthAndCaseYear(month, year);
+        long totalDeathCases = deathCaseRepo.countByCaseDateBetween(startDate, endDate);
 
-        long totalDonors =
-                receiptRepo.countDonors(month, year);
+        long totalDonors = receiptRepo.countDonorsByDateRange(startDate, endDate);
 
-        long totalNonDonors =
-                totalMembers - totalDonors;
+        long totalNonDonors = totalMembers - totalDonors;
 
-        double totalReceivedAmount =
-                receiptRepo.sumVerifiedAmount(month, year);
+        double totalReceivedAmount = receiptRepo.sumVerifiedAmountByDateRange(startDate, endDate);
 
         return new AdminDashboardSummaryResponse(
-                month,
-                year,
+                sahyogDate,
                 totalMembers,
                 totalDeathCases,
                 totalDonors,
@@ -196,9 +175,9 @@ public class MonthlySahyogService {
         );
     }
 
-    public MonthlySahyog freezeMonth(int month, int year) {
+    public MonthlySahyog freezeMonth(LocalDate sahyogDate) {
 
-        MonthlySahyog sahyog = getOpenMonth(month, year);
+        MonthlySahyog sahyog = getOpenSahyog(sahyogDate);
 
         sahyog.setStatus(SahyogStatus.FROZEN);
         sahyog.setFrozenAt(Instant.now());
@@ -206,9 +185,9 @@ public class MonthlySahyogService {
         return sahyogRepo.save(sahyog);
     }
 
-    private MonthlySahyog getOpenMonth(int month, int year) {
+    private MonthlySahyog getOpenSahyog(LocalDate sahyogDate) {
 
-        MonthlySahyog sahyog = sahyogRepo.findByMonthAndYear(month, year)
+        MonthlySahyog sahyog = sahyogRepo.findBySahyogDate(sahyogDate)
                 .orElseThrow(() ->
                         new IllegalStateException("Monthly Sahyog not generated"));
 

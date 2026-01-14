@@ -7,80 +7,81 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
 
-    // ✅ Updated queries to use MONTH() and YEAR() functions on paymentDate
-
-    @Query("""
-        SELECT r FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
-    """)
-    List<Receipt> findByMonthAndYear(@Param("month") int month, @Param("year") int year);
+    // Find receipts by date range
+    List<Receipt> findByPaymentDateBetween(LocalDate startDate, LocalDate endDate);
 
     @Query("""
         SELECT COALESCE(SUM(r.amount), 0)
         FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
+        WHERE r.paymentDate BETWEEN :startDate AND :endDate
           AND r.status = :status
     """)
-    double sumAmountByMonthAndYearAndStatus(
-            @Param("month") int month,
-            @Param("year") int year,
+    double sumAmountByDateRangeAndStatus(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
             @Param("status") ReceiptStatus status
     );
 
     @Query("""
         SELECT DISTINCT r.user
         FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
+        WHERE r.paymentDate BETWEEN :startDate AND :endDate
           AND r.status = 'VERIFIED'
     """)
-    List<User> findDonors(
-            @Param("month") int month,
-            @Param("year") int year
+    List<User> findDonorsByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
     );
 
     @Query("""
         SELECT COALESCE(SUM(r.amount), 0)
         FROM Receipt r
         WHERE r.user.id = :userId
-          AND MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
-          AND r.status = 'VERIFIED'
+          AND r.paymentDate BETWEEN :startDate AND :endDate
     """)
-    double sumPaidAmount(@Param("userId") String userId, @Param("month") int month, @Param("year") int year);
+    double sumPaidAmountByDateRange(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 
     @Query("""
         SELECT r
         FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
+        WHERE r.paymentDate BETWEEN :startDate AND :endDate
           AND r.status = com.example.kalyan_kosh_api.entity.ReceiptStatus.VERIFIED
     """)
-    List<Receipt> findVerifiedReceipts(@Param("month") int month, @Param("year") int year);
+    List<Receipt> findVerifiedReceiptsByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 
     @Query("""
         SELECT COUNT(DISTINCT r.user.id)
         FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
+        WHERE r.paymentDate BETWEEN :startDate AND :endDate
           AND r.status = 'VERIFIED'
     """)
-    long countDonors(@Param("month") int month, @Param("year") int year);
+    long countDonorsByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 
     @Query("""
         SELECT COALESCE(SUM(r.amount), 0)
         FROM Receipt r
-        WHERE MONTH(r.paymentDate) = :month
-          AND YEAR(r.paymentDate) = :year
+        WHERE r.paymentDate BETWEEN :startDate AND :endDate
           AND r.status = 'VERIFIED'
     """)
-    double sumVerifiedAmount(@Param("month") int month, @Param("year") int year);
+    double sumVerifiedAmountByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

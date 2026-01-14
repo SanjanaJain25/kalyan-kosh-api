@@ -98,8 +98,6 @@ public class SecurityConfig {
 
                         // Public endpoint - Get users with filters
                         .requestMatchers(HttpMethod.GET, "/api/users/filter").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/filte/*r").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors").permitAll()
 
                         // Public endpoint - User registration
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
@@ -112,7 +110,13 @@ public class SecurityConfig {
                         // Public endpoint - Admin Utils (for development/fixing data)
                         .requestMatchers("/api/admin/utils/**").permitAll()
 
-                        // Admin APIs - requires ADMIN role
+                        // Public admin endpoints (must be before /api/admin/** rule)
+                        .requestMatchers(HttpMethod.GET, "/api/admin/non-donors/paginated").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/summary").permitAll()
+
+                        // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/login").permitAll()
 

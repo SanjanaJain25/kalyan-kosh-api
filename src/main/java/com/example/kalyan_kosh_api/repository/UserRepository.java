@@ -72,4 +72,39 @@ public interface UserRepository extends JpaRepository<User, String> {
            "LEFT JOIN FETCH u.departmentBlock b " +
            "WHERE u.id = :id")
     Optional<User> findByIdWithLocations(String id);
+
+    // ✅ Optimized: Find non-donors (users who haven't donated in a specific month/year)
+    @Query("SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.departmentState s " +
+           "LEFT JOIN FETCH u.departmentSambhag sa " +
+           "LEFT JOIN FETCH u.departmentDistrict d " +
+           "LEFT JOIN FETCH u.departmentBlock b " +
+           "WHERE u.id NOT IN (" +
+           "    SELECT DISTINCT r.user.id FROM Receipt r " +
+           "    WHERE MONTH(r.paymentDate) = :month " +
+           "    AND YEAR(r.paymentDate) = :year " +
+           "    AND r.status = 'VERIFIED'" +
+           ")")
+    List<User> findNonDonors(@Param("month") int month, @Param("year") int year);
+
+    // ✅ Optimized: Find non-donors with pagination
+    @Query(value = "SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.departmentState s " +
+           "LEFT JOIN FETCH u.departmentSambhag sa " +
+           "LEFT JOIN FETCH u.departmentDistrict d " +
+           "LEFT JOIN FETCH u.departmentBlock b " +
+           "WHERE u.id NOT IN (" +
+           "    SELECT DISTINCT r.user.id FROM Receipt r " +
+           "    WHERE MONTH(r.paymentDate) = :month " +
+           "    AND YEAR(r.paymentDate) = :year " +
+           "    AND r.status = 'VERIFIED'" +
+           ")",
+           countQuery = "SELECT COUNT(u) FROM User u " +
+           "WHERE u.id NOT IN (" +
+           "    SELECT DISTINCT r.user.id FROM Receipt r " +
+           "    WHERE MONTH(r.paymentDate) = :month " +
+           "    AND YEAR(r.paymentDate) = :year " +
+           "    AND r.status = 'VERIFIED'" +
+           ")")
+    Page<User> findNonDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
 }

@@ -1,7 +1,10 @@
 package com.example.kalyan_kosh_api.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class CreateDeathCaseRequest {
@@ -15,18 +18,27 @@ public class CreateDeathCaseRequest {
     private String department;
     private String district;
 
+    private String description;
+    // userImage is handled as file upload (MultipartFile)
+
+    // Nominee 1 Details
     @NotBlank
-    private String nomineeName;
+    private String nominee1Name;
+    // nominee1QrCode is handled as file upload (MultipartFile)
 
-    @NotBlank
-    private String nomineeAccountNumber;
+    // Nominee 2 Details
+    private String nominee2Name;
+    // nominee2QrCode is handled as file upload (MultipartFile)
 
-    @NotBlank
-    private String nomineeIfsc;
+    // Account Details
+    @NotNull
+    @Valid
+    private AccountDetailsDTO account1;
 
-    @Min(1) @Max(12)
-    private int caseMonth;
+    private AccountDetailsDTO account2;
 
-    @Min(2020)
-    private int caseYear;
+    private AccountDetailsDTO account3;
+
+    @NotNull
+    private LocalDate caseDate;
 }

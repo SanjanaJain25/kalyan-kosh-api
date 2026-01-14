@@ -8,19 +8,18 @@ import com.example.kalyan_kosh_api.service.ReceiptService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import jakarta.validation.Valid;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/receipts")
-@PreAuthorize("hasRole('USER')")
 @CrossOrigin(origins = "*")
 public class ReceiptController {
 
@@ -46,25 +45,23 @@ public class ReceiptController {
         UploadReceiptRequest req = mapper.readValue(data, UploadReceiptRequest.class);
 
         return ResponseEntity.ok(
-                service.upload(req, file, authentication.getName()) // authentication.getName() now returns userId
+                service.upload(req, file, authentication.getName())
         );
     }
 
-
-
     @GetMapping("/my")
     public ResponseEntity<?> myReceipts(Authentication authentication) {
-
         String userId = authentication.getName();
         return ResponseEntity.ok(service.getMyReceipts(userId));
     }
 
     /**
-     * Download receipt file from database
+     * Get receipt file URL (S3)
      * GET /api/receipts/{id}/download
+     * Returns redirect to S3 URL
      */
     @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> downloadReceipt(
+    public ResponseEntity<?> downloadReceipt(
             @PathVariable Long id,
             Authentication authentication
     ) {
@@ -77,25 +74,19 @@ public class ReceiptController {
             throw new RuntimeException("Access denied");
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType(receipt.getFileType()));
-        headers.setContentDisposition(
-            ContentDisposition.builder("attachment")
-                .filename(receipt.getFileName())
-                .build()
-        );
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(receipt.getFileData());
+        // Redirect to S3 URL
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(receipt.getFileUrl()))
+                .build();
     }
 
     /**
-     * View receipt file in browser
+     * Get receipt file URL info
      * GET /api/receipts/{id}/view
+     * Returns the S3 URL for the file
      */
     @GetMapping("/{id}/view")
-    public ResponseEntity<byte[]> viewReceipt(
+    public ResponseEntity<?> viewReceipt(
             @PathVariable Long id,
             Authentication authentication
     ) {
@@ -108,10 +99,13 @@ public class ReceiptController {
             throw new RuntimeException("Access denied");
         }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(receipt.getFileType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
-                .body(receipt.getFileData());
+        // Return file info with S3 URL
+        return ResponseEntity.ok(Map.of(
+                "fileUrl", receipt.getFileUrl(),
+                "fileName", receipt.getFileName(),
+                "fileType", receipt.getFileType(),
+                "fileSize", receipt.getFileSize()
+        ));
     }
 
 }

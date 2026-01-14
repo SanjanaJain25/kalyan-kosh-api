@@ -4,6 +4,7 @@ import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import lombok.Data;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Data
 public class DeathCaseResponse {
@@ -14,12 +15,23 @@ public class DeathCaseResponse {
     private String department;
     private String district;
 
-    private String nomineeName;
-    private String nomineeAccountNumber;
-    private String nomineeIfsc;
+    private String description;
+    private String userImage;
 
-    private int caseMonth;
-    private int caseYear;
+    // Nominee 1 Details
+    private String nominee1Name;
+    private String nominee1QrCode;
+
+    // Nominee 2 Details
+    private String nominee2Name;
+    private String nominee2QrCode;
+
+    // Account Details
+    private AccountDetailsDTO account1;
+    private AccountDetailsDTO account2;
+    private AccountDetailsDTO account3;
+
+    private LocalDate caseDate;
 
     private DeathCaseStatus status;
 

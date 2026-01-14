@@ -1,23 +1,16 @@
 package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.AdminDashboardSummaryResponse;
-//import com.example.kalyan_kosh_api.service.MonthlySahyogService;
+import com.example.kalyan_kosh_api.service.MonthlySahyogService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/*
- * NOTE: This controller is commented out because it depends on month/year fields
- * that were removed from the Receipt entity. If you need monthly tracking functionality,
- * you'll need to either:
- * 1. Add back month/year fields to Receipt entity, OR
- * 2. Refactor to extract month/year from paymentDate field
- */
+import java.time.LocalDate;
 
-/*
 @RestController
 @RequestMapping("/api/admin/dashboard")
-@PreAuthorize("hasAuthority('ROLE_ADMIN')")
+@CrossOrigin(origins = "*")
 public class AdminDashboardController {
 
     private final MonthlySahyogService service;
@@ -26,13 +19,23 @@ public class AdminDashboardController {
         this.service = service;
     }
 
+    // Helper method to convert month/year to LocalDate (first day of month)
+    private LocalDate resolveDate(LocalDate sahyogDate, Integer month, Integer year) {
+        if (sahyogDate != null) {
+            return sahyogDate;
+        }
+        if (month != null && year != null) {
+            return LocalDate.of(year, month, 1);
+        }
+        throw new IllegalArgumentException("Either 'sahyogDate' or both 'month' and 'year' must be provided");
+    }
+
     @GetMapping("/summary")
     public ResponseEntity<AdminDashboardSummaryResponse> summary(
-            @RequestParam int month,
-            @RequestParam int year) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
 
-        return ResponseEntity.ok(
-                service.getDashboardSummary(month, year));
+        return ResponseEntity.ok(service.getDashboardSummary(resolveDate(sahyogDate, month, year)));
     }
 }
-*/

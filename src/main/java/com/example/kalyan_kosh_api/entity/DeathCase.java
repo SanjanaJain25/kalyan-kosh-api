@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -22,12 +23,33 @@ public class DeathCase {
     private String department;
     private String district;
 
-    private String nomineeName;
-    private String nomineeAccountNumber;
-    private String nomineeIfsc;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    private int caseMonth;
-    private int caseYear;
+    private String userImage; // Stores file path of user image
+
+    // Nominee 1 Details
+    private String nominee1Name;
+    private String nominee1QrCode; // Stores file path of QR code image
+
+    // Nominee 2 Details
+    private String nominee2Name;
+    private String nominee2QrCode; // Stores file path of QR code image
+
+    // Account Details (using OneToOne relationship with AccountDetails entity)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "account1_id")
+    private AccountDetails account1;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "account2_id")
+    private AccountDetails account2;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "account3_id")
+    private AccountDetails account3;
+
+    private LocalDate caseDate;
 
     private String createdBy;
     private String updatedBy;

@@ -6,11 +6,11 @@ import com.example.kalyan_kosh_api.entity.*;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
+import com.example.kalyan_kosh_api.service.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,17 +21,20 @@ public class ReceiptService {
     private final UserRepository userRepo;
     private final DeathCaseRepository deathCaseRepo;
     private final ModelMapper mapper;
+    private final FileStorageService fileStorageService;
 
     public ReceiptService(
             ReceiptRepository receiptRepo,
             UserRepository userRepo,
             DeathCaseRepository deathCaseRepo,
-            ModelMapper mapper
+            ModelMapper mapper,
+            FileStorageService fileStorageService
     ) {
         this.receiptRepo = receiptRepo;
         this.userRepo = userRepo;
         this.deathCaseRepo = deathCaseRepo;
         this.mapper = mapper;
+        this.fileStorageService = fileStorageService;
     }
 
 
@@ -39,15 +42,15 @@ public class ReceiptService {
     public ReceiptResponse upload(
             UploadReceiptRequest req,
             MultipartFile file,
-            String userId  // Changed from username to userId
+            String userId
     ) {
 
         // Validate user
-        User user = userRepo.findById(userId)  // Changed from findByUsername to findById
+        User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
         // Validate death case
-        DeathCase deathCase = deathCaseRepo.findById(31L)
+        DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
                 .orElseThrow(() -> new IllegalStateException("Death case not found"));
 
         // Validate file size (10MB limit)
@@ -65,44 +68,40 @@ public class ReceiptService {
         // Save current date and time
         Instant currentDateTime = Instant.now();
 
-        try {
-            // ✅ Convert file to byte array for database storage
-            byte[] fileData = file.getBytes();
+        // Upload file to S3: receipts/{deathCaseId}/{userId}/filename
+        String subdirectory = "receipts/" + req.getDeathCaseId() + "/" + userId;
+        String customName = "receipt_" + System.currentTimeMillis();
+        String fileUrl = fileStorageService.storeWithCustomName(file, subdirectory, customName);
 
-            Receipt receipt = Receipt.builder()
-                    .user(user)
-                    .deathCase(deathCase)
-                    .amount(req.getAmount())
-                    .paymentDate(req.getPaymentDate())
-                    .comment(req.getComment())
+        Receipt receipt = Receipt.builder()
+                .user(user)
+                .deathCase(deathCase)
+                .amount(req.getAmount())
+                .paymentDate(req.getPaymentDate())
+                .comment(req.getComment())
 
-                    // ✅ Store file in database
-                    .fileData(fileData)
-                    .fileName(file.getOriginalFilename())
-                    .fileType(contentType)
-                    .fileSize(file.getSize())
+                // Store S3 URL instead of file data
+                .fileUrl(fileUrl)
+                .fileName(file.getOriginalFilename())
+                .fileType(contentType)
+                .fileSize(file.getSize())
 
-                    .status(ReceiptStatus.UPLOADED)
-                    .uploadedAt(currentDateTime)
-                    .build();
+                .status(ReceiptStatus.UPLOADED)
+                .uploadedAt(currentDateTime)
+                .build();
 
-            Receipt saved = receiptRepo.save(receipt);
+        Receipt saved = receiptRepo.save(receipt);
 
-            System.out.println("✅ File saved to database: " + file.getOriginalFilename() +
-                             " (" + file.getSize() + " bytes)");
+        System.out.println("✅ File uploaded to S3: " + fileUrl);
 
-            return mapper.map(saved, ReceiptResponse.class);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file data: " + e.getMessage(), e);
-        }
+        return mapper.map(saved, ReceiptResponse.class);
     }
 
 
     // USER RECEIPT HISTORY
-    public List<ReceiptResponse> getMyReceipts(String userId) {  // Changed parameter name from username to userId
+    public List<ReceiptResponse> getMyReceipts(String userId) {
 
-        User user = userRepo.findById(userId)  // Changed from findByUsername to findById
+        User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User not found"));
 
         return receiptRepo.findByUserOrderByUploadedAtDesc(user)

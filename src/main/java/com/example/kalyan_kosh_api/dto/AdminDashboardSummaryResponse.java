@@ -3,12 +3,13 @@ package com.example.kalyan_kosh_api.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 @AllArgsConstructor
 public class AdminDashboardSummaryResponse {
 
-    private int month;
-    private int year;
+    private LocalDate sahyogDate;
 
     private long totalMembers;
     private long totalDeathCases;

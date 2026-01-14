@@ -32,13 +32,10 @@ public class Receipt {
     private LocalDate paymentDate;
 
     private String comment;
-    private String filePath;  // Keep for backward compatibility
 
-    // ✅ NEW: Database storage fields
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "file_data", columnDefinition = "LONGBLOB")
-    private byte[] fileData;
+    // S3 file storage - stores the URL of the file in S3
+    @Column(name = "file_url", length = 1000)
+    private String fileUrl;
 
     @Column(name = "file_name", length = 500)
     private String fileName;
