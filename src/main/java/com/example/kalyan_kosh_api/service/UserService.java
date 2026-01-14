@@ -342,56 +342,41 @@ public class UserService {
      * Convert User entity to UserResponse DTO
      */
     private UserResponse toUserResponse(User user) {
-        System.out.println("🔄 Converting User to UserResponse: " + user.getName());
-
         UserResponse response = new UserResponse();
 
         response.setId(user.getId());
         response.setName(user.getName());
         response.setSurname(user.getSurname());
-        response.setFatherName(user.getFatherName());  // Added father name
-        // Removed username - no longer exists
+        response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
         response.setMobileNumber(user.getMobileNumber());
         response.setPincode(user.getPincode());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setHomeAddress(user.getHomeAddress());
-        response.setDateOfBirth(user.getDateOfBirth());      // Added date of birth
-        response.setJoiningDate(user.getJoiningDate());      // Added joining date
-        response.setRetirementDate(user.getRetirementDate()); // Added retirement date
-        response.setSchoolOfficeName(user.getSchoolOfficeName()); // पदस्थ स्कूल/कार्यालय का नाम
-        response.setSankulName(user.getSankulName());        // संकुल का नाम
+        response.setDateOfBirth(user.getDateOfBirth());
+        response.setJoiningDate(user.getJoiningDate());
+        response.setRetirementDate(user.getRetirementDate());
+        response.setSchoolOfficeName(user.getSchoolOfficeName());
+        response.setSankulName(user.getSankulName());
         response.setDepartment(user.getDepartment());
         response.setDepartmentUniqueId(user.getDepartmentUniqueId());
 
-        // Convert entity relationships to string names with detailed logging
-        System.out.println("📍 Converting location entities:");
-
+        // Convert entity relationships to string names
         if (user.getDepartmentState() != null) {
-            String stateName = user.getDepartmentState().getName();
-            response.setDepartmentState(stateName);
-            System.out.println("   ✅ State: " + stateName);
-        } else {
-            System.out.println("   ⚠️  State: NULL");
+            response.setDepartmentState(user.getDepartmentState().getName());
         }
 
         if (user.getDepartmentSambhag() != null) {
-            String sambhagName = user.getDepartmentSambhag().getName();
-            response.setDepartmentSambhag(sambhagName);
-            System.out.println("   ✅ Sambhag: " + sambhagName);
+            response.setDepartmentSambhag(user.getDepartmentSambhag().getName());
         }
 
         if (user.getDepartmentDistrict() != null) {
-            String districtName = user.getDepartmentDistrict().getName();
-            response.setDepartmentDistrict(districtName);
-            System.out.println("   ✅ District: " + districtName);
+            response.setDepartmentDistrict(user.getDepartmentDistrict().getName());
         }
 
         if (user.getDepartmentBlock() != null) {
-            String blockName = user.getDepartmentBlock().getName();
-            response.setDepartmentBlock(blockName);
-            System.out.println("   ✅ Block: " + blockName);
+            response.setDepartmentBlock(user.getDepartmentBlock().getName());
         }
 
         response.setNominee1Name(user.getNominee1Name());
@@ -410,9 +395,6 @@ public class UserService {
      * Optimized for large datasets (60000+ users)
      */
     public PageResponse<UserResponse> getAllUsersPaginated(int page, int size) {
-        System.out.println("📋 Fetching PAGINATED users - Page: " + page + ", Size: " + size);
-
-        // Sort by createdAt ASC to maintain insertion order
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<User> userPage = userRepo.findAllWithLocationsPaginated(pageable);
@@ -421,7 +403,6 @@ public class UserService {
                 .map(this::toUserResponse)
                 .collect(Collectors.toList());
 
-        System.out.println("✅ Loaded page " + page + " with " + userResponses.size() + " users (Total: " + userPage.getTotalElements() + ")");
 
         return new PageResponse<>(
                 userResponses,
@@ -448,11 +429,6 @@ public class UserService {
             int page,
             int size) {
 
-        System.out.println("📋 Fetching FILTERED users - Sambhag: " + sambhagId +
-                           ", District: " + districtId + ", Block: " + blockId +
-                           ", Name: " + name + ", Mobile: " + mobile);
-
-        // Sort by createdAt DESC to show newest first
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Clean up empty strings to null for proper query handling
@@ -466,8 +442,6 @@ public class UserService {
                 .map(this::toUserResponse)
                 .collect(Collectors.toList());
 
-        System.out.println("✅ Loaded page " + page + " with " + userResponses.size() +
-                           " users (Total matching: " + userPage.getTotalElements() + ")");
 
         return new PageResponse<>(
                 userResponses,
