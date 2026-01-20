@@ -233,5 +233,17 @@ public class AuthService {
         userRepo.save(user);
     }
 
+    @Transactional
+    public void resetPasswordByEmail(String email, String newPassword) {
+
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with this email"));
+
+        String encoded = passwordEncoder.encode(newPassword);
+
+        user.setPasswordHash(encoded);
+
+        userRepo.save(user);
+    }
 }
 

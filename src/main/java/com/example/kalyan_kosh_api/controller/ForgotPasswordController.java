@@ -3,31 +3,32 @@ package com.example.kalyan_kosh_api.controller;
 import com.example.kalyan_kosh_api.dto.ResetPasswordRequest;
 import com.example.kalyan_kosh_api.dto.SendForgotOtpRequest;
 import com.example.kalyan_kosh_api.service.AuthService;
-import com.example.kalyan_kosh_api.service.OtpService;
+import com.example.kalyan_kosh_api.service.EmailOtpService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth/password")
+@CrossOrigin(origins = "*")
 public class ForgotPasswordController {
 
-    private final OtpService otpService;
+    private final EmailOtpService emailOtpService;
     private final AuthService authService;
 
-    public ForgotPasswordController(OtpService otpService,
+    public ForgotPasswordController(EmailOtpService emailOtpService,
                                     AuthService authService) {
-        this.otpService = otpService;
+        this.emailOtpService = emailOtpService;
         this.authService = authService;
     }
 
-    // STEP 1: Send OTP
+    // STEP 1: Send OTP to email
     @PostMapping("/send-otp")
     public ResponseEntity<String> sendOtp(
             @Valid @RequestBody SendForgotOtpRequest request) {
 
-        otpService.sendOtp(request.getMobile());
-        return ResponseEntity.ok("OTP sent successfully");
+        emailOtpService.sendEmailOtp(request.getEmail());
+        return ResponseEntity.ok("OTP sent successfully to your email");
     }
 
     // STEP 2: Verify OTP + Reset Password
@@ -35,9 +36,9 @@ public class ForgotPasswordController {
     public ResponseEntity<String> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request) {
 
-        otpService.verifyOtp(request.getMobile(), request.getOtp());
-        authService.resetPassword(
-                request.getMobile(),
+        emailOtpService.verifyEmailOtp(request.getEmail(), request.getOtp());
+        authService.resetPasswordByEmail(
+                request.getEmail(),
                 request.getNewPassword()
         );
 

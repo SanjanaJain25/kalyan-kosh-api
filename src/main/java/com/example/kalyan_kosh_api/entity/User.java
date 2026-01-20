@@ -66,10 +66,19 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role = Role.ROLE_USER;
 
-    private Instant createdAt = Instant.now();
-    private Instant updatedAt = Instant.now();
+    @Column(updatable = false)
+    private Instant createdAt;
 
+    private Instant updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
 
     @PreUpdate
-    public void preUpdate() { updatedAt = Instant.now(); }
+    public void preUpdate() {
+        updatedAt = Instant.now();
+    }
 }
