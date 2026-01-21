@@ -7,8 +7,15 @@ import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,10 +28,37 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
-        // Using userId for authentication
-        LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getUserId(), req.getPassword());
-        return ResponseEntity.ok(loginResponse);
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        try {
+            // Using userId for authentication
+            LoginResponse loginResponse = authService.authenticateAndGetLoginResponse(req.getUserId(), req.getPassword());
+            return ResponseEntity.ok(loginResponse);
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("INVALID_CREDENTIALS", "Invalid user ID or password"));
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse("USER_NOT_FOUND", "User not found with the provided ID"));
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("AUTH_FAILED", "Authentication failed: " + e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("LOGIN_ERROR", "Login failed: " + e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    // Helper method to create error response
+    private Map<String, Object> createErrorResponse(String errorCode, String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("errorCode", errorCode);
+        response.put("message", message);
+        return response;
     }
 
 
