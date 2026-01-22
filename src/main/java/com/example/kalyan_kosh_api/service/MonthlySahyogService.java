@@ -114,7 +114,7 @@ public class MonthlySahyogService {
         int month = sahyogDate.getMonthValue();
         int year = sahyogDate.getYear();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> userPage = userRepo.findNonDonorsPaginated(month, year, pageable);
 
         List<UserResponse> userResponses = userPage.getContent().stream()
