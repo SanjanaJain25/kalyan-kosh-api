@@ -165,7 +165,7 @@ public class MonthlySahyogService {
 
         List<DonorResponse> donors = donorPage.getContent().stream()
                 .map(row -> DonorResponse.builder()
-                        .registrationNumber((String) row[1])  // department_unique_id
+                        .registrationNumber((String) row[0])  // user_id (पंजीकरण संख्या)
                         .name(row[2] + (row[3] != null ? " " + row[3] : ""))  // name + surname
                         .department((String) row[4])
                         .state((String) row[5])
