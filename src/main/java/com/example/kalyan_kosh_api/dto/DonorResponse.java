@@ -24,7 +24,6 @@ import java.time.Instant;
 @Data
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class DonorResponse {
 
     private String registrationNumber;      // पंजीकरण संख्या (departmentUniqueId)
@@ -37,5 +36,21 @@ public class DonorResponse {
     private String schoolName;              // स्कूल का नाम
     private String beneficiary;             // लाभार्थी (deceased person name from DeathCase)
     private Instant receiptUploadDate;      // रसीद अपलोड दिनांक
+
+    // Constructor for JPA DTO projection
+    public DonorResponse(String registrationNumber, String name, String department,
+                         String state, String sambhag, String district, String block,
+                         String schoolName, String beneficiary, Instant receiptUploadDate) {
+        this.registrationNumber = registrationNumber;
+        this.name = name;
+        this.department = department;
+        this.state = state;
+        this.sambhag = sambhag;
+        this.district = district;
+        this.block = block;
+        this.schoolName = schoolName;
+        this.beneficiary = beneficiary;
+        this.receiptUploadDate = receiptUploadDate;
+    }
 }
 

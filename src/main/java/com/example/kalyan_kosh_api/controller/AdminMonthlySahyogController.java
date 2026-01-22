@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.DonorResponse;
+import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.MonthlySahyog;
 import com.example.kalyan_kosh_api.service.MonthlySahyogService;
@@ -52,13 +53,19 @@ public class AdminMonthlySahyogController {
         return ResponseEntity.ok(service.getNonDonors(resolveDate(sahyogDate, month, year)));
     }
 
+    /**
+     * ✅ FAST PAGINATED: Get donors with 250 records per page
+     * Usage: GET /api/admin/monthly-sahyog/donors?month=1&year=2026&page=0&size=250
+     */
     @GetMapping("/donors")
-    public ResponseEntity<List<DonorResponse>> donors(
+    public ResponseEntity<PageResponse<DonorResponse>> donorsPaginated(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
             @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year) {
+            @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "250") int size) {
 
-        return ResponseEntity.ok(service.getDonors(resolveDate(sahyogDate, month, year)));
+        return ResponseEntity.ok(service.getDonorsPaginated(resolveDate(sahyogDate, month, year), page, size));
     }
 
     @PostMapping("/update-death-cases")
