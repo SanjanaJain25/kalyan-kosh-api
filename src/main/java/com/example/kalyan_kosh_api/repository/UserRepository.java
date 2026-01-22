@@ -84,8 +84,7 @@ public interface UserRepository extends JpaRepository<User, String> {
            "WHERE u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
-           "    AND YEAR(r.paymentDate) = :year " +
-           "    AND r.status = 'VERIFIED'" +
+           "    AND YEAR(r.paymentDate) = :year" +
            ")")
     List<User> findNonDonors(@Param("month") int month, @Param("year") int year);
 
@@ -98,15 +97,13 @@ public interface UserRepository extends JpaRepository<User, String> {
            "WHERE u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
-           "    AND YEAR(r.paymentDate) = :year " +
-           "    AND r.status = 'VERIFIED'" +
+           "    AND YEAR(r.paymentDate) = :year" +
            ")",
            countQuery = "SELECT COUNT(u) FROM User u " +
            "WHERE u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
-           "    AND YEAR(r.paymentDate) = :year " +
-           "    AND r.status = 'VERIFIED'" +
+           "    AND YEAR(r.paymentDate) = :year" +
            ")")
     Page<User> findNonDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
 }
