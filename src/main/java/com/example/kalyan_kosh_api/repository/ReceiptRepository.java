@@ -64,7 +64,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
         WHERE r.payment_date BETWEEN :startDate AND :endDate AND r.amount > 0
         GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
                  s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
-        ORDER BY u.name
+        ORDER BY MAX(r.uploaded_at) DESC
         """,
         countQuery = """
         SELECT COUNT(DISTINCT user_id)
