@@ -1,10 +1,13 @@
 package com.example.kalyan_kosh_api.service;
 
 import com.example.kalyan_kosh_api.dto.AdminDashboardSummaryResponse;
-import com.example.kalyan_kosh_api.dto.NonDonorResponse;
+import com.example.kalyan_kosh_api.dto.DonorResponse;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.MonthlySahyog;
+import com.example.kalyan_kosh_api.entity.Receipt;
 import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.SahyogStatus;
+import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.repository.MonthlySahyogRepository;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
@@ -15,6 +18,8 @@ import java.io.PrintWriter;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class MonthlySahyogService {
@@ -82,71 +87,85 @@ public class MonthlySahyogService {
     }
 
 
-    public List<NonDonorResponse> getNonDonors(LocalDate sahyogDate) {
+    public List<UserResponse> getNonDonors(LocalDate sahyogDate) {
 
         LocalDate startDate = sahyogDate.withDayOfMonth(1);
         LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
-        return userRepo.findAll().stream()
-                .filter(u -> u.getRole() == Role.ROLE_USER)
-                .map(user -> {
+        // ✅ Single query to get all donor user IDs (instead of N queries)
+        Set<String> donorUserIds = receiptRepo.findDonorUserIdsByDateRange(startDate, endDate);
 
-                    double paidAmount = receiptRepo.sumPaidAmountByDateRange(
-                            user.getId(), startDate, endDate);
-
-                    String status = paidAmount > 0 ? "DONOR" : "NON_DONOR";
-
-                    return new NonDonorResponse(
-                            user.getId(),
-                            user.getId(),
-                            paidAmount,
-                            status
-                    );
-                })
-                .filter(r -> "NON_DONOR".equals(r.getStatus()))
+        // ✅ Filter non-donors efficiently with O(1) Set lookup
+        return userRepo.findByRole(Role.ROLE_USER).stream()
+                .filter(user -> !donorUserIds.contains(user.getId()))
+                .map(this::toUserResponse)
                 .toList();
     }
 
     public void exportNonDonorsCsv(LocalDate sahyogDate, PrintWriter writer) {
 
-        List<NonDonorResponse> nonDonors = getNonDonors(sahyogDate);
+        List<UserResponse> nonDonors = getNonDonors(sahyogDate);
 
-        writer.println("UserId,SahyogDate,PaidAmount,Status");
+        writer.println("UserId,Name,Surname,MobileNumber,Email,Status");
 
-        for (NonDonorResponse r : nonDonors) {
+        for (UserResponse r : nonDonors) {
             writer.printf(
-                    "%s,%s,%.2f,%s%n",
-                    r.getUserId(),
-                    sahyogDate,
-                    r.getPaidAmount(),
-                    r.getStatus()
+                    "%s,%s,%s,%s,%s,%s%n",
+                    r.getId(),
+                    r.getName() != null ? r.getName() : "",
+                    r.getSurname() != null ? r.getSurname() : "",
+                    r.getMobileNumber() != null ? r.getMobileNumber() : "",
+                    r.getEmail() != null ? r.getEmail() : "",
+                    "NON_DONOR"
             );
         }
 
         writer.flush();
     }
 
-    public List<NonDonorResponse> getDonors(LocalDate sahyogDate) {
-
-        List<String> nonDonorUserIds = getNonDonors(sahyogDate)
-                .stream()
-                .map(NonDonorResponse::getUserId)
-                .toList();
+    public List<DonorResponse> getDonors(LocalDate sahyogDate) {
 
         LocalDate startDate = sahyogDate.withDayOfMonth(1);
         LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
-        return userRepo.findAll()
-                .stream()
-                .filter(u -> u.getRole() == Role.ROLE_USER)
-                .filter(u -> !nonDonorUserIds.contains(u.getId()))
-                .map(u -> new NonDonorResponse(
-                        u.getId(),
-                        u.getId(),
-                        receiptRepo.sumPaidAmountByDateRange(u.getId(), startDate, endDate),
-                        "DONOR"
-                ))
+        // ✅ Single query to get all receipts with user and death case data
+        List<Receipt> receipts = receiptRepo.findReceiptsWithUserAndDeathCaseByDateRange(startDate, endDate);
+
+        // ✅ Get unique donors (one per user - keep latest receipt)
+        Map<String, Receipt> uniqueDonors = new java.util.LinkedHashMap<>();
+        for (Receipt receipt : receipts) {
+            String userId = receipt.getUser().getId();
+            // Keep only the first (latest) receipt per user (already sorted by uploadedAt DESC)
+            if (!uniqueDonors.containsKey(userId)) {
+                uniqueDonors.put(userId, receipt);
+            }
+        }
+
+        // ✅ Map to DonorResponse with all required fields
+        return uniqueDonors.values().stream()
+                .map(this::toDonorResponse)
                 .toList();
+    }
+
+/**
+     * Convert Receipt to DonorResponse with all required fields:
+     * पंजीकरण संख्या | नाम | विभाग | राज्य | संभाग | जिला | ब्लॉक | स्कूल का नाम | लाभार्थी | रसीद अपलोड दिनांक
+     */
+    private DonorResponse toDonorResponse(Receipt receipt) {
+        User user = receipt.getUser();
+
+        return DonorResponse.builder()
+                .registrationNumber(user.getDepartmentUniqueId())  // पंजीकरण संख्या
+                .name(user.getName() + (user.getSurname() != null ? " " + user.getSurname() : ""))  // नाम
+                .department(user.getDepartment())  // विभाग
+                .state(user.getDepartmentState() != null ? user.getDepartmentState().getName() : null)  // राज्य
+                .sambhag(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : null)  // संभाग
+                .district(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : null)  // जिला
+                .block(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : null)  // ब्लॉक
+                .schoolName(user.getSchoolOfficeName())  // स्कूल का नाम
+                .beneficiary(receipt.getDeathCase() != null ? receipt.getDeathCase().getDeceasedName() : null)  // लाभार्थी
+                .receiptUploadDate(receipt.getUploadedAt())  // रसीद अपलोड दिनांक
+                .build();
     }
 
 
@@ -197,5 +216,48 @@ public class MonthlySahyogService {
         }
 
         return sahyog;
+    }
+
+    private UserResponse toUserResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setName(user.getName());
+        response.setSurname(user.getSurname());
+        response.setFatherName(user.getFatherName());
+        response.setEmail(user.getEmail());
+        response.setMobileNumber(user.getMobileNumber());
+        response.setGender(user.getGender());
+        response.setMaritalStatus(user.getMaritalStatus());
+        response.setDateOfBirth(user.getDateOfBirth());
+        response.setHomeAddress(user.getHomeAddress());
+        response.setPincode(user.getPincode());
+        response.setDepartment(user.getDepartment());
+        response.setSchoolOfficeName(user.getSchoolOfficeName());
+        response.setDepartmentUniqueId(user.getDepartmentUniqueId());
+        response.setSankulName(user.getSankulName());
+        response.setJoiningDate(user.getJoiningDate());
+        response.setRetirementDate(user.getRetirementDate());
+        response.setNominee1Name(user.getNominee1Name());
+        response.setNominee1Relation(user.getNominee1Relation());
+        response.setNominee2Name(user.getNominee2Name());
+        response.setNominee2Relation(user.getNominee2Relation());
+        response.setRole(user.getRole());
+        response.setCreatedAt(user.getCreatedAt());
+
+        // Location names
+        if (user.getDepartmentState() != null) {
+            response.setDepartmentState(user.getDepartmentState().getName());
+        }
+        if (user.getDepartmentSambhag() != null) {
+            response.setDepartmentSambhag(user.getDepartmentSambhag().getName());
+        }
+        if (user.getDepartmentDistrict() != null) {
+            response.setDepartmentDistrict(user.getDepartmentDistrict().getName());
+        }
+        if (user.getDepartmentBlock() != null) {
+            response.setDepartmentBlock(user.getDepartmentBlock().getName());
+        }
+
+        return response;
     }
 }

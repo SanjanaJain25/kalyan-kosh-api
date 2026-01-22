@@ -23,17 +23,6 @@ public class NonDonorController {
     }
 
     /**
-     * Get all non-donors (without pagination)
-     */
-    @GetMapping
-    public ResponseEntity<List<User>> list(
-            @RequestParam int month,
-            @RequestParam int year
-    ) {
-        return ResponseEntity.ok(service.getNonDonors(month, year));
-    }
-
-    /**
      * Get non-donors with pagination - 20 records per page by default
      *
      * Usage: GET /api/admin/non-donors/paginated?month=1&year=2026&page=0&size=20

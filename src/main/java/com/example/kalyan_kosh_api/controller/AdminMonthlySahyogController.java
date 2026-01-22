@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.controller;
 
-import com.example.kalyan_kosh_api.dto.NonDonorResponse;
+import com.example.kalyan_kosh_api.dto.DonorResponse;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.MonthlySahyog;
 import com.example.kalyan_kosh_api.service.MonthlySahyogService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,7 +44,7 @@ public class AdminMonthlySahyogController {
     }
 
     @GetMapping("/non-donors")
-    public ResponseEntity<List<NonDonorResponse>> nonDonors(
+    public ResponseEntity<List<UserResponse>> nonDonors(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year) {
@@ -52,7 +53,7 @@ public class AdminMonthlySahyogController {
     }
 
     @GetMapping("/donors")
-    public ResponseEntity<?> donors(
+    public ResponseEntity<List<DonorResponse>> donors(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year) {

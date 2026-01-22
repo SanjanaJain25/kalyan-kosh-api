@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.repository;
 
+import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,9 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByMobileNumber(String mobile);
     Optional<User> findByEmail(String email);  // Added email-based lookup for authentication
     Optional<User> findByDepartmentUniqueId(String departmentUniqueId);
+
+    // ✅ Find users by role
+    List<User> findByRole(Role role);
 
     // ✅ Fetch all users with their location relationships
     @Query("SELECT DISTINCT u FROM User u " +
@@ -107,4 +111,25 @@ public interface UserRepository extends JpaRepository<User, String> {
            "    AND r.status = 'VERIFIED'" +
            ")")
     Page<User> findNonDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
+
+    // ✅ Optimized: Find donors with pagination (users who HAVE donated in a specific month/year)
+    @Query(value = "SELECT u FROM User u " +
+           "LEFT JOIN FETCH u.departmentState s " +
+           "LEFT JOIN FETCH u.departmentSambhag sa " +
+           "LEFT JOIN FETCH u.departmentDistrict d " +
+           "LEFT JOIN FETCH u.departmentBlock b " +
+           "WHERE u.id IN (" +
+           "    SELECT DISTINCT r.user.id FROM Receipt r " +
+           "    WHERE MONTH(r.paymentDate) = :month " +
+           "    AND YEAR(r.paymentDate) = :year " +
+           "    AND r.status = 'VERIFIED'" +
+           ")",
+           countQuery = "SELECT COUNT(u) FROM User u " +
+           "WHERE u.id IN (" +
+           "    SELECT DISTINCT r.user.id FROM Receipt r " +
+           "    WHERE MONTH(r.paymentDate) = :month " +
+           "    AND YEAR(r.paymentDate) = :year " +
+           "    AND r.status = 'VERIFIED'" +
+           ")")
+    Page<User> findDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
 }
