@@ -22,17 +22,17 @@ import java.net.URI;
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
 public class S3FileStorageService implements FileStorageService {
 
-//    @Value("${aws.s3.bucket-name}")
-    private String bucketName="pmum-qr-death-case";
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
 
-//    @Value("${aws.s3.region}")
-    private String region ="ap-south-1";
+    @Value("${aws.s3.region}")
+    private String region;
 
-//    @Value("${aws.s3.access-key:}")
-    private String accessKey="AKIAWWDH2AQTZOLZH3WI";
+    @Value("${aws.s3.access-key:}")
+    private String accessKey;
 
-//    @Value("${aws.s3.secret-key:}")
-    private String secretKey= "otVSKmZVhF5ywnPEuz3ajJ5HRzQqLfHELwOfXHf7";
+    @Value("${aws.s3.secret-key:}")
+    private String secretKey;
 
     private S3Client s3Client;
 
