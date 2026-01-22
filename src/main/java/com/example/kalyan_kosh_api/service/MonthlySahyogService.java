@@ -16,6 +16,7 @@ import com.example.kalyan_kosh_api.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.PrintWriter;
@@ -104,6 +105,31 @@ public class MonthlySahyogService {
                 .filter(user -> !donorUserIds.contains(user.getId()))
                 .map(this::toUserResponse)
                 .toList();
+    }
+
+    /**
+     * ✅ FAST PAGINATED: Get non-donors with pagination using database-level query
+     */
+    public PageResponse<UserResponse> getNonDonorsPaginated(LocalDate sahyogDate, int page, int size) {
+        int month = sahyogDate.getMonthValue();
+        int year = sahyogDate.getYear();
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+        Page<User> userPage = userRepo.findNonDonorsPaginated(month, year, pageable);
+
+        List<UserResponse> userResponses = userPage.getContent().stream()
+                .map(this::toUserResponse)
+                .toList();
+
+        return new PageResponse<>(
+                userResponses,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.isLast(),
+                userPage.isFirst()
+        );
     }
 
     public void exportNonDonorsCsv(LocalDate sahyogDate, PrintWriter writer) {

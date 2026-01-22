@@ -44,13 +44,19 @@ public class AdminMonthlySahyogController {
         return ResponseEntity.ok(service.generate(resolveDate(sahyogDate, month, year)));
     }
 
+    /**
+     * ✅ FAST PAGINATED: Get non-donors with 250 records per page
+     * Usage: GET /api/admin/monthly-sahyog/non-donors?month=1&year=2026&page=0&size=250
+     */
     @GetMapping("/non-donors")
-    public ResponseEntity<List<UserResponse>> nonDonors(
+    public ResponseEntity<PageResponse<UserResponse>> nonDonorsPaginated(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
             @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year) {
+            @RequestParam(required = false) Integer year,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "250") int size) {
 
-        return ResponseEntity.ok(service.getNonDonors(resolveDate(sahyogDate, month, year)));
+        return ResponseEntity.ok(service.getNonDonorsPaginated(resolveDate(sahyogDate, month, year), page, size));
     }
 
     /**
