@@ -2,6 +2,7 @@ package com.example.kalyan_kosh_api.service;
 
 import com.example.kalyan_kosh_api.dto.AdminDashboardSummaryResponse;
 import com.example.kalyan_kosh_api.dto.DonorResponse;
+import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.MonthlySahyog;
 import com.example.kalyan_kosh_api.entity.Receipt;
@@ -12,6 +13,9 @@ import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.repository.MonthlySahyogRepository;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.io.PrintWriter;
@@ -123,28 +127,48 @@ public class MonthlySahyogService {
         writer.flush();
     }
 
-    public List<DonorResponse> getDonors(LocalDate sahyogDate) {
-
+    /**
+     * ✅ SUPER FAST PAGINATED: Get donors with 250 records per page
+     */
+    public PageResponse<DonorResponse> getDonorsPaginated(LocalDate sahyogDate, int page, int size) {
         LocalDate startDate = sahyogDate.withDayOfMonth(1);
         LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
-        // ✅ Single query to get all receipts with user and death case data
-        List<Receipt> receipts = receiptRepo.findReceiptsWithUserAndDeathCaseByDateRange(startDate, endDate);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Object[]> donorPage = receiptRepo.findDonorsPaginatedNative(startDate, endDate, pageable);
 
-        // ✅ Get unique donors (one per user - keep latest receipt)
-        Map<String, Receipt> uniqueDonors = new java.util.LinkedHashMap<>();
-        for (Receipt receipt : receipts) {
-            String userId = receipt.getUser().getId();
-            // Keep only the first (latest) receipt per user (already sorted by uploadedAt DESC)
-            if (!uniqueDonors.containsKey(userId)) {
-                uniqueDonors.put(userId, receipt);
-            }
-        }
-
-        // ✅ Map to DonorResponse with all required fields
-        return uniqueDonors.values().stream()
-                .map(this::toDonorResponse)
+        List<DonorResponse> donors = donorPage.getContent().stream()
+                .map(row -> DonorResponse.builder()
+                        .registrationNumber((String) row[1])  // department_unique_id
+                        .name(row[2] + (row[3] != null ? " " + row[3] : ""))  // name + surname
+                        .department((String) row[4])
+                        .state((String) row[5])
+                        .sambhag((String) row[6])
+                        .district((String) row[7])
+                        .block((String) row[8])
+                        .schoolName((String) row[9])
+                        .beneficiary((String) row[10])
+                        .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                        .build())
                 .toList();
+
+        return new PageResponse<>(
+                donors,
+                donorPage.getNumber(),
+                donorPage.getSize(),
+                donorPage.getTotalElements(),
+                donorPage.getTotalPages(),
+                donorPage.isLast(),
+                donorPage.isFirst()
+        );
+    }
+
+    /**
+     * @deprecated Use getDonorsPaginated instead for better performance
+     */
+    @Deprecated
+    public List<DonorResponse> getDonors(LocalDate sahyogDate) {
+        return getDonorsPaginated(sahyogDate, 0, 250).getContent();
     }
 
 /**
