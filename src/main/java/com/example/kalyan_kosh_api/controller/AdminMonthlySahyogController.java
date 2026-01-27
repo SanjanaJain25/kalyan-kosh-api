@@ -74,6 +74,42 @@ public class AdminMonthlySahyogController {
         return ResponseEntity.ok(service.getDonorsPaginated(resolveDate(sahyogDate, month, year), page, size));
     }
 
+    /**
+     * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
+     * Usage: GET /api/admin/monthly-sahyog/donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
+     */
+    @GetMapping("/donors/search")
+    public ResponseEntity<PageResponse<DonorResponse>> searchDonors(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String mobile,
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "250") int size) {
+
+        return ResponseEntity.ok(service.searchDonors(resolveDate(sahyogDate, month, year), name, mobile, userId, page, size));
+    }
+
+    /**
+     * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
+     * Usage: GET /api/admin/monthly-sahyog/non-donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
+     */
+    @GetMapping("/non-donors/search")
+    public ResponseEntity<PageResponse<UserResponse>> searchNonDonors(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String mobile,
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "250") int size) {
+
+        return ResponseEntity.ok(service.searchNonDonors(resolveDate(sahyogDate, month, year), name, mobile, userId, page, size));
+    }
+
     @PostMapping("/update-death-cases")
     public ResponseEntity<MonthlySahyog> updateDeaths(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,

@@ -6,6 +6,8 @@ import com.example.kalyan_kosh_api.entity.Receipt;
 import com.example.kalyan_kosh_api.entity.ReceiptStatus;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,6 +27,24 @@ public class AdminReceiptService {
 //                .map(r -> AdminReceiptResponse.from(r))
 //                .toList();
         return List.of();
+    }
+    
+    /**
+     * Get all receipts without any date filters with pagination support
+     */
+    public Page<AdminReceiptResponse> getAllReceipts(Pageable pageable) {
+        return receiptRepo.findAll(pageable)
+                .map(AdminReceiptResponse::from);
+    }
+    
+    /**
+     * Get all receipts for export (without pagination)
+     */
+    public List<AdminReceiptResponse> getAllReceiptsForExport() {
+        return receiptRepo.findAll()
+                .stream()
+                .map(AdminReceiptResponse::from)
+                .toList();
     }
 
     public void verify(Long id) {

@@ -4,8 +4,8 @@ import java.util.List;
 
 public class PageResponse<T> {
     private List<T> content;
-    private int pageNumber;
-    private int pageSize;
+    private int page;        // Changed from pageNumber to match Spring Data Page
+    private int size;        // Changed from pageSize to match Spring Data Page
     private long totalElements;
     private int totalPages;
     private boolean last;
@@ -13,11 +13,12 @@ public class PageResponse<T> {
 
     public PageResponse() {}
 
-    public PageResponse(List<T> content, int pageNumber, int pageSize,
+    // Updated constructor to match Spring Data Page naming
+    public PageResponse(List<T> content, int page, int size,
                         long totalElements, int totalPages, boolean last, boolean first) {
         this.content = content;
-        this.pageNumber = pageNumber;
-        this.pageSize = pageSize;
+        this.page = page;
+        this.size = size;
         this.totalElements = totalElements;
         this.totalPages = totalPages;
         this.last = last;
@@ -28,11 +29,11 @@ public class PageResponse<T> {
     public List<T> getContent() { return content; }
     public void setContent(List<T> content) { this.content = content; }
 
-    public int getPageNumber() { return pageNumber; }
-    public void setPageNumber(int pageNumber) { this.pageNumber = pageNumber; }
+    public int getPage() { return page; }
+    public void setPage(int page) { this.page = page; }
 
-    public int getPageSize() { return pageSize; }
-    public void setPageSize(int pageSize) { this.pageSize = pageSize; }
+    public int getSize() { return size; }
+    public void setSize(int size) { this.size = size; }
 
     public long getTotalElements() { return totalElements; }
     public void setTotalElements(long totalElements) { this.totalElements = totalElements; }

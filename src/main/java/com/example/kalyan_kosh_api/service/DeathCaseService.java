@@ -132,6 +132,43 @@ public class DeathCaseService {
         repository.deleteById(id);
     }
 
+/**
+     * Hide a death case - it won't appear on public/home page (sets to CLOSED)
+     */
+    public DeathCaseResponse hide(Long id, String userId) {
+        DeathCase dc = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Death case not found"));
+
+        dc.setStatus(DeathCaseStatus.CLOSED);
+        dc.setUpdatedBy(userId);
+
+        return mapper.map(repository.save(dc), DeathCaseResponse.class);
+    }
+
+    /**
+     * Show/Unhide a death case - it will appear on public/home page again (sets to OPEN)
+     */
+    public DeathCaseResponse show(Long id, String userId) {
+        DeathCase dc = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Death case not found"));
+
+        dc.setStatus(DeathCaseStatus.OPEN);
+        dc.setUpdatedBy(userId);
+
+        return mapper.map(repository.save(dc), DeathCaseResponse.class);
+    }
+
+    /**
+     * Get only visible (OPEN) death cases for public/home page
+     * Excludes CLOSED and HIDDEN cases
+     */
+    public List<DeathCaseResponse> getVisibleCases() {
+        return repository.findByStatus(DeathCaseStatus.OPEN)
+                .stream()
+                .map(dc -> mapper.map(dc, DeathCaseResponse.class))
+                .toList();
+    }
+
     private String storeFileWithName(MultipartFile file, String userId, String folderType, String customName) {
         if (file == null || file.isEmpty()) {
             return null;

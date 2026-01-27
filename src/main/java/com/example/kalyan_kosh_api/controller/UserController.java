@@ -81,9 +81,9 @@ public class UserController {
      */
     @GetMapping("/filter")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsersFiltered(
-            @RequestParam(required = false) UUID sambhagId,
-            @RequestParam(required = false) UUID districtId,
-            @RequestParam(required = false) UUID blockId,
+            @RequestParam(required = false) String sambhagId,
+            @RequestParam(required = false) String districtId,
+            @RequestParam(required = false) String blockId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String mobile,
             @RequestParam(defaultValue = "0") int page,

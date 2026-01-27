@@ -113,19 +113,21 @@ public class SecurityConfig {
                         // Public admin endpoints (must be before /api/admin/** rule)
                         .requestMatchers(HttpMethod.GET, "/api/admin/non-donors/paginated").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/summary").permitAll()
 
                         // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/login").permitAll()
 
-                        // Manager APIs - requires MANAGER or ADMIN role
-                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        // Manager APIs - requires SAMBHAG_MANAGER or DISTRICT_MANAGER or BLOCK_MANAGER or ADMIN role
+                        .requestMatchers("/api/manager/**").hasAnyRole("SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER", "ADMIN")
 
-                        // User APIs - requires USER role
-                        .requestMatchers("/api/receipts/**").hasRole("USER")
-                        .requestMatchers("/api/death-cases/**").hasRole("USER")
+                        // User APIs - requires USER or ADMIN role
+                        .requestMatchers("/api/receipts/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/death-cases/**").hasAnyRole("USER", "ADMIN")
 
                         // Any other request needs authentication
                         .anyRequest().authenticated()

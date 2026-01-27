@@ -5,6 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Service
 @ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
@@ -25,10 +30,11 @@ public class LocalFileStorageService implements FileStorageService {
     @Override
     public String storeWithCustomName(MultipartFile file, String subdirectory, String customName) {
         try {
-            File dir = new File(BASE_UPLOAD_DIR + "/" + subdirectory);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
+            // Use absolute path from current working directory
+            Path baseDir = Paths.get(System.getProperty("user.dir"), BASE_UPLOAD_DIR, subdirectory);
+
+            // Create directories if they don't exist
+            Files.createDirectories(baseDir);
 
             // Build filename: customName_timestamp.ext or uuid_originalname
             String originalFilename = file.getOriginalFilename();
@@ -41,12 +47,14 @@ public class LocalFileStorageService implements FileStorageService {
                 filename = System.currentTimeMillis() + "_" + originalFilename;
             }
 
-            File dest = new File(dir, filename);
-            file.transferTo(dest);
+            Path destPath = baseDir.resolve(filename);
 
-            return dest.getAbsolutePath();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to store file", e);
+            // Copy file using InputStream (more reliable than transferTo)
+            Files.copy(file.getInputStream(), destPath, StandardCopyOption.REPLACE_EXISTING);
+
+            return destPath.toAbsolutePath().toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file: " + e.getMessage(), e);
         }
     }
 

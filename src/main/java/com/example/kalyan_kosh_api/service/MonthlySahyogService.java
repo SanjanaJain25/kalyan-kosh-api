@@ -197,6 +197,77 @@ public class MonthlySahyogService {
         return getDonorsPaginated(sahyogDate, 0, 250).getContent();
     }
 
+    /**
+     * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
+     */
+    public PageResponse<DonorResponse> searchDonors(LocalDate sahyogDate, String name, String mobile, String userId, int page, int size) {
+        LocalDate startDate = sahyogDate.withDayOfMonth(1);
+        LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
+
+        // Clean input - null if empty
+        String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+        String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+        String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Object[]> donorPage = receiptRepo.searchDonorsNative(startDate, endDate, cleanName, cleanMobile, cleanUserId, pageable);
+
+        List<DonorResponse> donors = donorPage.getContent().stream()
+                .map(row -> DonorResponse.builder()
+                        .registrationNumber((String) row[0])
+                        .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                        .department((String) row[4])
+                        .state((String) row[5])
+                        .sambhag((String) row[6])
+                        .district((String) row[7])
+                        .block((String) row[8])
+                        .schoolName((String) row[9])
+                        .beneficiary((String) row[10])
+                        .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                        .build())
+                .toList();
+
+        return new PageResponse<>(
+                donors,
+                donorPage.getNumber(),
+                donorPage.getSize(),
+                donorPage.getTotalElements(),
+                donorPage.getTotalPages(),
+                donorPage.isLast(),
+                donorPage.isFirst()
+        );
+    }
+
+    /**
+     * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
+     */
+    public PageResponse<UserResponse> searchNonDonors(LocalDate sahyogDate, String name, String mobile, String userId, int page, int size) {
+        int month = sahyogDate.getMonthValue();
+        int year = sahyogDate.getYear();
+
+        // Clean input - null if empty
+        String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+        String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+        String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<User> userPage = userRepo.searchNonDonorsPaginated(month, year, cleanName, cleanMobile, cleanUserId, pageable);
+
+        List<UserResponse> userResponses = userPage.getContent().stream()
+                .map(this::toUserResponse)
+                .toList();
+
+        return new PageResponse<>(
+                userResponses,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.getTotalElements(),
+                userPage.getTotalPages(),
+                userPage.isLast(),
+                userPage.isFirst()
+        );
+    }
+
 /**
      * Convert Receipt to DonorResponse with all required fields:
      * पंजीकरण संख्या | नाम | विभाग | राज्य | संभाग | जिला | ब्लॉक | स्कूल का नाम | लाभार्थी | रसीद अपलोड दिनांक

@@ -397,7 +397,8 @@ public class UserService {
     public PageResponse<UserResponse> getAllUsersPaginated(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<User> userPage = userRepo.findAllWithLocationsPaginated(pageable);
+        Page<User> userPage = userRepo
+                .findAllWithLocations(pageable);
 
         List<UserResponse> userResponses = userPage.getContent().stream()
                 .map(this::toUserResponse)
@@ -421,9 +422,9 @@ public class UserService {
      * 20 users per page, sorted by insertion order (createdAt DESC - newest first)
      */
     public PageResponse<UserResponse> getAllUsersFiltered(
-            UUID sambhagId,
-            UUID districtId,
-            UUID blockId,
+            String sambhagId,
+            String districtId,
+            String blockId,
             String name,
             String mobile,
             int page,
