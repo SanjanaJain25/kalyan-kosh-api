@@ -418,7 +418,7 @@ public class UserService {
 
     /**
      * Filtered + Paginated method to get users
-     * Filters: Sambhag, District, Block, Name (searches in name & surname), Mobile
+     * Filters: Sambhag, District, Block, Name (searches in name & surname), Mobile, UserId
      * 20 users per page, sorted by insertion order (createdAt DESC - newest first)
      */
     public PageResponse<UserResponse> getAllUsersFiltered(
@@ -427,6 +427,7 @@ public class UserService {
             String blockId,
             String name,
             String mobile,
+            String userId,
             int page,
             int size) {
 
@@ -435,9 +436,10 @@ public class UserService {
         // Clean up empty strings to null for proper query handling
         String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
         String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
+        String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
 
         Page<User> userPage = userRepo.findAllWithFilters(
-                sambhagId, districtId, blockId, cleanName, cleanMobile, pageable);
+                sambhagId, districtId, blockId, cleanName, cleanMobile, cleanUserId, pageable);
 
         List<UserResponse> userResponses = userPage.getContent().stream()
                 .map(this::toUserResponse)

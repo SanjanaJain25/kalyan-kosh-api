@@ -37,7 +37,7 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
            countQuery = "SELECT COUNT(u) FROM User u")
     Page<User> findAllWithLocations(Pageable pageable);
 
-    // ✅ Filtered + Paginated query with Sambhag, District, Block, Name, Mobile filters
+    // ✅ Filtered + Paginated query with Sambhag, District, Block, Name, Mobile, UserId filters
     @Query(value = "SELECT u FROM User u " +
            "LEFT JOIN FETCH u.departmentState s " +
            "LEFT JOIN FETCH u.departmentSambhag sa " +
@@ -49,7 +49,8 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
            "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-           "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))",
+           "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+           "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))",
            countQuery = "SELECT COUNT(u) FROM User u " +
            "LEFT JOIN u.departmentSambhag sa " +
            "LEFT JOIN u.departmentDistrict d " +
@@ -60,14 +61,15 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
            "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-           "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))" +
-                   "")
+           "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+           "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))")
     Page<User> findAllWithFilters(
             @Param("sambhagId") String sambhagId,
             @Param("districtId") String districtId,
             @Param("blockId") String blockId,
             @Param("name") String name,
             @Param("mobile") String mobile,
+            @Param("userId") String userId,
             Pageable pageable);
 
     // ✅ Fetch single user with location relationships
