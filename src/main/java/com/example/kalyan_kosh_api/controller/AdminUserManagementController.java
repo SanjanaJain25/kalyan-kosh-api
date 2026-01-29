@@ -2,11 +2,14 @@ package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.AdminUserListResponse;
 import com.example.kalyan_kosh_api.dto.AdminUserResponse;
+import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRoleRequest;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.service.AdminUserManagementService;
 import com.example.kalyan_kosh_api.service.ExportService;
+import com.example.kalyan_kosh_api.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -32,11 +35,14 @@ public class AdminUserManagementController {
 
     private final AdminUserManagementService adminUserService;
     private final ExportService exportService;
+    private final UserService userService;
 
     public AdminUserManagementController(AdminUserManagementService adminUserService, 
-                                       ExportService exportService) {
+                                       ExportService exportService,
+                                       UserService userService) {
         this.adminUserService = adminUserService;
         this.exportService = exportService;
+        this.userService = userService;
     }
 
     /**
@@ -80,6 +86,30 @@ public class AdminUserManagementController {
     public ResponseEntity<AdminUserResponse> getUserById(@PathVariable String id) {
         AdminUserResponse user = adminUserService.getUserByIdResponse(id);
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Update user details (Admin only)
+     * This endpoint allows admin to update any user's details
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(
+            @PathVariable String id,
+            @RequestBody UpdateUserRequest req) {
+        try {
+            UserResponse updatedUser = userService.updateUser(id, req);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", true,
+                    "message", "Failed to update user: " + e.getMessage()
+            ));
+        }
     }
 
     /**
