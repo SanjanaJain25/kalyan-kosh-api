@@ -39,10 +39,11 @@ public class DeathCaseController {
             @RequestPart(value = "userImage", required = false) MultipartFile userImage,
             @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
             @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
+            @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
             Authentication authentication) {
 
         return ResponseEntity.ok(
-                service.create(req, userImage, nominee1QrCode, nominee2QrCode, authentication.getName())
+                service.create(req, userImage, nominee1QrCode, nominee2QrCode, certificate1, authentication.getName())
         );
     }
 
@@ -63,10 +64,11 @@ public class DeathCaseController {
             @RequestPart(value = "userImage", required = false) MultipartFile userImage,
             @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
             @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
+            @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
             Authentication authentication) {
 
         return ResponseEntity.ok(
-                service.update(id, req, userImage, nominee1QrCode, nominee2QrCode, authentication.getName())
+                service.update(id, req, userImage, nominee1QrCode, nominee2QrCode, certificate1, authentication.getName())
         );
     }
 

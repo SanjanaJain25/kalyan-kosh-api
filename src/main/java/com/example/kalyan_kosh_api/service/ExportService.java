@@ -37,12 +37,31 @@ public class ExportService {
     public String exportUsersCsv(List<AdminUserResponse> users) {
         StringBuilder sb = new StringBuilder();
         
-        // CSV Header
-        sb.append("ID,Name,Surname,FatherName,Email,MobileNumber,DateOfBirth,")
-          .append("DepartmentState,DepartmentSambhag,DepartmentDistrict,DepartmentBlock,")
-          .append("Department,DepartmentUniqueId,SchoolOfficeName,SankulName,")
-          .append("HomeAddress,Pincode,JoiningDate,Role,Status,CreatedAt,UpdatedAt\n");
-        
+        // CSV Header - with clear column names
+        sb.append("पंजीकरण संख्या (User ID),")
+          .append("नाम (Name),")
+          .append("उपनाम (Surname),")
+          .append("पिता का नाम (Father Name),")
+          .append("ईमेल (Email),")
+          .append("मोबाइल नंबर (Mobile),")
+          .append("जन्म तिथि (DOB),")
+          .append("राज्य (State),")
+          .append("संभाग (Sambhag/Division),")
+          .append("जिला (District),")
+          .append("ब्लॉक (Block),")
+          .append("विभाग (Department),")
+          .append("विभाग आईडी (Dept ID),")
+          .append("स्कूल/कार्यालय का नाम (School/Office),")
+          .append("संकुल का नाम (Sankul),")
+          .append("घर का पता (Home Address),")
+          .append("पिनकोड (Pincode),")
+          .append("नियुक्ति तिथि (Joining Date),")
+          .append("सेवानिवृत्ति तिथि (Retirement Date),")
+          .append("भूमिका (Role),")
+          .append("स्थिति (Status),")
+          .append("पंजीकरण तिथि (Created At),")
+          .append("अंतिम अपडेट (Updated At)\n");
+
         // CSV Data
         for (AdminUserResponse user : users) {
             sb.append(escapeCSV(user.getId())).append(",")
@@ -63,6 +82,7 @@ public class ExportService {
               .append(escapeCSV(user.getHomeAddress())).append(",")
               .append(user.getPincode() != null ? user.getPincode().toString() : "").append(",")
               .append(user.getJoiningDate() != null ? user.getJoiningDate().toString() : "").append(",")
+              .append(user.getRetirementDate() != null ? user.getRetirementDate().toString() : "").append(",")
               .append(user.getRole() != null ? user.getRole().name() : "").append(",")
               .append(user.getStatus() != null ? user.getStatus().name() : "").append(",")
               .append(user.getCreatedAt() != null ? user.getCreatedAt().toString() : "").append(",")

@@ -36,6 +36,9 @@ public class DeathCase {
     private String nominee2Name;
     private String nominee2QrCode; // Stores file path of QR code image
 
+    // Death Case Certificates
+    private String certificate1; // Stores file path of first certificate image
+
     // Account Details (using OneToOne relationship with AccountDetails entity)
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "account1_id")

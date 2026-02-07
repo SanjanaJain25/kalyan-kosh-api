@@ -26,6 +26,9 @@ public class DeathCaseResponse {
     private String nominee2Name;
     private String nominee2QrCode;
 
+    // Death Case Certificates
+    private String certificate1;
+
     // Account Details
     private AccountDetailsDTO account1;
     private AccountDetailsDTO account2;

@@ -10,6 +10,8 @@ import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.service.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +19,8 @@ import java.util.List;
 
 @Service
 public class DeathCaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(DeathCaseService.class);
 
     private final DeathCaseRepository repository;
     private final ModelMapper mapper;
@@ -32,38 +36,58 @@ public class DeathCaseService {
                                      MultipartFile userImageFile,
                                      MultipartFile nominee1QrCodeFile,
                                      MultipartFile nominee2QrCodeFile,
+                                     MultipartFile certificate1File,
                                      String userId) {
 
-        // Store files with meaningful names (organized by userId)
-        String userImagePath = storeFileWithName(userImageFile, userId, "user-images",
-                sanitizeName(req.getDeceasedName()) + "_photo");
-        String nominee1QrCodePath = storeFileWithName(nominee1QrCodeFile, userId, "qr-codes",
-                sanitizeName(req.getNominee1Name()) + "_qr");
-        String nominee2QrCodePath = storeFileWithName(nominee2QrCodeFile, userId, "qr-codes",
-                sanitizeName(req.getNominee2Name()) + "_qr");
+        log.info("Creating death case - DeceasedName: {}, EmployeeCode: {}, UserId: {}",
+                 req.getDeceasedName(), req.getEmployeeCode(), userId);
 
-        DeathCase deathCase = DeathCase.builder()
-                .deceasedName(req.getDeceasedName())
-                .employeeCode(req.getEmployeeCode())
-                .department(req.getDepartment())
-                .district(req.getDistrict())
-                .description(req.getDescription())
-                .userImage(userImagePath)
-                // Nominee Details
-                .nominee1Name(req.getNominee1Name())
-                .nominee1QrCode(nominee1QrCodePath)
-                .nominee2Name(req.getNominee2Name())
-                .nominee2QrCode(nominee2QrCodePath)
-                // Account Details
-                .account1(mapToAccountDetails(req.getAccount1()))
-                .account2(mapToAccountDetails(req.getAccount2()))
-                .account3(mapToAccountDetails(req.getAccount3()))
-                .caseDate(req.getCaseDate())
-                .status(DeathCaseStatus.OPEN)
-                .createdBy(userId)
-                .build();
+        try {
+            // Store files with meaningful names (organized by userId)
+            String userImagePath = storeFileWithName(userImageFile, userId, "death-cases",
+                    sanitizeName(req.getDeceasedName()) + "_user");
+            String nominee1QrCodePath = storeFileWithName(nominee1QrCodeFile, userId, "death-cases",
+                    sanitizeName(req.getNominee1Name()) + "_qr");
+            String nominee2QrCodePath = storeFileWithName(nominee2QrCodeFile, userId, "death-cases",
+                    sanitizeName(req.getNominee2Name()) + "_qr");
+            String certificate1Path = storeFileWithName(certificate1File, userId, "death-cases",
+                    sanitizeName(req.getDeceasedName()) + "_cert1");
 
-        return mapper.map(repository.save(deathCase), DeathCaseResponse.class);
+            log.info("Files stored - UserImage: {}, Nominee1QR: {}, Nominee2QR: {}, Cert1: {}",
+                     userImagePath, nominee1QrCodePath, nominee2QrCodePath, certificate1Path);
+
+            DeathCase deathCase = DeathCase.builder()
+                    .deceasedName(req.getDeceasedName())
+                    .employeeCode(req.getEmployeeCode())
+                    .department(req.getDepartment())
+                    .district(req.getDistrict())
+                    .description(req.getDescription())
+                    .userImage(userImagePath)
+                    // Nominee Details
+                    .nominee1Name(req.getNominee1Name())
+                    .nominee1QrCode(nominee1QrCodePath)
+                    .nominee2Name(req.getNominee2Name())
+                    .nominee2QrCode(nominee2QrCodePath)
+                    // Certificate Details
+                    .certificate1(certificate1Path)
+                    // Account Details
+                    .account1(mapToAccountDetails(req.getAccount1()))
+                    .account2(mapToAccountDetails(req.getAccount2()))
+                    .account3(mapToAccountDetails(req.getAccount3()))
+                    .caseDate(req.getCaseDate())
+                    .status(DeathCaseStatus.OPEN)
+                    .createdBy(userId)
+                    .build();
+
+            DeathCase savedDeathCase = repository.save(deathCase);
+            log.info("Death case created successfully with ID: {}", savedDeathCase.getId());
+
+            return mapper.map(savedDeathCase, DeathCaseResponse.class);
+        } catch (Exception e) {
+            log.error("Failed to create death case - DeceasedName: {}, Error: {}",
+                      req.getDeceasedName(), e.getMessage(), e);
+            throw new RuntimeException("Failed to create death case: " + e.getMessage(), e);
+        }
     }
 
     public List<DeathCaseResponse> getAll() {
@@ -85,6 +109,7 @@ public class DeathCaseService {
             MultipartFile userImageFile,
             MultipartFile nominee1QrCodeFile,
             MultipartFile nominee2QrCodeFile,
+            MultipartFile certificate1File,
             String userId) {
 
         DeathCase dc = repository.findById(id)
@@ -102,16 +127,20 @@ public class DeathCaseService {
 
         // Update images only if new files are provided (with meaningful names)
         if (userImageFile != null && !userImageFile.isEmpty()) {
-            dc.setUserImage(storeFileWithName(userImageFile, userId, "user-images",
-                    sanitizeName(req.getDeceasedName()) + "_photo"));
+            dc.setUserImage(storeFileWithName(userImageFile, userId, "death-cases",
+                    sanitizeName(req.getDeceasedName()) + "_user"));
         }
         if (nominee1QrCodeFile != null && !nominee1QrCodeFile.isEmpty()) {
-            dc.setNominee1QrCode(storeFileWithName(nominee1QrCodeFile, userId, "qr-codes",
+            dc.setNominee1QrCode(storeFileWithName(nominee1QrCodeFile, userId, "death-cases",
                     sanitizeName(req.getNominee1Name()) + "_qr"));
         }
         if (nominee2QrCodeFile != null && !nominee2QrCodeFile.isEmpty()) {
-            dc.setNominee2QrCode(storeFileWithName(nominee2QrCodeFile, userId, "qr-codes",
+            dc.setNominee2QrCode(storeFileWithName(nominee2QrCodeFile, userId, "death-cases",
                     sanitizeName(req.getNominee2Name()) + "_qr"));
+        }
+        if (certificate1File != null && !certificate1File.isEmpty()) {
+            dc.setCertificate1(storeFileWithName(certificate1File, userId, "death-cases",
+                    sanitizeName(req.getDeceasedName()) + "_cert1"));
         }
 
         // Account Details

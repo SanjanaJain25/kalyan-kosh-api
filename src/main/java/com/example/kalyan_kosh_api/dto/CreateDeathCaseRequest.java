@@ -30,6 +30,9 @@ public class CreateDeathCaseRequest {
     private String nominee2Name;
     // nominee2QrCode is handled as file upload (MultipartFile)
 
+    // Death Case Certificates (handled as file uploads - MultipartFile)
+    // certificate1 is handled as file upload
+
     // Account Details
     @NotNull
     @Valid
