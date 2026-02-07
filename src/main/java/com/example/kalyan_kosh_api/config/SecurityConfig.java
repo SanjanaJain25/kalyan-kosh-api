@@ -127,7 +127,7 @@ public class SecurityConfig {
 
                         // User APIs - requires USER or ADMIN role
                         .requestMatchers("/api/receipts/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/death-cases/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/death-cases/**").permitAll()
 
                         // Any other request needs authentication
                         .anyRequest().authenticated()
