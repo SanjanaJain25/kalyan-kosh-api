@@ -13,18 +13,18 @@ public class ReceiptResponse {
 
     private double amount;
     private LocalDate paymentDate;
-    private String comment;
+
+    // Reference name for the payment
+    private String referenceName;
+
+    // UTR (Unique Transaction Reference) number
+    private String utrNumber;
 
     private ReceiptStatus status;
 
     private Long deathCaseId;
     private String deceasedName;
 
-    // S3 file info
-    private String fileUrl;
-    private String fileName;
-    private String fileType;
-    private Long fileSize;
 
     private Instant uploadedAt;
 }

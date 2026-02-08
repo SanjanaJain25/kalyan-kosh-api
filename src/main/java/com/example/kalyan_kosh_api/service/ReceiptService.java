@@ -6,92 +6,74 @@ import com.example.kalyan_kosh_api.entity.*;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
-import com.example.kalyan_kosh_api.service.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class ReceiptService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReceiptService.class);
+
     private final ReceiptRepository receiptRepo;
     private final UserRepository userRepo;
     private final DeathCaseRepository deathCaseRepo;
     private final ModelMapper mapper;
-    private final FileStorageService fileStorageService;
 
     public ReceiptService(
             ReceiptRepository receiptRepo,
             UserRepository userRepo,
             DeathCaseRepository deathCaseRepo,
-            ModelMapper mapper,
-            FileStorageService fileStorageService
+            ModelMapper mapper
     ) {
         this.receiptRepo = receiptRepo;
         this.userRepo = userRepo;
         this.deathCaseRepo = deathCaseRepo;
         this.mapper = mapper;
-        this.fileStorageService = fileStorageService;
     }
 
 
-    // UPLOAD RECEIPT
-    public ReceiptResponse upload(
-            UploadReceiptRequest req,
-            MultipartFile file,
-            String userId
-    ) {
+    // UPLOAD RECEIPT (without file - just payment details)
+    public ReceiptResponse upload(UploadReceiptRequest req, String userId) {
+
+        log.info("Creating receipt for user: {}, deathCaseId: {}, amount: {}",
+                 userId, req.getDeathCaseId(), req.getAmount());
 
         // Validate user
         User user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
 
         // Validate death case
         DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
-                .orElseThrow(() -> new IllegalStateException("Death case not found"));
+                .orElseThrow(() -> new IllegalStateException("Death case not found: " + req.getDeathCaseId()));
 
-        // Validate file size (10MB limit)
-        if (file.getSize() > 10 * 1024 * 1024) {
-            throw new IllegalArgumentException("File size exceeds 10MB limit");
+        // Validate UTR number is provided
+        if (req.getUtrNumber() == null || req.getUtrNumber().trim().isEmpty()) {
+            throw new IllegalArgumentException("UTR number is required");
         }
 
-        // Validate file type
-        String contentType = file.getContentType();
-        if (contentType == null ||
-            (!contentType.startsWith("image/") && !contentType.equals("application/pdf"))) {
-            throw new IllegalArgumentException("Only images and PDFs are allowed");
-        }
-
-        // Save current date and time
+        // Auto-set payment date to current date
+        LocalDate paymentDate = LocalDate.now();
         Instant currentDateTime = Instant.now();
-
-        // Upload file to S3: receipts/{deathCaseId}/{userId}/filename
-        String subdirectory = "receipts/" + req.getDeathCaseId() + "/" + userId;
-        String customName = "receipt_" + System.currentTimeMillis();
-        String fileUrl = fileStorageService.storeWithCustomName(file, subdirectory, customName);
 
         Receipt receipt = Receipt.builder()
                 .user(user)
                 .deathCase(deathCase)
                 .amount(req.getAmount())
-                .paymentDate(req.getPaymentDate())
-                .comment(req.getComment())
-
-                // Store S3 URL instead of file data
-                .fileUrl(fileUrl)
-                .fileName(file.getOriginalFilename())
-                .fileType(contentType)
-                .fileSize(file.getSize())
-
+                .paymentDate(paymentDate)  // Auto-set to current date
+                .referenceName(req.getReferenceName())
+                .utrNumber(req.getUtrNumber())
                 .status(ReceiptStatus.UPLOADED)
                 .uploadedAt(currentDateTime)
                 .build();
 
         Receipt saved = receiptRepo.save(receipt);
-
+        log.info("Receipt created successfully with ID: {}, paymentDate: {}", saved.getId(), paymentDate);
 
         return mapper.map(saved, ReceiptResponse.class);
     }

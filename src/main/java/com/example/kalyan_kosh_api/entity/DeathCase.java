@@ -61,8 +61,14 @@ public class DeathCase {
     private DeathCaseStatus status;
 
 
-    private Instant createdAt = Instant.now();
-    private Instant updatedAt = Instant.now();
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
 
     @PreUpdate
     public void preUpdate() {

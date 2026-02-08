@@ -5,17 +5,11 @@ import com.example.kalyan_kosh_api.dto.UploadReceiptRequest;
 import com.example.kalyan_kosh_api.entity.Receipt;
 import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import com.example.kalyan_kosh_api.service.ReceiptService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URI;
 import java.util.Map;
 
 @RestController
@@ -31,24 +25,25 @@ public class ReceiptController {
         this.receiptRepo = receiptRepo;
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    /**
+     * Create a new receipt (payment record)
+     * POST /api/receipts
+     * Body: { deathCaseId, amount, paymentDate, referenceName, utrNumber }
+     */
+    @PostMapping
     public ResponseEntity<ReceiptResponse> upload(
-            @RequestPart("data") String data,
-            @RequestPart("file") MultipartFile file,
+            @Valid @RequestBody UploadReceiptRequest req,
             Authentication authentication
-    ) throws Exception {
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        UploadReceiptRequest req = mapper.readValue(data, UploadReceiptRequest.class);
-
+    ) {
         return ResponseEntity.ok(
-                service.upload(req, file, authentication.getName())
+                service.upload(req, authentication.getName())
         );
     }
 
+    /**
+     * Get user's receipt history
+     * GET /api/receipts/my
+     */
     @GetMapping("/my")
     public ResponseEntity<?> myReceipts(Authentication authentication) {
         String userId = authentication.getName();
@@ -56,55 +51,34 @@ public class ReceiptController {
     }
 
     /**
-     * Get receipt file URL (S3)
-     * GET /api/receipts/{id}/download
-     * Returns redirect to S3 URL
+     * Get receipt details by ID
+     * GET /api/receipts/{id}
      */
-    @GetMapping("/{id}/download")
-    public ResponseEntity<?> downloadReceipt(
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getReceipt(
             @PathVariable Long id,
             Authentication authentication
     ) {
         Receipt receipt = receiptRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Receipt not found"));
 
-        // Security: Verify user owns this receipt
+        // Security: Verify user owns this receipt or is admin
         String userId = authentication.getName();
-        if (!receipt.getUser().getId().equals(userId)) {
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !receipt.getUser().getId().equals(userId)) {
             throw new RuntimeException("Access denied");
         }
 
-        // Redirect to S3 URL
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(receipt.getFileUrl()))
-                .build();
-    }
-
-    /**
-     * Get receipt file URL info
-     * GET /api/receipts/{id}/view
-     * Returns the S3 URL for the file
-     */
-    @GetMapping("/{id}/view")
-    public ResponseEntity<?> viewReceipt(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        Receipt receipt = receiptRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Receipt not found"));
-
-        // Security: Verify user owns this receipt
-        String userId = authentication.getName();
-        if (!receipt.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Access denied");
-        }
-
-        // Return file info with S3 URL
         return ResponseEntity.ok(Map.of(
-                "fileUrl", receipt.getFileUrl(),
-                "fileName", receipt.getFileName(),
-                "fileType", receipt.getFileType(),
-                "fileSize", receipt.getFileSize()
+                "id", receipt.getId(),
+                "amount", receipt.getAmount(),
+                "paymentDate", receipt.getPaymentDate(),
+                "referenceName", receipt.getReferenceName() != null ? receipt.getReferenceName() : "",
+                "utrNumber", receipt.getUtrNumber() != null ? receipt.getUtrNumber() : "",
+                "status", receipt.getStatus(),
+                "uploadedAt", receipt.getUploadedAt()
         ));
     }
 

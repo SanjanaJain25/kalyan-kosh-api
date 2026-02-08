@@ -31,20 +31,13 @@ public class Receipt {
     private double amount;
     private LocalDate paymentDate;
 
-    private String comment;
+    // Reference name for the payment
+    private String referenceName;
 
-    // S3 file storage - stores the URL of the file in S3
-    @Column(name = "file_url", length = 1000)
-    private String fileUrl;
+    // UTR (Unique Transaction Reference) number for payment verification
+    @Column(name = "utr_number", length = 100)
+    private String utrNumber;
 
-    @Column(name = "file_name", length = 500)
-    private String fileName;
-
-    @Column(name = "file_type", length = 100)
-    private String fileType;
-
-    @Column(name = "file_size")
-    private Long fileSize;
 
     @Enumerated(EnumType.STRING)
     private ReceiptStatus status;
