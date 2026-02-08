@@ -10,7 +10,7 @@ public class IdGeneratorService {
 
     private static final String USER_ID_SEQUENCE = "USER_ID";
     private static final String ID_PREFIX = "PMUMS20";
-    private static final long INITIAL_VALUE = 2501L;
+    private static final long INITIAL_VALUE = 3001L;
 
     private final IdSequenceRepository idSequenceRepository;
 
