@@ -127,6 +127,41 @@ public class ManagerAssignmentService {
     }
     
     /**
+     * Remove all manager assignments for a user (revoke all manager access)
+     * @return number of assignments removed
+     */
+    public int removeAllAssignments(String managerId, User removedBy) {
+        // Verify user exists
+        User manager = userRepository.findById(managerId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + managerId));
+        
+        // Get all active assignments
+        List<ManagerAssignment> assignments = managerAssignmentRepository.findActiveByManagerId(managerId);
+        
+        if (assignments.isEmpty()) {
+            throw new IllegalArgumentException("No active manager assignments found for user: " + managerId);
+        }
+        
+        // Deactivate all assignments
+        int count = 0;
+        for (ManagerAssignment assignment : assignments) {
+            assignment.setActive(false);
+            managerAssignmentRepository.save(assignment);
+            count++;
+        }
+        
+        // Optionally reset user role to ROLE_USER if they have a manager role
+        if (manager.getRole() == Role.ROLE_SAMBHAG_MANAGER || 
+            manager.getRole() == Role.ROLE_DISTRICT_MANAGER || 
+            manager.getRole() == Role.ROLE_BLOCK_MANAGER) {
+            manager.setRole(Role.ROLE_USER);
+            userRepository.save(manager);
+        }
+        
+        return count;
+    }
+    
+    /**
      * Update assignment notes
      */
     public ManagerAssignmentResponse updateAssignmentNotes(Long assignmentId, String notes) {

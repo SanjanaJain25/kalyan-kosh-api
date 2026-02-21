@@ -123,6 +123,27 @@ public class ManagerController {
         }
     }
     
+    /**
+     * Remove ALL manager assignments for a user (revoke all manager access)
+     * This also resets the user's role to ROLE_USER
+     */
+    @DeleteMapping("/assignments/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> removeAllAssignments(@PathVariable String userId,
+                                                 Authentication authentication) {
+        try {
+            User removedBy = getCurrentUser(authentication);
+            int removedCount = managerAssignmentService.removeAllAssignments(userId, removedBy);
+            return ResponseEntity.ok(Map.of(
+                "message", "All manager access removed successfully",
+                "assignmentsRemoved", removedCount,
+                "userId", userId
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+    
     // ============ MANAGER SCOPE ENDPOINTS ============
     
     /**

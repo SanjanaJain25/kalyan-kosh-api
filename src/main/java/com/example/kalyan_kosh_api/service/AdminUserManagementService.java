@@ -30,7 +30,7 @@ public class AdminUserManagementService {
     /**
      * Get all users with pagination and filters
      */
-    public AdminUserListResponse getAllUsers(int page, int size, String name, String email, 
+    public AdminUserListResponse getAllUsers(int page, int size, String userId, String name, String email, 
                                            String mobileNumber, Role role, UserStatus status,
                                            String sambhag, String district, String block) {
         
@@ -40,7 +40,7 @@ public class AdminUserManagementService {
         Page<User> userPage = userRepository.findAllWithLocations(pageable);
         
         List<AdminUserResponse> users = userPage.getContent().stream()
-                .filter(user -> filterUser(user, name, email, mobileNumber, role, status, sambhag, district, block))
+                .filter(user -> filterUser(user, userId, name, email, mobileNumber, role, status, sambhag, district, block))
                 .map(this::convertToAdminUserResponse)
                 .collect(Collectors.toList());
 
@@ -112,8 +112,14 @@ public class AdminUserManagementService {
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
     }
 
-    private boolean filterUser(User user, String name, String email, String mobileNumber, 
+    private boolean filterUser(User user, String userId, String name, String email, String mobileNumber, 
                              Role role, UserStatus status, String sambhag, String district, String block) {
+        
+        if (userId != null && !userId.isEmpty()) {
+            if (!user.getId().toLowerCase().contains(userId.toLowerCase())) {
+                return false;
+            }
+        }
         
         if (name != null && !name.isEmpty()) {
             String fullName = (user.getName() + " " + (user.getSurname() != null ? user.getSurname() : "")).toLowerCase();

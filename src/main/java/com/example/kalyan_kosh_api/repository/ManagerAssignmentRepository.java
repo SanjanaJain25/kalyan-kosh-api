@@ -87,4 +87,12 @@ public interface ManagerAssignmentRepository extends JpaRepository<ManagerAssign
         @Param("districtId") UUID districtId,
         @Param("blockId") UUID blockId
     );
+    
+    // Find all active assignments for a manager by manager ID
+    @Query("SELECT ma FROM ManagerAssignment ma WHERE ma.manager.id = :managerId AND ma.isActive = true")
+    List<ManagerAssignment> findActiveByManagerId(@Param("managerId") String managerId);
+    
+    // Count active assignments for a manager
+    @Query("SELECT COUNT(ma) FROM ManagerAssignment ma WHERE ma.manager.id = :managerId AND ma.isActive = true")
+    long countActiveByManagerId(@Param("managerId") String managerId);
 }

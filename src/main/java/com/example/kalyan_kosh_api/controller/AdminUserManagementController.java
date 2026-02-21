@@ -50,6 +50,7 @@ public class AdminUserManagementController {
      * 
      * @param page Page number (0-based)
      * @param size Page size (default 20)
+     * @param userId Filter by user ID (partial match)
      * @param name Filter by name (partial match)
      * @param email Filter by email (partial match)
      * @param mobileNumber Filter by mobile number (partial match)
@@ -64,6 +65,7 @@ public class AdminUserManagementController {
     public ResponseEntity<AdminUserListResponse> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String userId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String mobileNumber,
@@ -74,7 +76,7 @@ public class AdminUserManagementController {
             @RequestParam(required = false) String block) {
         
         AdminUserListResponse response = adminUserService.getAllUsers(
-                page, size, name, email, mobileNumber, role, status, sambhag, district, block);
+                page, size, userId, name, email, mobileNumber, role, status, sambhag, district, block);
         
         return ResponseEntity.ok(response);
     }
@@ -173,8 +175,8 @@ public class AdminUserManagementController {
         
         // Get all users with filters (use a large page size to get all users)
         AdminUserListResponse allUsers = adminUserService.getAllUsers(
-                0, Integer.MAX_VALUE, null, null, null, role, status, sambhag, district, block);
-        
+                0, Integer.MAX_VALUE, null, null, null, null, role, status, sambhag, district, block);
+
         // Generate CSV content
         String csvContent = exportService.exportUsersCsv(allUsers.getUsers());
         
