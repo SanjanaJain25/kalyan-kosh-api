@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -197,6 +198,9 @@ public class UserService {
         if (req.getNominee2Name() != null) user.setNominee2Name(req.getNominee2Name());
         if (req.getNominee2Relation() != null) user.setNominee2Relation(req.getNominee2Relation());
 
+        // Set updatedAt timestamp (createdAt should never be modified during update)
+        user.setUpdatedAt(Instant.now());
+
         userRepo.save(user);
 
         return toUserResponse(user);
@@ -225,6 +229,7 @@ public class UserService {
 
         // Update password
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(Instant.now());
         userRepo.save(user);
     }
 
@@ -328,6 +333,10 @@ public class UserService {
         String userId = idGeneratorService.generateNextUserId();
         u.setId(userId);
 
+        // Set timestamps manually (createdAt should only be set once during creation)
+        u.setCreatedAt(Instant.now());
+        u.setUpdatedAt(Instant.now());
+
         // Save user
         User savedUser = userRepo.save(u);
 
@@ -349,7 +358,6 @@ public class UserService {
         response.setSurname(user.getSurname());
         response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
-        response.setMobileNumber(user.getMobileNumber());
         response.setPincode(user.getPincode());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());

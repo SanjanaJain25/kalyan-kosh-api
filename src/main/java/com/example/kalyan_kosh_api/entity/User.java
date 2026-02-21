@@ -73,15 +73,4 @@ public class User {
     private Instant createdAt;
 
     private Instant updatedAt;
-
-    @PrePersist
-    public void prePersist() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = Instant.now();
-    }
 }
