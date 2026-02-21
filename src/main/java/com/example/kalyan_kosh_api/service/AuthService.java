@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -159,6 +160,10 @@ public class AuthService {
             String userId = idGeneratorService.generateNextUserId();
             u.setId(userId);
 
+            // Set timestamps manually (createdAt should only be set once during creation)
+            u.setCreatedAt(Instant.now());
+            u.setUpdatedAt(Instant.now());
+
             // Save user
             User savedUser = userRepo.save(u);
 
@@ -229,6 +234,7 @@ public class AuthService {
                 passwordEncoder.encode(newPassword);
 
         user.setPasswordHash(encoded);
+        user.setUpdatedAt(Instant.now());
 
         userRepo.save(user);
     }
@@ -242,6 +248,7 @@ public class AuthService {
         String encoded = passwordEncoder.encode(newPassword);
 
         user.setPasswordHash(encoded);
+        user.setUpdatedAt(Instant.now());
 
         userRepo.save(user);
     }

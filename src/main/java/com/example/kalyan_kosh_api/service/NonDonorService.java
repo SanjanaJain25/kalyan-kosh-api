@@ -68,8 +68,7 @@ public class NonDonorService {
         response.setSurname(user.getSurname());
         response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
-        response.setMobileNumber(user.getMobileNumber());
-        response.setGender(user.getGender());
+         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setDateOfBirth(user.getDateOfBirth());
         response.setHomeAddress(user.getHomeAddress());

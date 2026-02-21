@@ -136,15 +136,14 @@ public class MonthlySahyogService {
 
         List<UserResponse> nonDonors = getNonDonors(sahyogDate);
 
-        writer.println("UserId,Name,Surname,MobileNumber,Email,Status");
+        writer.println("UserId,Name,Surname,Email,Status");
 
         for (UserResponse r : nonDonors) {
             writer.printf(
-                    "%s,%s,%s,%s,%s,%s%n",
+                    "%s,%s,%s,%s,%s%n",
                     r.getId(),
                     r.getName() != null ? r.getName() : "",
                     r.getSurname() != null ? r.getSurname() : "",
-                    r.getMobileNumber() != null ? r.getMobileNumber() : "",
                     r.getEmail() != null ? r.getEmail() : "",
                     "NON_DONOR"
             );
@@ -346,7 +345,6 @@ public class MonthlySahyogService {
         response.setSurname(user.getSurname());
         response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
-        response.setMobileNumber(user.getMobileNumber());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setDateOfBirth(user.getDateOfBirth());
