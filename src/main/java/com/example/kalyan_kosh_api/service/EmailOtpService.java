@@ -2,6 +2,9 @@ package com.example.kalyan_kosh_api.service;
 
 import com.example.kalyan_kosh_api.entity.EmailOtpVerification;
 import com.example.kalyan_kosh_api.repository.EmailOtpVerificationRepository;
+import com.example.kalyan_kosh_api.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,23 +15,38 @@ import java.time.Instant;
 @Service
 public class EmailOtpService {
 
+    private static final Logger log = LoggerFactory.getLogger(EmailOtpService.class);
+
     private final EmailOtpVerificationRepository emailOtpRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final UserRepository userRepository;
 
     public EmailOtpService(EmailOtpVerificationRepository emailOtpRepo,
                            PasswordEncoder passwordEncoder,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           UserRepository userRepository) {
         this.emailOtpRepo = emailOtpRepo;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.userRepository = userRepository;
     }
 
     /**
-     * Generate and send OTP to email
+     * Generate and send OTP to email for forgot password
+     * First checks if email exists in database
      */
     @Transactional
     public void sendEmailOtp(String email) {
+        String normalizedEmail = email.toLowerCase().trim();
+
+        // Check if email exists in database
+        if (userRepository.findByEmail(normalizedEmail).isEmpty()) {
+            log.warn("Forgot password attempt for non-existent email: {}", normalizedEmail);
+            throw new IllegalArgumentException("Email does not exist. Please check your email or register first.");
+        }
+
+        log.info("Sending OTP for forgot password to email: {}", normalizedEmail);
 
         // Generate 6-digit OTP
         String otp = generateOtp();
