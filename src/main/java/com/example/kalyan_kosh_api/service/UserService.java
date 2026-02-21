@@ -341,8 +341,15 @@ public class UserService {
         User savedUser = userRepo.save(u);
 
         // Send registration confirmation email
-        String fullName = savedUser.getName() + (savedUser.getSurname() != null ? " " + savedUser.getSurname() : "");
-        emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName, savedUser.getId());
+        // Only use name field for greeting (surname is separate)
+        String fullName = savedUser.getName();
+        if (savedUser.getSurname() != null && !savedUser.getSurname().trim().isEmpty()) {
+            // Only append surname if it's not already part of the name
+            if (!fullName.toLowerCase().contains(savedUser.getSurname().toLowerCase().trim())) {
+                fullName = fullName + " " + savedUser.getSurname().trim();
+            }
+        }
+        emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName.trim(), savedUser.getId());
 
         return toUserResponse(savedUser);
     }
