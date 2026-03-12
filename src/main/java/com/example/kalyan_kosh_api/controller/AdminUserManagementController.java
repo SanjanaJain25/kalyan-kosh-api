@@ -1,0 +1,318 @@
+package com.example.kalyan_kosh_api.controller;
+
+import com.example.kalyan_kosh_api.dto.AdminUserListResponse;
+import com.example.kalyan_kosh_api.dto.AdminUserResponse;
+import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
+import com.example.kalyan_kosh_api.dto.UpdateUserRoleRequest;
+import com.example.kalyan_kosh_api.dto.UserResponse;
+import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.UserStatus;
+import com.example.kalyan_kosh_api.service.AdminUserManagementService;
+import com.example.kalyan_kosh_api.service.ExportService;
+import com.example.kalyan_kosh_api.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import com.example.kalyan_kosh_api.dto.AdminResetPasswordRequest;
+
+import java.util.Map;
+
+/**
+ * Admin User Management Controller
+ * Handles all admin operations for user management including:
+ * - User listing with filters and pagination
+ * - Block/unblock users
+ * - Delete users (soft delete)
+ * - Update user roles
+ * - Export all users to CSV file
+ */
+@RestController
+@RequestMapping("/api/admin/users")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@CrossOrigin(origins = "*")
+public class AdminUserManagementController {
+
+    private final AdminUserManagementService adminUserService;
+    private final ExportService exportService;
+    private final UserService userService;
+
+    public AdminUserManagementController(AdminUserManagementService adminUserService, 
+                                       ExportService exportService,
+                                       UserService userService) {
+        this.adminUserService = adminUserService;
+        this.exportService = exportService;
+        this.userService = userService;
+    }
+
+    /**
+     * Get all users with pagination and filters
+     * 
+     * @param page Page number (0-based)
+     * @param size Page size (default 20)
+     * @param userId Filter by user ID (partial match)
+     * @param name Filter by name (partial match)
+     * @param email Filter by email (partial match)
+     * @param mobileNumber Filter by mobile number (partial match)
+     * @param role Filter by role
+     * @param status Filter by status
+     * @param sambhag Filter by sambhag (partial match)
+     * @param district Filter by district (partial match)
+     * @param block Filter by block (partial match)
+     * @return Paginated list of users
+     */
+    @GetMapping
+    public ResponseEntity<AdminUserListResponse> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String mobileNumber,
+            @RequestParam(required = false) Role role,
+            @RequestParam(required = false) UserStatus status,
+            @RequestParam(required = false) String sambhag,
+            @RequestParam(required = false) String district,
+            @RequestParam(required = false) String block) {
+        
+        AdminUserListResponse response = adminUserService.getAllUsers(
+                page, size, userId, name, email, mobileNumber, role, status, sambhag, district, block);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get user by ID
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<AdminUserResponse> getUserById(@PathVariable String id) {
+        AdminUserResponse user = adminUserService.getUserByIdResponse(id);
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Update user details (Admin only)
+     * This endpoint allows admin to update any user's details
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(
+            @PathVariable String id,
+            @RequestBody UpdateUserRequest req) {
+        try {
+            UserResponse updatedUser = userService.updateUser(id, req);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", true,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", true,
+                    "message", "Failed to update user: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Block a user
+     */
+    @PutMapping("/{id}/block")
+    public ResponseEntity<Map<String, String>> blockUser(@PathVariable String id) {
+        adminUserService.blockUser(id);
+        return ResponseEntity.ok(Map.of(
+                "message", "User blocked successfully",
+                "userId", id,
+                "action", "BLOCKED"
+        ));
+    }
+
+    /**
+     * Unblock a user
+     */
+    @PutMapping("/{id}/unblock")
+    public ResponseEntity<Map<String, String>> unblockUser(@PathVariable String id) {
+        adminUserService.unblockUser(id);
+        return ResponseEntity.ok(Map.of(
+                "message", "User unblocked successfully",
+                "userId", id,
+                "action", "UNBLOCKED"
+        ));
+    }
+
+    /**
+ * Admin Password Reset (no current password required)
+ * PUT /api/admin/users/{id}/password-reset
+ */
+@PutMapping("/{id}/password-reset")
+public ResponseEntity<?> resetUserPassword(
+        @PathVariable String id,
+        @Valid @RequestBody AdminResetPasswordRequest req
+) {
+    try {
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "New password and confirm password do not match"
+            ));
+        }
+
+        adminUserService.resetUserPassword(id, req.getNewPassword());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password reset successfully",
+                "userId", id
+        ));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to reset password: " + e.getMessage()
+        ));
+    }
+}
+
+    /**
+     * Delete a user (soft delete)
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable String id) {
+        adminUserService.deleteUser(id);
+        return ResponseEntity.ok(Map.of(
+                "message", "User deleted successfully",
+                "userId", id,
+                "action", "DELETED"
+        ));
+    }
+
+    @PutMapping("/{id}/restore")
+public ResponseEntity<?> restoreUser(@PathVariable String id) {
+    adminUserService.restoreUser(id);
+    return ResponseEntity.ok(Map.of("success", true, "message", "User restored"));
+}
+/**
+ * Update user role
+ * PUT /api/admin/users/{id}/role
+ */
+@PutMapping("/{id}/role")
+public ResponseEntity<?> updateUserRole(
+        @PathVariable String id,
+        @Valid @RequestBody UpdateUserRoleRequest request) {
+    try {
+        adminUserService.updateUserRole(id, request);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User role updated successfully",
+                "userId", id,
+                "role", request.getRole()
+        ));
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to update user role: " + e.getMessage()
+        ));
+    }
+}
+/**
+ * Permanent delete a user (HARD delete)
+ * DELETE /api/admin/users/{id}/permanent
+ *
+ * Recommended rule: user must already be soft-deleted (status=DELETED)
+ */
+@DeleteMapping("/{id}/permanent")
+public ResponseEntity<?> permanentDeleteUser(@PathVariable String id) {
+    try {
+        adminUserService.permanentDeleteUser(id);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "User permanently deleted successfully",
+                "userId", id,
+                "action", "PERMANENT_DELETED"
+        ));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to permanently delete user: " + e.getMessage()
+        ));
+    }
+}
+    // /**
+    //  * Export all users to CSV file
+    //  * Only admin can download this file
+    //  * 
+    //  * @param role Filter by role (optional)
+    //  * @param status Filter by status (optional) 
+    //  * @param sambhag Filter by sambhag (optional)
+    //  * @param district Filter by district (optional)
+    //  * @param block Filter by block (optional)
+    //  * @param response HTTP response to write CSV data
+    //  */
+    // @GetMapping("/export")
+    // public void exportUsers(
+    //         @RequestParam(required = false) Role role,
+    //         @RequestParam(required = false) UserStatus status,
+    //         @RequestParam(required = false) String sambhag,
+    //         @RequestParam(required = false) String district,
+    //         @RequestParam(required = false) String block,
+    //         HttpServletResponse response) throws Exception {
+        
+    //     // Get all users with filters (use a large page size to get all users)
+    //     AdminUserListResponse allUsers = adminUserService.getAllUsers(
+    //             0, Integer.MAX_VALUE, null, null, null, null, role, status, sambhag, district, block);
+
+    //     // Generate CSV content
+    //     String csvContent = exportService.exportUsersCsv(allUsers.getUsers());
+        
+    //     // Set response headers for file download with proper UTF-8 encoding
+    //     response.setContentType("text/csv; charset=UTF-8");
+    //     response.setCharacterEncoding("UTF-8");
+    //     response.setHeader("Content-Disposition", 
+    //             "attachment; filename*=UTF-8''users_export_" + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv");
+        
+    //     // Write UTF-8 BOM and CSV content using OutputStream for better encoding control
+    //     try (var outputStream = response.getOutputStream()) {
+    //         // Write UTF-8 BOM bytes explicitly
+    //         outputStream.write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
+    //         // Write CSV content as UTF-8 bytes
+    //         outputStream.write(csvContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    //         outputStream.flush();
+    //     }
+    // }
+    @GetMapping("/export")
+public void exportUsers(
+        @RequestParam int month,
+        @RequestParam int year,
+        HttpServletResponse response) throws Exception {
+
+    var users = exportService.getUsersForExportByMonthYear(month, year);
+    byte[] excelData = exportService.exportUsersExcel(users);
+
+    response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.setHeader(
+            "Content-Disposition",
+            "attachment; filename=users_export_" + month + "_" + year + ".xlsx"
+    );
+
+    try (var outputStream = response.getOutputStream()) {
+        outputStream.write(excelData);
+        outputStream.flush();
+    }
+}
+}

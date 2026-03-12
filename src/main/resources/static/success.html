@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Registration Successful</title>
+  <style>
+        body {
+            margin:0;
+            padding:0;
+            font-family: Arial, sans-serif;
+            background:#e8f5e9;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+        }
+
+        .box {
+            background:white;
+            padding:40px 50px;
+            border-radius:14px;
+            text-align:center;
+            box-shadow:0 6px 25px rgba(0,0,0,0.15);
+            animation: pop 0.4s ease-out;
+        }
+
+        @keyframes pop {
+            0% { transform:scale(0.8); opacity:0; }
+            100% { transform:scale(1); opacity:1; }
+        }
+
+        /* Green tick circle */
+        .tick-circle {
+            width:70px;
+            height:70px;
+            border-radius:50%;
+            background:#4caf50;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            margin:auto;
+            margin-bottom:20px;
+            color:white;
+            font-size:38px;
+            font-weight:bold;
+        }
+
+        h1 {
+            color:#2e7d32;
+            margin-bottom:10px;
+        }
+
+        p {
+            color:#555;
+            font-size:16px;
+        }
+
+        a {
+            display:inline-block;
+            margin-top:25px;
+            padding:12px 25px;
+            background:#007bff;
+            color:white;
+            text-decoration:none;
+            font-size:15px;
+            font-weight:bold;
+            border-radius:6px;
+            transition:0.2s;
+        }
+
+        a:hover {
+            background:#0056c7;
+        }
+
+        .timer {
+            margin-top:18px;
+            color:#666;
+            font-size:14px;
+        }
+
+        @media(max-width:600px) {
+            .box {
+                width:85%;
+                padding:25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+  <div class="tick-circle">✔</div>
+
+  <h1>Registration Successful!</h1>
+  <p>Your Kalyan Kosh registration has been completed successfully.</p>
+
+  <a href="register.html">Register Another User</a>
+
+  <div class="timer">
+    Redirecting to form in <span id="count">5</span> seconds...
+  </div>
+</div>
+
+<script>
+    // Auto redirect countdown
+    let counter = 5;
+    const span = document.getElementById("count");
+
+    const timer = setInterval(() => {
+        counter--;
+        span.textContent = counter;
+        if(counter === 0){
+            clearInterval(timer);
+            window.location.href = "register.html";
+        }
+    }, 1000);
+</script>
+
+</body>
+</html>
