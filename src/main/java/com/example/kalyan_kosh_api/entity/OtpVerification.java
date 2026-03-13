@@ -30,4 +30,9 @@ public class OtpVerification {
     private boolean verified = false;
 
     private int attempts = 0;
+        private int sendAttempts = 0;
+
+    private Instant blockedUntil;
+
+    private Instant lastSentAt;
 }

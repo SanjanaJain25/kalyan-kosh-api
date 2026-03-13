@@ -13,7 +13,8 @@ import java.util.List;
 import com.example.kalyan_kosh_api.entity.InsuranceInquiry;
 import com.example.kalyan_kosh_api.repository.InsuranceInquiryRepository;
 import org.springframework.beans.factory.annotation.Value;
-
+import com.example.kalyan_kosh_api.entity.Role;
+import java.util.stream.Collectors;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -70,6 +71,39 @@ public List<AdminUserResponse> getUsersForExportByMonthYear(int month, int year)
             .updatedAt(user.getUpdatedAt())
             .build()
     ).toList();
+}
+public List<AdminUserResponse> getAllUsersForExport() {
+    List<User> users = userRepository.findAllWithLocations();
+
+    return users.stream()
+            .filter(user -> !(user.getId().equals("PMUMS202502") && user.getRole() == Role.ROLE_SUPERADMIN))
+            .map(user -> AdminUserResponse.builder()
+                    .id(user.getId())
+                    .name(user.getName())
+                    .surname(user.getSurname())
+                    .fatherName(user.getFatherName())
+                    .email(user.getEmail())
+                    .mobileNumber(systemSettingService.isExportMobileNumberEnabled() ? user.getMobileNumber() : null)
+                    .dateOfBirth(user.getDateOfBirth())
+                    .departmentState(user.getDepartmentState() != null ? user.getDepartmentState().getName() : null)
+                    .departmentSambhag(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : null)
+                    .departmentDistrict(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : null)
+                    .departmentBlock(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : null)
+                    .department(user.getDepartment())
+                    .departmentUniqueId(user.getDepartmentUniqueId())
+                    .schoolOfficeName(user.getSchoolOfficeName())
+                    .sankulName(user.getSankulName())
+                    .homeAddress(user.getHomeAddress())
+                    .pincode(user.getPincode())
+                    .joiningDate(user.getJoiningDate())
+                    .retirementDate(user.getRetirementDate())
+                    .role(user.getRole())
+                    .status(user.getStatus())
+                    .createdAt(user.getCreatedAt())
+                    .updatedAt(user.getUpdatedAt())
+                    .build()
+            )
+            .toList();
 }
 
 public Map<String, Object> exportInsuranceInquiriesAndSendEmail() {

@@ -82,7 +82,55 @@ List<User> findAllByCreatedMonthAndYear(
             @Param("mobile") String mobile,
             @Param("userId") String userId,
             Pageable pageable);
-
+@Query(
+    value = "SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.departmentState s " +
+            "LEFT JOIN FETCH u.departmentSambhag sa " +
+            "LEFT JOIN FETCH u.departmentDistrict d " +
+            "LEFT JOIN FETCH u.departmentBlock b " +
+            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
+            "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%'))) " +
+            "AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "     OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "     OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:email IS NULL OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :email, '%'))) " +
+            "AND (:mobileNumber IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobileNumber, '%')) " +
+            "AND (:role IS NULL OR u.role = :role) " +
+            "AND (:status IS NULL OR u.status = :status) " +
+            "AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%'))) " +
+            "AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%'))) " +
+            "AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))",
+    countQuery = "SELECT COUNT(u) FROM User u " +
+            "LEFT JOIN u.departmentSambhag sa " +
+            "LEFT JOIN u.departmentDistrict d " +
+            "LEFT JOIN u.departmentBlock b " +
+            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
+            "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%'))) " +
+            "AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "     OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "     OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:email IS NULL OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :email, '%'))) " +
+            "AND (:mobileNumber IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobileNumber, '%')) " +
+            "AND (:role IS NULL OR u.role = :role) " +
+            "AND (:status IS NULL OR u.status = :status) " +
+            "AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%'))) " +
+            "AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%'))) " +
+            "AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))"
+)
+Page<User> searchAdminUsers(
+        @Param("userId") String userId,
+        @Param("name") String name,
+        @Param("email") String email,
+        @Param("mobileNumber") String mobileNumber,
+        @Param("role") Role role,
+        @Param("status") UserStatus status,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block,
+        @Param("reservedSuperAdminId") String reservedSuperAdminId,
+        @Param("reservedSuperAdminRole") Role reservedSuperAdminRole,
+        Pageable pageable
+);
     // ✅ Fetch single user with location relationships
     @Query("SELECT u FROM User u " +
            "LEFT JOIN FETCH u.departmentState s " +

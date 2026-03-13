@@ -13,6 +13,6 @@ public interface    OtpVerificationRepository
             String mobile,
             Instant now
     );
-
+  Optional<OtpVerification> findByMobile(String mobile);
     void deleteByMobile(String mobile);
 }

@@ -41,6 +41,10 @@ private void validateNotReservedSuperAdmin(User user) {
         throw new IllegalArgumentException("Super Admin account cannot be modified.");
     }
 }
+
+private String normalize(String value) {
+    return (value == null || value.trim().isEmpty()) ? null : value.trim();
+}
     /**
      * Get all users with pagination and filters
      */
@@ -51,16 +55,32 @@ private void validateNotReservedSuperAdmin(User user) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         
         // For now, using simple findAll - can be enhanced with specifications for filtering
-        Page<User> userPage = userRepository.findAllWithLocations(pageable);
+ Page<User> userPage = userRepository.searchAdminUsers(
+        normalize(userId),
+        normalize(name),
+        normalize(email),
+        normalize(mobileNumber),
+        role,
+        status,
+        normalize(sambhag),
+        normalize(district),
+        normalize(block),
+        RESERVED_SUPER_ADMIN_ID,
+        RESERVED_SUPER_ADMIN_ROLE,
+        pageable
+);
      //With superadmin in list   
         // List<AdminUserResponse> users = userPage.getContent().stream()
         //         .filter(user -> filterUser(user, userId, name, email, mobileNumber, role, status, sambhag, district, block))
         //         .map(this::convertToAdminUserResponse)
         //         .collect(Collectors.toList());
 //without superadmin in list
+// List<AdminUserResponse> users = userPage.getContent().stream()
+//         .filter(user -> !isReservedSuperAdmin(user))
+//         .filter(user -> filterUser(user, userId, name, email, mobileNumber, role, status, sambhag, district, block))
+//         .map(this::convertToAdminUserResponse)
+//         .collect(Collectors.toList());
 List<AdminUserResponse> users = userPage.getContent().stream()
-        .filter(user -> !isReservedSuperAdmin(user))
-        .filter(user -> filterUser(user, userId, name, email, mobileNumber, role, status, sambhag, district, block))
         .map(this::convertToAdminUserResponse)
         .collect(Collectors.toList());
 
@@ -186,65 +206,65 @@ public void resetUserPassword(String userId, String newPassword) {
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
     }
 
-    private boolean filterUser(User user, String userId, String name, String email, String mobileNumber, 
-                             Role role, UserStatus status, String sambhag, String district, String block) {
+    // private boolean filterUser(User user, String userId, String name, String email, String mobileNumber, 
+    //                          Role role, UserStatus status, String sambhag, String district, String block) {
         
-        if (userId != null && !userId.isEmpty()) {
-            if (!user.getId().toLowerCase().contains(userId.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (userId != null && !userId.isEmpty()) {
+    //         if (!user.getId().toLowerCase().contains(userId.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        if (name != null && !name.isEmpty()) {
-            String fullName = (user.getName() + " " + (user.getSurname() != null ? user.getSurname() : "")).toLowerCase();
-            if (!fullName.contains(name.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (name != null && !name.isEmpty()) {
+    //         String fullName = (user.getName() + " " + (user.getSurname() != null ? user.getSurname() : "")).toLowerCase();
+    //         if (!fullName.contains(name.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        if (email != null && !email.isEmpty() && user.getEmail() != null) {
-            if (!user.getEmail().toLowerCase().contains(email.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (email != null && !email.isEmpty() && user.getEmail() != null) {
+    //         if (!user.getEmail().toLowerCase().contains(email.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        if (mobileNumber != null && !mobileNumber.isEmpty() && user.getMobileNumber() != null) {
-            if (!user.getMobileNumber().contains(mobileNumber)) {
-                return false;
-            }
-        }
+    //     if (mobileNumber != null && !mobileNumber.isEmpty() && user.getMobileNumber() != null) {
+    //         if (!user.getMobileNumber().contains(mobileNumber)) {
+    //             return false;
+    //         }
+    //     }
         
-        if (role != null && !role.equals(user.getRole())) {
-            return false;
-        }
+    //     if (role != null && !role.equals(user.getRole())) {
+    //         return false;
+    //     }
         
-        if (status != null && !status.equals(user.getStatus())) {
-            return false;
-        }
+    //     if (status != null && !status.equals(user.getStatus())) {
+    //         return false;
+    //     }
         
-        if (sambhag != null && !sambhag.isEmpty()) {
-            if (user.getDepartmentSambhag() == null || 
-                !user.getDepartmentSambhag().getName().toLowerCase().contains(sambhag.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (sambhag != null && !sambhag.isEmpty()) {
+    //         if (user.getDepartmentSambhag() == null || 
+    //             !user.getDepartmentSambhag().getName().toLowerCase().contains(sambhag.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        if (district != null && !district.isEmpty()) {
-            if (user.getDepartmentDistrict() == null || 
-                !user.getDepartmentDistrict().getName().toLowerCase().contains(district.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (district != null && !district.isEmpty()) {
+    //         if (user.getDepartmentDistrict() == null || 
+    //             !user.getDepartmentDistrict().getName().toLowerCase().contains(district.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        if (block != null && !block.isEmpty()) {
-            if (user.getDepartmentBlock() == null || 
-                !user.getDepartmentBlock().getName().toLowerCase().contains(block.toLowerCase())) {
-                return false;
-            }
-        }
+    //     if (block != null && !block.isEmpty()) {
+    //         if (user.getDepartmentBlock() == null || 
+    //             !user.getDepartmentBlock().getName().toLowerCase().contains(block.toLowerCase())) {
+    //             return false;
+    //         }
+    //     }
         
-        return true;
-    }
+    //     return true;
+    // }
 
     private AdminUserResponse convertToAdminUserResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();

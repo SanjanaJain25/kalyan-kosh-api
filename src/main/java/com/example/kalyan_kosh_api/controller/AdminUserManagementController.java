@@ -315,4 +315,21 @@ public void exportUsers(
         outputStream.flush();
     }
 }
+@GetMapping("/export-all")
+public void exportAllUsers(HttpServletResponse response) throws Exception {
+    var users = exportService.getAllUsersForExport();
+    byte[] excelData = exportService.exportUsersExcel(users);
+
+    response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.setHeader(
+            "Content-Disposition",
+            "attachment; filename=all_users_export.xlsx"
+    );
+
+    try (var outputStream = response.getOutputStream()) {
+        outputStream.write(excelData);
+        outputStream.flush();
+    }
+}
+
 }
