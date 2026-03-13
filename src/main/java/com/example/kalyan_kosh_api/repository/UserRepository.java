@@ -39,6 +39,22 @@ List<User> findAllByCreatedMonthAndYear(
            "LEFT JOIN FETCH u.departmentBlock b")
     List<User> findAllWithLocations();
 
+    @Query(
+    value = "SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.departmentState s " +
+            "LEFT JOIN FETCH u.departmentSambhag sa " +
+            "LEFT JOIN FETCH u.departmentDistrict d " +
+            "LEFT JOIN FETCH u.departmentBlock b " +
+            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)",
+    countQuery = "SELECT COUNT(u) FROM User u " +
+            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)"
+)
+Page<User> findExportUsersPaged(
+        @Param("reservedSuperAdminId") String reservedSuperAdminId,
+        @Param("reservedSuperAdminRole") Role reservedSuperAdminRole,
+        Pageable pageable
+);
+
     // ✅ Paginated query - fetch users with locations
     @Query(value = "SELECT u FROM User u " +
            "LEFT JOIN FETCH u.departmentState s " +

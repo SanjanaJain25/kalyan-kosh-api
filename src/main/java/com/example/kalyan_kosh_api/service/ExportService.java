@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 @Service
 public class ExportService {
@@ -105,7 +106,97 @@ public List<AdminUserResponse> getAllUsersForExport() {
             )
             .toList();
 }
+public byte[] exportAllUsersExcelInBatches() throws IOException {
+    int page = 0;
+    int size = 2000; // you can tune this
+    boolean hasMore = true;
 
+    try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
+        workbook.setCompressTempFiles(true);
+
+        Sheet sheet = workbook.createSheet("Users");
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setColor(IndexedColors.WHITE.getIndex());
+        headerStyle.setFont(headerFont);
+        headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        String[] headers = {
+                "User ID", "Name", "Surname", "Father Name", "Email", "Mobile",
+                "DOB", "State", "Sambhag", "District", "Block", "Department",
+                "Department ID", "School/Office", "Sankul", "Home Address",
+                "Pincode", "Joining Date", "Retirement Date", "Role", "Status",
+                "Created At", "Updated At"
+        };
+
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+
+        while (hasMore) {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+            Page<User> userPage = userRepository.findExportUsersPaged(
+                    "PMUMS202502",
+                    Role.ROLE_SUPERADMIN,
+                    pageable
+            );
+
+            for (User user : userPage.getContent()) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(user.getId() != null ? user.getId() : "");
+                row.createCell(1).setCellValue(user.getName() != null ? user.getName() : "");
+                row.createCell(2).setCellValue(user.getSurname() != null ? user.getSurname() : "");
+                row.createCell(3).setCellValue(user.getFatherName() != null ? user.getFatherName() : "");
+                row.createCell(4).setCellValue(user.getEmail() != null ? user.getEmail() : "");
+                row.createCell(5).setCellValue(
+                        systemSettingService.isExportMobileNumberEnabled() && user.getMobileNumber() != null
+                                ? user.getMobileNumber()
+                                : ""
+                );
+                row.createCell(6).setCellValue(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : "");
+                row.createCell(7).setCellValue(user.getDepartmentState() != null ? user.getDepartmentState().getName() : "");
+                row.createCell(8).setCellValue(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : "");
+                row.createCell(9).setCellValue(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : "");
+                row.createCell(10).setCellValue(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : "");
+                row.createCell(11).setCellValue(user.getDepartment() != null ? user.getDepartment() : "");
+                row.createCell(12).setCellValue(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : "");
+                row.createCell(13).setCellValue(user.getSchoolOfficeName() != null ? user.getSchoolOfficeName() : "");
+                row.createCell(14).setCellValue(user.getSankulName() != null ? user.getSankulName() : "");
+                row.createCell(15).setCellValue(user.getHomeAddress() != null ? user.getHomeAddress() : "");
+                row.createCell(16).setCellValue(user.getPincode() != null ? user.getPincode().toString() : "");
+                row.createCell(17).setCellValue(user.getJoiningDate() != null ? user.getJoiningDate().toString() : "");
+                row.createCell(18).setCellValue(user.getRetirementDate() != null ? user.getRetirementDate().toString() : "");
+                row.createCell(19).setCellValue(user.getRole() != null ? user.getRole().name() : "");
+                row.createCell(20).setCellValue(user.getStatus() != null ? user.getStatus().name() : "");
+                row.createCell(21).setCellValue(user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
+                row.createCell(22).setCellValue(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : "");
+            }
+
+            hasMore = userPage.hasNext();
+            page++;
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.trackAllColumnsForAutoSizing();
+            sheet.autoSizeColumn(i);
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.dispose();
+        return outputStream.toByteArray();
+    }
+}
 public Map<String, Object> exportInsuranceInquiriesAndSendEmail() {
     try {
         List<InsuranceInquiry> inquiries = insuranceInquiryRepository.findAllByOrderByCreatedAtDesc();

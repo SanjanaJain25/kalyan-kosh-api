@@ -317,8 +317,7 @@ public void exportUsers(
 }
 @GetMapping("/export-all")
 public void exportAllUsers(HttpServletResponse response) throws Exception {
-    var users = exportService.getAllUsersForExport();
-    byte[] excelData = exportService.exportUsersExcel(users);
+    byte[] excelData = exportService.exportAllUsersExcelInBatches();
 
     response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     response.setHeader(
