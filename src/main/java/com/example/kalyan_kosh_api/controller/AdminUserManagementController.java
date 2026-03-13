@@ -317,10 +317,16 @@ public void exportUsers(
 }
 @GetMapping("/export-all")
 public void exportAllUsers(HttpServletResponse response) throws Exception {
-    response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    response.setHeader("Content-Disposition", "attachment; filename=all_users_export.xlsx");
+    response.setContentType("text/csv; charset=UTF-8");
+    response.setCharacterEncoding("UTF-8");
+    response.setHeader("Content-Disposition", "attachment; filename=all_users_export.csv");
 
-    exportService.exportAllUsersExcelStream(response.getOutputStream());
+    try (var outputStream = response.getOutputStream()) {
+        // UTF-8 BOM so Excel opens Hindi/UTF-8 correctly
+        outputStream.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
+        exportService.exportAllUsersCsvStream(outputStream);
+        outputStream.flush();
+    }
 }
 
 }

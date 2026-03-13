@@ -24,6 +24,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class ExportService {
@@ -110,41 +114,40 @@ public List<AdminUserResponse> getAllUsersForExport() {
             )
             .toList();
 }
-public void exportAllUsersExcelStream(java.io.OutputStream outputStream) throws IOException {
+
+public void exportAllUsersCsvStream(OutputStream outputStream) throws IOException {
     int page = 0;
-    int size = 1000; // safer batch size for production
+    int size = 2000;
     boolean hasMore = true;
 
-    SXSSFWorkbook workbook = new SXSSFWorkbook(100);
-    workbook.setCompressTempFiles(true);
+    try (BufferedWriter writer = new BufferedWriter(
+            new OutputStreamWriter(outputStream, StandardCharsets.UTF_8), 64 * 1024)) {
 
-    try {
-        Sheet sheet = workbook.createSheet("Users");
-
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
-        headerFont.setBold(true);
-        headerFont.setColor(IndexedColors.WHITE.getIndex());
-        headerStyle.setFont(headerFont);
-        headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-        String[] headers = {
-                "User ID", "Name", "Surname", "Father Name", "Email", "Mobile",
-                "DOB", "State", "Sambhag", "District", "Block", "Department",
-                "Department ID", "School/Office", "Sankul", "Home Address",
-                "Pincode", "Joining Date", "Retirement Date", "Role", "Status",
-                "Created At", "Updated At"
-        };
-
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            cell.setCellStyle(headerStyle);
-        }
-
-        int rowNum = 1;
+        // Header row
+        writer.write("पंजीकरण संख्या (User ID),"
+                + "नाम (Name),"
+                + "उपनाम (Surname),"
+                + "पिता का नाम (Father Name),"
+                + "ईमेल (Email),"
+                + "मोबाइल नंबर (Mobile),"
+                + "जन्म तिथि (DOB),"
+                + "राज्य (State),"
+                + "संभाग (Sambhag/Division),"
+                + "जिला (District),"
+                + "ब्लॉक (Block),"
+                + "विभाग (Department),"
+                + "विभाग आईडी (Dept ID),"
+                + "स्कूल/कार्यालय का नाम (School/Office),"
+                + "संकुल का नाम (Sankul),"
+                + "घर का पता (Home Address),"
+                + "पिनकोड (Pincode),"
+                + "नियुक्ति तिथि (Joining Date),"
+                + "सेवानिवृत्ति तिथि (Retirement Date),"
+                + "भूमिका (Role),"
+                + "स्थिति (Status),"
+                + "पंजीकरण तिथि (Created At),"
+                + "अंतिम अपडेट (Updated At)");
+        writer.newLine();
 
         while (hasMore) {
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -156,78 +159,71 @@ public void exportAllUsersExcelStream(java.io.OutputStream outputStream) throws 
             );
 
             for (User user : userPage.getContent()) {
-                Row row = sheet.createRow(rowNum++);
-
-                row.createCell(0).setCellValue(user.getId() != null ? user.getId() : "");
-                row.createCell(1).setCellValue(user.getName() != null ? user.getName() : "");
-                row.createCell(2).setCellValue(user.getSurname() != null ? user.getSurname() : "");
-                row.createCell(3).setCellValue(user.getFatherName() != null ? user.getFatherName() : "");
-                row.createCell(4).setCellValue(user.getEmail() != null ? user.getEmail() : "");
-                row.createCell(5).setCellValue(
-                        systemSettingService.isExportMobileNumberEnabled() && user.getMobileNumber() != null
-                                ? user.getMobileNumber()
-                                : ""
-                );
-                row.createCell(6).setCellValue(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : "");
-                row.createCell(7).setCellValue(user.getDepartmentState() != null ? user.getDepartmentState().getName() : "");
-                row.createCell(8).setCellValue(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : "");
-                row.createCell(9).setCellValue(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : "");
-                row.createCell(10).setCellValue(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : "");
-                row.createCell(11).setCellValue(user.getDepartment() != null ? user.getDepartment() : "");
-                row.createCell(12).setCellValue(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : "");
-                row.createCell(13).setCellValue(user.getSchoolOfficeName() != null ? user.getSchoolOfficeName() : "");
-                row.createCell(14).setCellValue(user.getSankulName() != null ? user.getSankulName() : "");
-                row.createCell(15).setCellValue(user.getHomeAddress() != null ? user.getHomeAddress() : "");
-                row.createCell(16).setCellValue(user.getPincode() != null ? user.getPincode().toString() : "");
-                row.createCell(17).setCellValue(user.getJoiningDate() != null ? user.getJoiningDate().toString() : "");
-                row.createCell(18).setCellValue(user.getRetirementDate() != null ? user.getRetirementDate().toString() : "");
-                row.createCell(19).setCellValue(user.getRole() != null ? user.getRole().name() : "");
-                row.createCell(20).setCellValue(user.getStatus() != null ? user.getStatus().name() : "");
-                row.createCell(21).setCellValue(user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
-                row.createCell(22).setCellValue(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : "");
+                writer.write(csv(user.getId()));
+                writer.write(",");
+                writer.write(csv(user.getName()));
+                writer.write(",");
+                writer.write(csv(user.getSurname()));
+                writer.write(",");
+                writer.write(csv(user.getFatherName()));
+                writer.write(",");
+                writer.write(csv(user.getEmail()));
+                writer.write(",");
+                writer.write(csv(systemSettingService.isExportMobileNumberEnabled() ? user.getMobileNumber() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDepartmentState() != null ? user.getDepartmentState().getName() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : ""));
+                writer.write(",");
+                writer.write(csv(user.getDepartment()));
+                writer.write(",");
+                writer.write(csv(user.getDepartmentUniqueId()));
+                writer.write(",");
+                writer.write(csv(user.getSchoolOfficeName()));
+                writer.write(",");
+                writer.write(csv(user.getSankulName()));
+                writer.write(",");
+                writer.write(csv(user.getHomeAddress()));
+                writer.write(",");
+                writer.write(csv(user.getPincode() != null ? user.getPincode().toString() : ""));
+                writer.write(",");
+                writer.write(csv(user.getJoiningDate() != null ? user.getJoiningDate().toString() : ""));
+                writer.write(",");
+                writer.write(csv(user.getRetirementDate() != null ? user.getRetirementDate().toString() : ""));
+                writer.write(",");
+                writer.write(csv(user.getRole() != null ? user.getRole().name() : ""));
+                writer.write(",");
+                writer.write(csv(user.getStatus() != null ? user.getStatus().name() : ""));
+                writer.write(",");
+                writer.write(csv(user.getCreatedAt() != null ? user.getCreatedAt().toString() : ""));
+                writer.write(",");
+                writer.write(csv(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : ""));
+                writer.newLine();
             }
 
+            writer.flush(); // important for streaming big files
             hasMore = userPage.hasNext();
             page++;
-
-            // flush temp rows from memory
-            if (sheet instanceof org.apache.poi.xssf.streaming.SXSSFSheet sxSheet) {
-                sxSheet.flushRows(100);
-            }
         }
-
-        sheet.setColumnWidth(0, 5000);
-        sheet.setColumnWidth(1, 7000);
-        sheet.setColumnWidth(2, 7000);
-        sheet.setColumnWidth(3, 7000);
-        sheet.setColumnWidth(4, 9000);
-        sheet.setColumnWidth(5, 5000);
-        sheet.setColumnWidth(6, 4500);
-        sheet.setColumnWidth(7, 6000);
-        sheet.setColumnWidth(8, 6000);
-        sheet.setColumnWidth(9, 6000);
-        sheet.setColumnWidth(10, 6000);
-        sheet.setColumnWidth(11, 7000);
-        sheet.setColumnWidth(12, 6000);
-        sheet.setColumnWidth(13, 8000);
-        sheet.setColumnWidth(14, 7000);
-        sheet.setColumnWidth(15, 10000);
-        sheet.setColumnWidth(16, 4500);
-        sheet.setColumnWidth(17, 5000);
-        sheet.setColumnWidth(18, 5000);
-        sheet.setColumnWidth(19, 5000);
-        sheet.setColumnWidth(20, 5000);
-        sheet.setColumnWidth(21, 7000);
-        sheet.setColumnWidth(22, 7000);
-
-        workbook.write(outputStream);
-        outputStream.flush();
-    } finally {
-        workbook.dispose();
-        workbook.close();
     }
 }
+private String csv(String value) {
+    if (value == null) {
+        return "";
+    }
 
+    if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+        return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+
+    return value;
+}
 
 public Map<String, Object> exportInsuranceInquiriesAndSendEmail() {
     try {
