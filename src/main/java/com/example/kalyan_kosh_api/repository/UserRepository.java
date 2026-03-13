@@ -39,7 +39,7 @@ List<User> findAllByCreatedMonthAndYear(
            "LEFT JOIN FETCH u.departmentBlock b")
     List<User> findAllWithLocations();
 
-    @Query(
+@Query(
     value = "SELECT u FROM User u " +
             "LEFT JOIN FETCH u.departmentState s " +
             "LEFT JOIN FETCH u.departmentSambhag sa " +

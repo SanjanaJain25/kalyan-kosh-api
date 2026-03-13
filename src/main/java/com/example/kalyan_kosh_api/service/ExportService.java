@@ -110,14 +110,15 @@ public List<AdminUserResponse> getAllUsersForExport() {
             )
             .toList();
 }
-public byte[] exportAllUsersExcelInBatches() throws IOException {
+public void exportAllUsersExcelStream(java.io.OutputStream outputStream) throws IOException {
     int page = 0;
-    int size = 2000; // you can tune this
+    int size = 1000; // safer batch size for production
     boolean hasMore = true;
 
-    try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
-        workbook.setCompressTempFiles(true);
+    SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+    workbook.setCompressTempFiles(true);
 
+    try {
         Sheet sheet = workbook.createSheet("Users");
 
         CellStyle headerStyle = workbook.createCellStyle();
@@ -188,38 +189,46 @@ public byte[] exportAllUsersExcelInBatches() throws IOException {
 
             hasMore = userPage.hasNext();
             page++;
+
+            // flush temp rows from memory
+            if (sheet instanceof org.apache.poi.xssf.streaming.SXSSFSheet sxSheet) {
+                sxSheet.flushRows(100);
+            }
         }
 
-       sheet.setColumnWidth(0, 5000);
-sheet.setColumnWidth(1, 7000);
-sheet.setColumnWidth(2, 7000);
-sheet.setColumnWidth(3, 7000);
-sheet.setColumnWidth(4, 9000);
-sheet.setColumnWidth(5, 5000);
-sheet.setColumnWidth(6, 4500);
-sheet.setColumnWidth(7, 6000);
-sheet.setColumnWidth(8, 6000);
-sheet.setColumnWidth(9, 6000);
-sheet.setColumnWidth(10, 6000);
-sheet.setColumnWidth(11, 7000);
-sheet.setColumnWidth(12, 6000);
-sheet.setColumnWidth(13, 8000);
-sheet.setColumnWidth(14, 7000);
-sheet.setColumnWidth(15, 10000);
-sheet.setColumnWidth(16, 4500);
-sheet.setColumnWidth(17, 5000);
-sheet.setColumnWidth(18, 5000);
-sheet.setColumnWidth(19, 5000);
-sheet.setColumnWidth(20, 5000);
-sheet.setColumnWidth(21, 7000);
-sheet.setColumnWidth(22, 7000);
+        sheet.setColumnWidth(0, 5000);
+        sheet.setColumnWidth(1, 7000);
+        sheet.setColumnWidth(2, 7000);
+        sheet.setColumnWidth(3, 7000);
+        sheet.setColumnWidth(4, 9000);
+        sheet.setColumnWidth(5, 5000);
+        sheet.setColumnWidth(6, 4500);
+        sheet.setColumnWidth(7, 6000);
+        sheet.setColumnWidth(8, 6000);
+        sheet.setColumnWidth(9, 6000);
+        sheet.setColumnWidth(10, 6000);
+        sheet.setColumnWidth(11, 7000);
+        sheet.setColumnWidth(12, 6000);
+        sheet.setColumnWidth(13, 8000);
+        sheet.setColumnWidth(14, 7000);
+        sheet.setColumnWidth(15, 10000);
+        sheet.setColumnWidth(16, 4500);
+        sheet.setColumnWidth(17, 5000);
+        sheet.setColumnWidth(18, 5000);
+        sheet.setColumnWidth(19, 5000);
+        sheet.setColumnWidth(20, 5000);
+        sheet.setColumnWidth(21, 7000);
+        sheet.setColumnWidth(22, 7000);
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
+        outputStream.flush();
+    } finally {
         workbook.dispose();
-        return outputStream.toByteArray();
+        workbook.close();
     }
 }
+
+
 public Map<String, Object> exportInsuranceInquiriesAndSendEmail() {
     try {
         List<InsuranceInquiry> inquiries = insuranceInquiryRepository.findAllByOrderByCreatedAtDesc();

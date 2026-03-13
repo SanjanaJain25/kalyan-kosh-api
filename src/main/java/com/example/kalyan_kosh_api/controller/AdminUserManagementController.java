@@ -317,18 +317,10 @@ public void exportUsers(
 }
 @GetMapping("/export-all")
 public void exportAllUsers(HttpServletResponse response) throws Exception {
-    byte[] excelData = exportService.exportAllUsersExcelInBatches();
-
     response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    response.setHeader(
-            "Content-Disposition",
-            "attachment; filename=all_users_export.xlsx"
-    );
+    response.setHeader("Content-Disposition", "attachment; filename=all_users_export.xlsx");
 
-    try (var outputStream = response.getOutputStream()) {
-        outputStream.write(excelData);
-        outputStream.flush();
-    }
+    exportService.exportAllUsersExcelStream(response.getOutputStream());
 }
 
 }
