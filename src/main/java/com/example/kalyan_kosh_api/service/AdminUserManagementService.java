@@ -159,7 +159,7 @@ public void restoreUser(String userId) {
     userRepository.save(user);
 }
 
-   @Transactional
+  @Transactional
 public void permanentDeleteUser(String userId) {
     User user = getUserById(userId);
     validateNotReservedSuperAdmin(user);
@@ -168,22 +168,18 @@ public void permanentDeleteUser(String userId) {
         throw new IllegalArgumentException("User must be soft deleted before permanent delete");
     }
 
-    long receiptCount = receiptRepository.countByUser(user);
-    if (receiptCount > 0) {
-        throw new IllegalArgumentException("Cannot permanently delete user because receipt records exist.");
-    }
+    // Delete child records first
+    receiptRepository.deleteByUser(user);
 
-    // Delete manager assignments first
     managerAssignmentRepository.deleteByManager(user);
     managerAssignmentRepository.deleteByAssignedBy(user);
 
-    // Delete manager queries first
     managerQueryRepository.deleteByCreatedBy(user);
     managerQueryRepository.deleteByAssignedTo(user);
     managerQueryRepository.deleteByRelatedUser(user);
     managerQueryRepository.deleteByResolvedBy(user);
 
-    // Now delete user
+    // Finally delete user
     userRepository.delete(user);
 }
 

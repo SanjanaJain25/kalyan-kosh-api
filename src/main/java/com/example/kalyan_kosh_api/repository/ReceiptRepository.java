@@ -13,7 +13,8 @@ import java.util.Set;
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
-long countByUser(User user);
+
+void deleteByUser(User user);
 
     @Query("""
         SELECT COUNT(DISTINCT r.user.id)
