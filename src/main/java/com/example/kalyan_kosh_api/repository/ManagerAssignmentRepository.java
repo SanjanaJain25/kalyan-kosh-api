@@ -16,7 +16,13 @@ import java.util.UUID;
 
 @Repository
 public interface ManagerAssignmentRepository extends JpaRepository<ManagerAssignment, Long> {
-    
+    long countByManager(User manager);
+
+long countByAssignedBy(User assignedBy);
+
+void deleteByManager(User manager);
+
+void deleteByAssignedBy(User assignedBy);
     // Find all assignments for a manager
     List<ManagerAssignment> findByManagerAndIsActiveTrue(User manager);
     

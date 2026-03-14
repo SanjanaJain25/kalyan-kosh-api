@@ -14,7 +14,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
+import com.example.kalyan_kosh_api.repository.ReceiptRepository;
+import com.example.kalyan_kosh_api.repository.ManagerAssignmentRepository;
+import com.example.kalyan_kosh_api.repository.ManagerQueryRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,12 +26,23 @@ public class AdminUserManagementService {
     private static final String RESERVED_SUPER_ADMIN_ID = "PMUMS202502";
 private static final Role RESERVED_SUPER_ADMIN_ROLE = Role.ROLE_SUPERADMIN;
 private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+private final UserRepository userRepository;
+private final ReceiptRepository receiptRepository;
+private final ManagerAssignmentRepository managerAssignmentRepository;
+private final ManagerQueryRepository managerQueryRepository;
 
-    public AdminUserManagementService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
-        this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
-    }
+ public AdminUserManagementService(
+        PasswordEncoder passwordEncoder,
+        UserRepository userRepository,
+        ReceiptRepository receiptRepository,
+        ManagerAssignmentRepository managerAssignmentRepository,
+        ManagerQueryRepository managerQueryRepository) {
+    this.passwordEncoder = passwordEncoder;
+    this.userRepository = userRepository;
+    this.receiptRepository = receiptRepository;
+    this.managerAssignmentRepository = managerAssignmentRepository;
+    this.managerQueryRepository = managerQueryRepository;
+}
 private boolean isReservedSuperAdmin(User user) {
     return user != null
             && RESERVED_SUPER_ADMIN_ID.equals(user.getId())
@@ -146,16 +159,31 @@ public void restoreUser(String userId) {
     userRepository.save(user);
 }
 
-    @Transactional
+   @Transactional
 public void permanentDeleteUser(String userId) {
     User user = getUserById(userId);
- validateNotReservedSuperAdmin(user);
-    // ✅ Safety: only allow hard delete if already soft-deleted
+    validateNotReservedSuperAdmin(user);
+
     if (user.getStatus() != UserStatus.DELETED) {
         throw new IllegalArgumentException("User must be soft deleted before permanent delete");
     }
 
-    // ✅ Hard delete
+    long receiptCount = receiptRepository.countByUser(user);
+    if (receiptCount > 0) {
+        throw new IllegalArgumentException("Cannot permanently delete user because receipt records exist.");
+    }
+
+    // Delete manager assignments first
+    managerAssignmentRepository.deleteByManager(user);
+    managerAssignmentRepository.deleteByAssignedBy(user);
+
+    // Delete manager queries first
+    managerQueryRepository.deleteByCreatedBy(user);
+    managerQueryRepository.deleteByAssignedTo(user);
+    managerQueryRepository.deleteByRelatedUser(user);
+    managerQueryRepository.deleteByResolvedBy(user);
+
+    // Now delete user
     userRepository.delete(user);
 }
 

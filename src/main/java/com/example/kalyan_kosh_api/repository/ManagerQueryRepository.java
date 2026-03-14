@@ -16,7 +16,21 @@ import java.util.List;
 
 @Repository
 public interface ManagerQueryRepository extends JpaRepository<ManagerQuery, Long> {
-    
+    long countByCreatedBy(User createdBy);
+
+long countByAssignedTo(User assignedTo);
+
+long countByRelatedUser(User relatedUser);
+
+long countByResolvedBy(User resolvedBy);
+
+void deleteByCreatedBy(User createdBy);
+
+void deleteByAssignedTo(User assignedTo);
+
+void deleteByRelatedUser(User relatedUser);
+
+void deleteByResolvedBy(User resolvedBy);
     // Find queries created by specific manager
     Page<ManagerQuery> findByCreatedByOrderByCreatedAtDesc(User createdBy, Pageable pageable);
     
