@@ -61,41 +61,32 @@ public class PoolAssignmentService {
  @Transactional
 public void rebalanceAllUsersAcrossPools(boolean overwrite) {
 
+    List<DeathCase> activePools = deathCaseRepo.findByStatusOrderByIdAsc(DeathCaseStatus.OPEN);
+
+    if (activePools.isEmpty()) {
+        return;
+    }
+
     List<User> users = userRepo.findAll();
-    List<DeathCase> activePools =
-            deathCaseRepo.findByStatusOrderByIdAsc(DeathCaseStatus.OPEN);
 
-    // If 0/1 pool, nothing can "change"
-    if (activePools.size() <= 1) return;
+    // Only rebalance normal users
+    List<User> eligibleUsers = users.stream()
+            .filter(u -> u.getRole() == Role.ROLE_USER)
+            .filter(u -> overwrite || u.getAssignedDeathCase() == null ||
+                    u.getAssignedDeathCase().getStatus() != DeathCaseStatus.OPEN)
+            .toList();
 
-    // Build quick lookup: poolId -> index
-    Map<Long, Integer> poolIndex = new HashMap<>();
-    for (int idx = 0; idx < activePools.size(); idx++) {
-        DeathCase dc = activePools.get(idx);
-        if (dc.getId() != null) poolIndex.put(dc.getId(), idx);
+    if (eligibleUsers.isEmpty()) {
+        return;
     }
 
-    // ✅ Always change each user's pool to the NEXT pool
-    for (User u : users) {
-
-        DeathCase current = u.getAssignedDeathCase();
-
-        // overwrite=false => keep already assigned users as-is
-        if (!overwrite && current != null) continue;
-
-        int nextIdx;
-
-        if (current != null && current.getId() != null && poolIndex.containsKey(current.getId())) {
-            // move to next pool (guaranteed change)
-            nextIdx = (poolIndex.get(current.getId()) + 1) % activePools.size();
-        } else {
-            // if user had no assignment or pool not found -> assign first pool
-            nextIdx = 0;
-        }
-
-        u.setAssignedDeathCase(activePools.get(nextIdx));
+    // Distribute users evenly across active pools
+    for (int i = 0; i < eligibleUsers.size(); i++) {
+        User user = eligibleUsers.get(i);
+        DeathCase pool = activePools.get(i % activePools.size());
+        user.setAssignedDeathCase(pool);
     }
 
-    userRepo.saveAll(users);
+    userRepo.saveAll(eligibleUsers);
 }
 }
