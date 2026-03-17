@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 
 @RestController
 @RequestMapping("/api/pools")
@@ -28,7 +29,8 @@ public ResponseEntity<?> myPool(Authentication auth) {
     User u = userRepo.findById(auth.getName())
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-    if (u.getAssignedDeathCase() == null) {
+    if (u.getAssignedDeathCase() == null ||
+        u.getAssignedDeathCase().getStatus() != DeathCaseStatus.OPEN) {
         poolAssignmentService.assignPoolToNewUser(u);
         userRepo.save(u);
     }
