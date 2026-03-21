@@ -21,7 +21,8 @@ public class DeathCaseResponse {
     // Nominee 1 Details
     private String nominee1Name;
     private String nominee1QrCode;
-
+private String nominee1UpiLink;
+private String nominee2UpiLink;
     // Nominee 2 Details
     private String nominee2Name;
     private String nominee2QrCode;

@@ -31,11 +31,13 @@ public class DeathCase {
     // Nominee 1 Details
     private String nominee1Name;
     private String nominee1QrCode; // Stores file path of QR code image
-
+@Column(length = 1000)
+private String nominee1UpiLink;
     // Nominee 2 Details
     private String nominee2Name;
     private String nominee2QrCode; // Stores file path of QR code image
-
+@Column(length = 1000)
+private String nominee2UpiLink;
     // Death Case Certificates
     private String certificate1; // Stores file path of first certificate image
 

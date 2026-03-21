@@ -30,7 +30,8 @@ public class UpdateDeathCaseRequest {
     @NotBlank
     private String nominee1Name;
     // nominee1QrCode is handled as file upload (MultipartFile)
-
+private String nominee1UpiLink;
+private String nominee2UpiLink;
     // Nominee 2 Details
     private String nominee2Name;
     // nominee2QrCode is handled as file upload (MultipartFile)

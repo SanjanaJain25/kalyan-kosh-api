@@ -68,6 +68,8 @@ public class DeathCaseService {
                     .nominee1QrCode(nominee1QrCodePath)
                     .nominee2Name(req.getNominee2Name())
                     .nominee2QrCode(nominee2QrCodePath)
+                    .nominee1UpiLink(req.getNominee1UpiLink())
+.nominee2UpiLink(req.getNominee2UpiLink())
                     // Certificate Details
                     .certificate1(certificate1Path)
                     // Account Details
@@ -124,7 +126,8 @@ public class DeathCaseService {
         // Nominee Details
         dc.setNominee1Name(req.getNominee1Name());
         dc.setNominee2Name(req.getNominee2Name());
-
+dc.setNominee1UpiLink(req.getNominee1UpiLink());
+dc.setNominee2UpiLink(req.getNominee2UpiLink());
         // Update images only if new files are provided (with meaningful names)
         if (userImageFile != null && !userImageFile.isEmpty()) {
             dc.setUserImage(storeFileWithName(userImageFile, userId, "death-cases",
