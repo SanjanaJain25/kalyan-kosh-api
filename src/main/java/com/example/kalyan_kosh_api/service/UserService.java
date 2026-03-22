@@ -217,6 +217,46 @@ private LocalDate parseDate(String value, String fieldName) {
     return toUserResponse(user);
 }
 
+
+/**
+ * Filtered + Paginated method to get only pending-profile users
+ * Pending profile = missing important profile/location fields
+ */
+public PageResponse<UserResponse> getPendingProfileUsersFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
+
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+    // Clean up empty strings to null for proper query handling
+    String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
+    String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
+    String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
+
+    Page<User> userPage = userRepo.findPendingProfileUsersWithFilters(
+            sambhagId, districtId, blockId, cleanName, cleanMobile, cleanUserId, pageable);
+
+    List<UserResponse> userResponses = userPage.getContent().stream()
+            .map(this::toUserResponse)
+            .collect(Collectors.toList());
+
+    return new PageResponse<>(
+            userResponses,
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages(),
+            userPage.isLast(),
+            userPage.isFirst()
+    );
+}
+
     /**
      * Update user password
      * Validates current password before updating to new password

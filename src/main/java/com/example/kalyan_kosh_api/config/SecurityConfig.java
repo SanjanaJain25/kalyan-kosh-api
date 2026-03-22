@@ -95,7 +95,7 @@ public class SecurityConfig {
 
                         // Public endpoints - Locations
                         .requestMatchers("/api/locations/**").permitAll()
-
+.requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/filter").permitAll()
                         // Public endpoint - Get all users
                         .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/").permitAll()
 

@@ -95,6 +95,38 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+ * GET PENDING PROFILE USERS WITH FILTERS AND PAGINATION
+ *
+ * Pending profile means important profile fields are incomplete/null.
+ *
+ * Filters:
+ * - sambhagId: Filter by Sambhag (Division) ID
+ * - districtId: Filter by District ID
+ * - blockId: Filter by Block ID
+ * - name: Search by name or surname (partial match)
+ * - mobile: Search by mobile number (partial match)
+ * - userId: Search by user ID (partial match)
+ *
+ * Usage: GET /api/users/pending-profiles/filter?sambhagId=1&districtId=2&blockId=3&name=राहुल&mobile=98765&userId=PMUMS&page=0&size=20
+ */
+@GetMapping("/pending-profiles/filter")
+public ResponseEntity<PageResponse<UserResponse>> getPendingProfileUsersFiltered(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+    PageResponse<UserResponse> response = userService.getPendingProfileUsersFiltered(
+            sambhagId, districtId, blockId, name, mobile, userId, page, size);
+
+    return ResponseEntity.ok(response);
+}
+
     // UPDATE USER
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(

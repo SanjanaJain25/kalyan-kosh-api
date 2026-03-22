@@ -115,61 +115,69 @@ public class AdminMonthlySahyogController {
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
      */
-    @GetMapping("/donors/search")
-    public ResponseEntity<?> searchDonors(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String mobile,
-            @RequestParam(required = false) String userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "250") int size) {
-        try {
-            log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, page={}, size={}",
-                     month, year, name, mobile, userId, page, size);
-            LocalDate date = resolveDate(sahyogDate, month, year);
-            PageResponse<DonorResponse> result = service.searchDonors(date, name, mobile, userId, page, size);
-            log.info("✅ Donor search completed: {} records found", result.getContent().size());
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            log.warn("⚠️ Invalid parameters for donor search: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(createErrorResponse("INVALID_PARAMS", e.getMessage()));
-        } catch (Exception e) {
-            log.error("❌ Error searching donors: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
-        }
+   @GetMapping("/donors/search")
+public ResponseEntity<?> searchDonors(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+        @RequestParam(required = false) Integer month,
+        @RequestParam(required = false) Integer year,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "250") int size) {
+    try {
+        log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, page={}, size={}",
+                 month, year, name, mobile, userId, sambhag, district, block, page, size);
+        LocalDate date = resolveDate(sahyogDate, month, year);
+        PageResponse<DonorResponse> result =
+                service.searchDonors(date, name, mobile, userId, sambhag, district, block, page, size);
+        log.info("✅ Donor search completed: {} records found", result.getContent().size());
+        return ResponseEntity.ok(result);
+    } catch (IllegalArgumentException e) {
+        log.warn("⚠️ Invalid parameters for donor search: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(createErrorResponse("INVALID_PARAMS", e.getMessage()));
+    } catch (Exception e) {
+        log.error("❌ Error searching donors: {}", e.getMessage(), e);
+        return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
     }
+}
 
     /**
      * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/non-donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
      */
-    @GetMapping("/non-donors/search")
-    public ResponseEntity<?> searchNonDonors(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String mobile,
-            @RequestParam(required = false) String userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "250") int size) {
-        try {
-            log.info("🔍 Searching non-donors: month={}, year={}, name={}, mobile={}, userId={}, page={}, size={}",
-                     month, year, name, mobile, userId, page, size);
-            LocalDate date = resolveDate(sahyogDate, month, year);
-            PageResponse<UserResponse> result = service.searchNonDonors(date, name, mobile, userId, page, size);
-            log.info("✅ Non-donor search completed: {} records found", result.getContent().size());
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            log.warn("⚠️ Invalid parameters for non-donor search: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(createErrorResponse("INVALID_PARAMS", e.getMessage()));
-        } catch (Exception e) {
-            log.error("❌ Error searching non-donors: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search non-donors: " + e.getMessage()));
-        }
+   @GetMapping("/non-donors/search")
+public ResponseEntity<?> searchNonDonors(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+        @RequestParam(required = false) Integer month,
+        @RequestParam(required = false) Integer year,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "250") int size) {
+    try {
+        log.info("🔍 Searching non-donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, page={}, size={}",
+                 month, year, name, mobile, userId, sambhag, district, block, page, size);
+        LocalDate date = resolveDate(sahyogDate, month, year);
+        PageResponse<UserResponse> result =
+                service.searchNonDonors(date, name, mobile, userId, sambhag, district, block, page, size);
+        log.info("✅ Non-donor search completed: {} records found", result.getContent().size());
+        return ResponseEntity.ok(result);
+    } catch (IllegalArgumentException e) {
+        log.warn("⚠️ Invalid parameters for non-donor search: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(createErrorResponse("INVALID_PARAMS", e.getMessage()));
+    } catch (Exception e) {
+        log.error("❌ Error searching non-donors: {}", e.getMessage(), e);
+        return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search non-donors: " + e.getMessage()));
     }
+}
 
     @PostMapping("/update-death-cases")
     public ResponseEntity<?> updateDeaths(

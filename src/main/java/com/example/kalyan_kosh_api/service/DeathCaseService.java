@@ -31,7 +31,40 @@ public class DeathCaseService {
         this.mapper = mapper;
         this.fileStorageService = fileStorageService;
     }
+private String normalizeUpiValue(String value) {
+    if (value == null || value.isBlank()) {
+        return null;
+    }
 
+    String trimmed = value.trim();
+
+    // If frontend sends full deep link, extract only the pa value
+    if (trimmed.toLowerCase().startsWith("upi://pay")) {
+        String lower = trimmed.toLowerCase();
+        int paIndex = lower.indexOf("pa=");
+
+        if (paIndex == -1) {
+            throw new RuntimeException("Invalid UPI link: missing pa parameter.");
+        }
+
+        String paValue = trimmed.substring(paIndex + 3);
+        int ampIndex = paValue.indexOf("&");
+        if (ampIndex != -1) {
+            paValue = paValue.substring(0, ampIndex);
+        }
+
+        paValue = java.net.URLDecoder.decode(paValue, java.nio.charset.StandardCharsets.UTF_8);
+
+        if (paValue.isBlank()) {
+            throw new RuntimeException("Invalid UPI link: empty pa value.");
+        }
+
+        return paValue.trim();
+    }
+
+    // If raw UPI ID is sent, store it directly
+    return trimmed;
+}
     public DeathCaseResponse create(CreateDeathCaseRequest req,
                                      MultipartFile userImageFile,
                                      MultipartFile nominee1QrCodeFile,
@@ -68,8 +101,8 @@ public class DeathCaseService {
                     .nominee1QrCode(nominee1QrCodePath)
                     .nominee2Name(req.getNominee2Name())
                     .nominee2QrCode(nominee2QrCodePath)
-                    .nominee1UpiLink(req.getNominee1UpiLink())
-.nominee2UpiLink(req.getNominee2UpiLink())
+                    .nominee1UpiLink(normalizeUpiValue(req.getNominee1UpiLink()))
+.nominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()))
                     // Certificate Details
                     .certificate1(certificate1Path)
                     // Account Details
@@ -126,8 +159,8 @@ public class DeathCaseService {
         // Nominee Details
         dc.setNominee1Name(req.getNominee1Name());
         dc.setNominee2Name(req.getNominee2Name());
-dc.setNominee1UpiLink(req.getNominee1UpiLink());
-dc.setNominee2UpiLink(req.getNominee2UpiLink());
+dc.setNominee1UpiLink(normalizeUpiValue(req.getNominee1UpiLink()));
+dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
         // Update images only if new files are provided (with meaningful names)
         if (userImageFile != null && !userImageFile.isEmpty()) {
             dc.setUserImage(storeFileWithName(userImageFile, userId, "death-cases",
