@@ -122,6 +122,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/beneficiaries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/dashboard/summary").permitAll()
 .requestMatchers(HttpMethod.POST, "/api/public/insurance-inquiries").permitAll()
                         // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
