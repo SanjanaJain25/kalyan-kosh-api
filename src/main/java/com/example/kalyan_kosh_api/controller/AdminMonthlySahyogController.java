@@ -115,7 +115,7 @@ public class AdminMonthlySahyogController {
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
      */
-   @GetMapping("/donors/search")
+  @GetMapping("/donors/search")
 public ResponseEntity<?> searchDonors(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
         @RequestParam(required = false) Integer month,
@@ -130,11 +130,14 @@ public ResponseEntity<?> searchDonors(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "250") int size) {
     try {
-log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, beneficiary={}, page={}, size={}",
-         month, year, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+        log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, beneficiary={}, page={}, size={}",
+                month, year, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
 
-       PageResponse<DonorResponse> result =
-        service.searchDonors(date, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+        LocalDate date = resolveDate(sahyogDate, month, year);
+
+        PageResponse<DonorResponse> result =
+                service.searchDonors(date, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+
         log.info("✅ Donor search completed: {} records found", result.getContent().size());
         return ResponseEntity.ok(result);
     } catch (IllegalArgumentException e) {
@@ -145,7 +148,6 @@ log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={
         return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
     }
 }
-
     /**
      * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/non-donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
