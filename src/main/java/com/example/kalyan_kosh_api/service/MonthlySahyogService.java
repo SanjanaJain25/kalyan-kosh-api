@@ -207,6 +207,7 @@ public class MonthlySahyogService {
         String sambhag,
         String district,
         String block,
+        String beneficiary,
         int page,
         int size) {
 
@@ -220,19 +221,20 @@ public class MonthlySahyogService {
     String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
     String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
     String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
-
+String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
     Pageable pageable = PageRequest.of(page, size);
-    Page<Object[]> donorPage = receiptRepo.searchDonorsNative(
-            startDate,
-            endDate,
-            cleanName,
-            cleanMobile,
-            cleanUserId,
-            cleanSambhag,
-            cleanDistrict,
-            cleanBlock,
-            pageable
-    );
+  Page<Object[]> donorPage = receiptRepo.searchDonorsNative(
+        startDate,
+        endDate,
+        cleanName,
+        cleanMobile,
+        cleanUserId,
+        cleanSambhag,
+        cleanDistrict,
+        cleanBlock,
+        cleanBeneficiary,
+        pageable
+);
 
     List<DonorResponse> donors = donorPage.getContent().stream()
             .map(row -> DonorResponse.builder()

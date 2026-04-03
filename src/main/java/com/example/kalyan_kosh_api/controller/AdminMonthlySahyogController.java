@@ -126,14 +126,15 @@ public ResponseEntity<?> searchDonors(
         @RequestParam(required = false) String sambhag,
         @RequestParam(required = false) String district,
         @RequestParam(required = false) String block,
+        @RequestParam(required = false) String beneficiary,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "250") int size) {
     try {
-        log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, page={}, size={}",
-                 month, year, name, mobile, userId, sambhag, district, block, page, size);
-        LocalDate date = resolveDate(sahyogDate, month, year);
-        PageResponse<DonorResponse> result =
-                service.searchDonors(date, name, mobile, userId, sambhag, district, block, page, size);
+log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, beneficiary={}, page={}, size={}",
+         month, year, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+
+       PageResponse<DonorResponse> result =
+        service.searchDonors(date, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
         log.info("✅ Donor search completed: {} records found", result.getContent().size());
         return ResponseEntity.ok(result);
     } catch (IllegalArgumentException e) {
