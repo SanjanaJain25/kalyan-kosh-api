@@ -117,6 +117,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/utils/**").permitAll()
 
                         // Public admin endpoints (must be before /api/admin/** rule)
+                        .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/beneficiaries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/non-donors/paginated").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search").permitAll()
