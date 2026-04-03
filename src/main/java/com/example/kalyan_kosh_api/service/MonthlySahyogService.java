@@ -196,6 +196,13 @@ public class MonthlySahyogService {
         return getDonorsPaginated(sahyogDate, 0, 250).getContent();
     }
 
+
+public List<String> getDistinctBeneficiaries(LocalDate sahyogDate) {
+    LocalDate startDate = sahyogDate.withDayOfMonth(1);
+    LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
+
+    return receiptRepo.findDistinctBeneficiariesByDateRange(startDate, endDate);
+}
     /**
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      */

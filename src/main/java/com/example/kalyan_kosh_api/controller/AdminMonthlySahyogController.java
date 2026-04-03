@@ -148,6 +148,21 @@ public ResponseEntity<?> searchDonors(
         return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
     }
 }
+
+@GetMapping("/donors/beneficiaries")
+public ResponseEntity<?> getDistinctBeneficiaries(
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
+        @RequestParam(required = false) Integer month,
+        @RequestParam(required = false) Integer year) {
+    try {
+        LocalDate date = resolveDate(sahyogDate, month, year);
+        return ResponseEntity.ok(service.getDistinctBeneficiaries(date));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(createErrorResponse("INVALID_PARAMS", e.getMessage()));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(createErrorResponse("FETCH_ERROR", "Failed to fetch beneficiaries: " + e.getMessage()));
+    }
+}
     /**
      * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/non-donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS

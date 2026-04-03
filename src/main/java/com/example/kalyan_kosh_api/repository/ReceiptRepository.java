@@ -139,4 +139,18 @@ org.springframework.data.domain.Page<Object[]> searchDonorsNative(
         @Param("beneficiary") String beneficiary,
         org.springframework.data.domain.Pageable pageable
 );
+@Query(value = """
+    SELECT DISTINCT dc.deceased_name
+    FROM receipt r
+    LEFT JOIN death_case dc ON r.death_case_id = dc.id
+    WHERE r.payment_date BETWEEN :startDate AND :endDate
+      AND r.amount > 0
+      AND dc.deceased_name IS NOT NULL
+      AND TRIM(dc.deceased_name) <> ''
+    ORDER BY dc.deceased_name
+    """, nativeQuery = true)
+List<String> findDistinctBeneficiariesByDateRange(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+);
 }
