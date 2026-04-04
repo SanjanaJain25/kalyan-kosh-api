@@ -125,6 +125,52 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
             donorPage.isFirst()
     );
 }
+public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
+        String beneficiary,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+    Page<User> userPage = userRepo.searchNonDonorsByBeneficiaryPaginated(
+            cleanBeneficiary,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            pageable
+    );
+
+    List<UserResponse> userResponses = userPage.getContent().stream()
+            .map(this::toUserResponse)
+            .toList();
+
+    return new PageResponse<>(
+            userResponses,
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages(),
+            userPage.isLast(),
+            userPage.isFirst()
+    );
+}
 
     public MonthlySahyog updateDeathCases(LocalDate sahyogDate) {
 

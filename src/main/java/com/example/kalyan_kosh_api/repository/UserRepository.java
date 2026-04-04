@@ -237,6 +237,39 @@ Page<User> findPendingProfileUsersWithFilters(
         @Param("mobile") String mobile,
         @Param("userId") String userId,
         Pageable pageable);
+
+        @Query("""
+    SELECT u
+    FROM User u
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+      AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+      AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+      AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+      AND (
+          :beneficiary IS NULL
+          OR u.id NOT IN (
+              SELECT DISTINCT r.user.id
+              FROM Receipt r
+              WHERE r.deathCase IS NOT NULL
+                AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                AND r.amount > 0
+          )
+      )
+""")
+Page<User> searchNonDonorsByBeneficiaryPaginated(
+        @Param("beneficiary") String beneficiary,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block,
+        Pageable pageable
+);
+
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +
