@@ -196,6 +196,7 @@ Page<User> searchAdminUsers(
         LEFT JOIN FETCH u.departmentSambhag
         LEFT JOIN FETCH u.departmentDistrict
         LEFT JOIN FETCH u.departmentBlock
+        LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
           AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
@@ -210,18 +211,22 @@ Page<User> searchAdminUsers(
                   WHERE r.amount > 0
               ))
               OR
-              (:beneficiary IS NOT NULL AND u.id NOT IN (
-                  SELECT DISTINCT r.user.id
-                  FROM Receipt r
-                  WHERE r.deathCase IS NOT NULL
-                    AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
-                    AND r.amount > 0
-              ))
+              (:beneficiary IS NOT NULL
+                  AND LOWER(COALESCE(adc.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                  AND u.id NOT IN (
+                      SELECT DISTINCT r.user.id
+                      FROM Receipt r
+                      WHERE r.deathCase IS NOT NULL
+                        AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                        AND r.amount > 0
+                  )
+              )
           )
         """,
     countQuery = """
         SELECT COUNT(u)
         FROM User u
+        LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
           AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
@@ -236,13 +241,16 @@ Page<User> searchAdminUsers(
                   WHERE r.amount > 0
               ))
               OR
-              (:beneficiary IS NOT NULL AND u.id NOT IN (
-                  SELECT DISTINCT r.user.id
-                  FROM Receipt r
-                  WHERE r.deathCase IS NOT NULL
-                    AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
-                    AND r.amount > 0
-              ))
+              (:beneficiary IS NOT NULL
+                  AND LOWER(COALESCE(adc.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                  AND u.id NOT IN (
+                      SELECT DISTINCT r.user.id
+                      FROM Receipt r
+                      WHERE r.deathCase IS NOT NULL
+                        AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                        AND r.amount > 0
+                  )
+              )
           )
         """
 )
