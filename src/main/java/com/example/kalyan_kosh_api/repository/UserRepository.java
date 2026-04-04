@@ -188,77 +188,54 @@ Page<User> searchAdminUsers(
            ")")
     Page<User> findNonDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
 // ✅ Filtered + Paginated query for pending-profile users only
-@Query(value = "SELECT u FROM User u " +
-       "LEFT JOIN FETCH u.departmentState s " +
-       "LEFT JOIN FETCH u.departmentSambhag sa " +
-       "LEFT JOIN FETCH u.departmentDistrict d " +
-       "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE (" +
-       "   u.department IS NULL OR TRIM(u.department) = '' " +
-       "   OR u.departmentState IS NULL " +
-       "   OR u.departmentSambhag IS NULL " +
-       "   OR u.departmentDistrict IS NULL " +
-       "   OR u.departmentBlock IS NULL " +
-       "   OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''" +
-       ") " +
-       "AND (:sambhagId IS NULL OR sa.id = :sambhagId) " +
-       "AND (:districtId IS NULL OR d.id = :districtId) " +
-       "AND (:blockId IS NULL OR b.id = :blockId) " +
-       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
-       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
-       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
-       "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))",
-       countQuery = "SELECT COUNT(u) FROM User u " +
-       "LEFT JOIN u.departmentSambhag sa " +
-       "LEFT JOIN u.departmentDistrict d " +
-       "LEFT JOIN u.departmentBlock b " +
-       "WHERE (" +
-       "   u.department IS NULL OR TRIM(u.department) = '' " +
-       "   OR u.departmentState IS NULL " +
-       "   OR u.departmentSambhag IS NULL " +
-       "   OR u.departmentDistrict IS NULL " +
-       "   OR u.departmentBlock IS NULL " +
-       "   OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''" +
-       ") " +
-       "AND (:sambhagId IS NULL OR sa.id = :sambhagId) " +
-       "AND (:districtId IS NULL OR d.id = :districtId) " +
-       "AND (:blockId IS NULL OR b.id = :blockId) " +
-       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
-       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
-       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
-       "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))")
-Page<User> findPendingProfileUsersWithFilters(
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
-        @Param("name") String name,
-        @Param("mobile") String mobile,
-        @Param("userId") String userId,
-        Pageable pageable);
-
-        @Query("""
-    SELECT u
-    FROM User u
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-      AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
-      AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
-      AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
-      AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
-      AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
-      AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
-      AND (
-          :beneficiary IS NULL
-          OR u.id NOT IN (
-              SELECT DISTINCT r.user.id
-              FROM Receipt r
-              WHERE r.deathCase IS NOT NULL
-                AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
-                AND r.amount > 0
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState
+        LEFT JOIN FETCH u.departmentSambhag
+        LEFT JOIN FETCH u.departmentDistrict
+        LEFT JOIN FETCH u.departmentBlock
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND (
+              :beneficiary IS NOT NULL
+              AND u.id NOT IN (
+                  SELECT DISTINCT r.user.id
+                  FROM Receipt r
+                  WHERE r.deathCase IS NOT NULL
+                    AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                    AND r.amount > 0
+              )
           )
-      )
-""")
+        """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND (
+              :beneficiary IS NOT NULL
+              AND u.id NOT IN (
+                  SELECT DISTINCT r.user.id
+                  FROM Receipt r
+                  WHERE r.deathCase IS NOT NULL
+                    AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                    AND r.amount > 0
+              )
+          )
+        """
+)
 Page<User> searchNonDonorsByBeneficiaryPaginated(
         @Param("beneficiary") String beneficiary,
         @Param("name") String name,
