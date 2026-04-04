@@ -246,6 +246,56 @@ Page<User> searchNonDonorsByBeneficiaryPaginated(
         @Param("block") String block,
         Pageable pageable
 );
+@Query(value = "SELECT u FROM User u " +
+       "LEFT JOIN FETCH u.departmentState s " +
+       "LEFT JOIN FETCH u.departmentSambhag sa " +
+       "LEFT JOIN FETCH u.departmentDistrict d " +
+       "LEFT JOIN FETCH u.departmentBlock b " +
+       "WHERE (" +
+       "   u.department IS NULL OR TRIM(u.department) = '' " +
+       "   OR u.departmentState IS NULL " +
+       "   OR u.departmentSambhag IS NULL " +
+       "   OR u.departmentDistrict IS NULL " +
+       "   OR u.departmentBlock IS NULL " +
+       "   OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''" +
+       ") " +
+       "AND (:sambhagId IS NULL OR sa.id = :sambhagId) " +
+       "AND (:districtId IS NULL OR d.id = :districtId) " +
+       "AND (:blockId IS NULL OR b.id = :blockId) " +
+       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+       "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))",
+       countQuery = "SELECT COUNT(u) FROM User u " +
+       "LEFT JOIN u.departmentSambhag sa " +
+       "LEFT JOIN u.departmentDistrict d " +
+       "LEFT JOIN u.departmentBlock b " +
+       "WHERE (" +
+       "   u.department IS NULL OR TRIM(u.department) = '' " +
+       "   OR u.departmentState IS NULL " +
+       "   OR u.departmentSambhag IS NULL " +
+       "   OR u.departmentDistrict IS NULL " +
+       "   OR u.departmentBlock IS NULL " +
+       "   OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''" +
+       ") " +
+       "AND (:sambhagId IS NULL OR sa.id = :sambhagId) " +
+       "AND (:districtId IS NULL OR d.id = :districtId) " +
+       "AND (:blockId IS NULL OR b.id = :blockId) " +
+       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+       "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))")
+Page<User> findPendingProfileUsersWithFilters(
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        Pageable pageable
+);
 
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +
