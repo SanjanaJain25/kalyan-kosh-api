@@ -115,7 +115,7 @@ public class AdminMonthlySahyogController {
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      * Usage: GET /api/admin/monthly-sahyog/donors/search?month=1&year=2026&name=राम शर्मा&mobile=9876&userId=PMUMS
      */
-  @GetMapping("/donors/search")
+@GetMapping("/donors/search")
 public ResponseEntity<?> searchDonors(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sahyogDate,
         @RequestParam(required = false) Integer month,
@@ -126,17 +126,16 @@ public ResponseEntity<?> searchDonors(
         @RequestParam(required = false) String sambhag,
         @RequestParam(required = false) String district,
         @RequestParam(required = false) String block,
-        @RequestParam(required = false) Long beneficiaryId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "250") int size) {
     try {
-        log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, beneficiary={}, page={}, size={}",
-                month, year, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+        log.info("🔍 Searching donors: month={}, year={}, name={}, mobile={}, userId={}, sambhag={}, district={}, block={}, page={}, size={}",
+                month, year, name, mobile, userId, sambhag, district, block, page, size);
 
         LocalDate date = resolveDate(sahyogDate, month, year);
 
         PageResponse<DonorResponse> result =
-                service.searchDonors(date, name, mobile, userId, sambhag, district, block, beneficiary, page, size);
+                service.searchDonors(date, name, mobile, userId, sambhag, district, block, page, size);
 
         log.info("✅ Donor search completed: {} records found", result.getContent().size());
         return ResponseEntity.ok(result);
@@ -148,6 +147,7 @@ public ResponseEntity<?> searchDonors(
         return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
     }
 }
+
 @GetMapping("/donors/beneficiaries-all")
 public ResponseEntity<?> getAllBeneficiaries() {
     try {
@@ -171,7 +171,7 @@ public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(defaultValue = "20") int size) {
     try {
         PageResponse<DonorResponse> result = service.searchDonorsByBeneficiary(
-                beneficiary, name, mobile, userId, sambhag, district, block, page, size
+                beneficiaryId, name, mobile, userId, sambhag, district, block, page, size
         );
         return ResponseEntity.ok(result);
     } catch (Exception e) {
@@ -201,7 +201,7 @@ public ResponseEntity<?> searchNonDonorsByBeneficiary(
         @RequestParam(defaultValue = "20") int size) {
     try {
         PageResponse<UserResponse> result = service.searchNonDonorsByBeneficiary(
-                beneficiary, name, mobile, userId, sambhag, district, block, page, size
+                beneficiaryId, name, mobile, userId, sambhag, district, block, page, size
         );
         return ResponseEntity.ok(result);
     } catch (Exception e) {

@@ -69,7 +69,7 @@ public class MonthlySahyogService {
     }
 
 public PageResponse<DonorResponse> searchDonorsByBeneficiary(
-        String beneficiary,
+        Long beneficiaryId,
         String name,
         String mobile,
         String userId,
@@ -79,7 +79,6 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
         int page,
         int size) {
 
-    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
@@ -90,7 +89,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
     Pageable pageable = PageRequest.of(page, size);
 
     Page<Object[]> donorPage = receiptRepo.searchDonorsByBeneficiaryNative(
-            cleanBeneficiary,
+            beneficiaryId,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -126,7 +125,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
     );
 }
 public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
-        String beneficiary,
+        Long beneficiaryId,
         String name,
         String mobile,
         String userId,
@@ -136,7 +135,6 @@ public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
         int page,
         int size) {
 
-    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
@@ -147,7 +145,7 @@ public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     Page<User> userPage = userRepo.searchNonDonorsByBeneficiaryPaginated(
-            cleanBeneficiary,
+            beneficiaryId,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -171,7 +169,6 @@ public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
             userPage.isFirst()
     );
 }
-
     public MonthlySahyog updateDeathCases(LocalDate sahyogDate) {
 
         MonthlySahyog sahyog = sahyogRepo.findBySahyogDate(sahyogDate)
@@ -309,7 +306,7 @@ public List<String> getDistinctBeneficiaries(LocalDate sahyogDate) {
     /**
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      */
-  public PageResponse<DonorResponse> searchDonors(
+public PageResponse<DonorResponse> searchDonors(
         LocalDate sahyogDate,
         String name,
         String mobile,
@@ -317,34 +314,33 @@ public List<String> getDistinctBeneficiaries(LocalDate sahyogDate) {
         String sambhag,
         String district,
         String block,
-        String beneficiary,
         int page,
         int size) {
 
     LocalDate startDate = sahyogDate.withDayOfMonth(1);
     LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
-    // Clean input - null if empty
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
     String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
     String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
     String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
-String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
+
     Pageable pageable = PageRequest.of(page, size);
-  Page<Object[]> donorPage = receiptRepo.searchDonorsNative(
-        startDate,
-        endDate,
-        cleanName,
-        cleanMobile,
-        cleanUserId,
-        cleanSambhag,
-        cleanDistrict,
-        cleanBlock,
-        cleanBeneficiary,
-        pageable
-);
+
+    Page<Object[]> donorPage = receiptRepo.searchDonorsNative(
+            startDate,
+            endDate,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            null,
+            pageable
+    );
 
     List<DonorResponse> donors = donorPage.getContent().stream()
             .map(row -> DonorResponse.builder()
@@ -370,8 +366,7 @@ String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty())
             donorPage.isLast(),
             donorPage.isFirst()
     );
-}
-    /**
+}    /**
      * ✅ Search non-donors by full name (name + surname) and/or mobile number and/or userId
      */
     public PageResponse<UserResponse> searchNonDonors(
