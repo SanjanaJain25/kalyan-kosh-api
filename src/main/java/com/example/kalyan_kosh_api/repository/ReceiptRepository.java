@@ -102,7 +102,7 @@ void deleteByUser(User user);
       AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
-      AND (:beneficiary IS NULL OR LOWER(COALESCE(dc.deceased_name, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%')))
+      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
     GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
              s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
@@ -124,7 +124,7 @@ void deleteByUser(User user);
       AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
-      AND (:beneficiary IS NULL OR LOWER(COALESCE(dc.deceased_name, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%')))
+      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
     """,
     nativeQuery = true)
 org.springframework.data.domain.Page<Object[]> searchDonorsNative(
@@ -166,7 +166,7 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
     WHERE r.amount > 0
-      AND (:beneficiary IS NULL OR LOWER(COALESCE(dc.deceased_name, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%')))
+      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -188,7 +188,7 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
     WHERE r.amount > 0
-      AND (:beneficiary IS NULL OR LOWER(COALESCE(dc.deceased_name, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%')))
+      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
