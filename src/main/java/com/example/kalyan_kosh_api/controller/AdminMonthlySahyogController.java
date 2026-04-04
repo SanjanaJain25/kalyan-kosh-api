@@ -126,7 +126,7 @@ public ResponseEntity<?> searchDonors(
         @RequestParam(required = false) String sambhag,
         @RequestParam(required = false) String district,
         @RequestParam(required = false) String block,
-        @RequestParam(required = false) String beneficiary,
+        @RequestParam(required = false) Long beneficiaryId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "250") int size) {
     try {
@@ -160,7 +160,7 @@ public ResponseEntity<?> getAllBeneficiaries() {
 
 @GetMapping("/donors/search-by-beneficiary")
 public ResponseEntity<?> searchDonorsByBeneficiary(
-        @RequestParam(required = false) String beneficiary,
+        @RequestParam(required = false) Long beneficiaryId,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -190,7 +190,7 @@ public ResponseEntity<?> getAllBeneficiariesForNonDonors() {
 }
 @GetMapping("/non-donors/search-by-beneficiary")
 public ResponseEntity<?> searchNonDonorsByBeneficiary(
-        @RequestParam(required = false) String beneficiary,
+        @RequestParam(required = false) Long beneficiaryId,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,

@@ -205,19 +205,19 @@ Page<User> searchAdminUsers(
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              (:beneficiary IS NULL AND u.id NOT IN (
+              (:beneficiaryId IS NULL AND u.id NOT IN (
                   SELECT DISTINCT r.user.id
                   FROM Receipt r
                   WHERE r.amount > 0
               ))
               OR
-              (:beneficiary IS NOT NULL
-                  AND LOWER(TRIM(COALESCE(adc.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
+              (:beneficiaryId IS NOT NULL
+                  AND adc.id = :beneficiaryId
                   AND u.id NOT IN (
                       SELECT DISTINCT r.user.id
                       FROM Receipt r
                       WHERE r.deathCase IS NOT NULL
-                        AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
+                        AND r.deathCase.id = :beneficiaryId
                         AND r.amount > 0
                   )
               )
@@ -235,19 +235,19 @@ Page<User> searchAdminUsers(
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              (:beneficiary IS NULL AND u.id NOT IN (
+              (:beneficiaryId IS NULL AND u.id NOT IN (
                   SELECT DISTINCT r.user.id
                   FROM Receipt r
                   WHERE r.amount > 0
               ))
               OR
-              (:beneficiary IS NOT NULL
-                  AND LOWER(TRIM(COALESCE(adc.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
+              (:beneficiaryId IS NOT NULL
+                  AND adc.id = :beneficiaryId
                   AND u.id NOT IN (
                       SELECT DISTINCT r.user.id
                       FROM Receipt r
                       WHERE r.deathCase IS NOT NULL
-                        AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
+                        AND r.deathCase.id = :beneficiaryId
                         AND r.amount > 0
                   )
               )
@@ -255,7 +255,7 @@ Page<User> searchAdminUsers(
         """
 )
 Page<User> searchNonDonorsByBeneficiaryPaginated(
-        @Param("beneficiary") String beneficiary,
+        @Param("beneficiaryId") Long beneficiaryId,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,

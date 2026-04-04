@@ -154,10 +154,18 @@ List<String> findDistinctBeneficiariesByDateRange(
         @Param("endDate") LocalDate endDate
 );
 @Query(value = """
-    SELECT u.id, u.department_unique_id, u.name, u.surname, u.department,
-           s.name as state_name, sa.name as sambhag_name, d.name as district_name,
-           b.name as block_name, u.school_office_name,
-           dc.deceased_name as beneficiary, MAX(r.uploaded_at) as receipt_date
+    SELECT u.id,
+           u.department_unique_id,
+           u.name,
+           u.surname,
+           u.department,
+           s.name AS state_name,
+           sa.name AS sambhag_name,
+           d.name AS district_name,
+           b.name AS block_name,
+           u.school_office_name,
+           dc.deceased_name AS beneficiary,
+           MAX(r.uploaded_at) AS receipt_date
     FROM receipt r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN state s ON u.department_state_id = s.id
@@ -165,13 +173,12 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN district d ON u.department_district_id = d.id
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
-    LEFT JOIN death_case adc ON u.assigned_death_case_id = adc.id
     WHERE r.amount > 0
       AND (
-            :beneficiary IS NULL
+            :beneficiaryId IS NULL
             OR (
-                LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
-                AND LOWER(TRIM(COALESCE(adc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+                u.assigned_death_case_id = :beneficiaryId
+                AND r.death_case_id = :beneficiaryId
             )
           )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
@@ -182,8 +189,17 @@ List<String> findDistinctBeneficiariesByDateRange(
       AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
-    GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
-             s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
+    GROUP BY u.id,
+             u.department_unique_id,
+             u.name,
+             u.surname,
+             u.department,
+             s.name,
+             sa.name,
+             d.name,
+             b.name,
+             u.school_office_name,
+             dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
     """,
     countQuery = """
@@ -193,14 +209,12 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
     LEFT JOIN district d ON u.department_district_id = d.id
     LEFT JOIN block b ON u.department_block_id = b.id
-    LEFT JOIN death_case dc ON r.death_case_id = dc.id
-    LEFT JOIN death_case adc ON u.assigned_death_case_id = adc.id
     WHERE r.amount > 0
       AND (
-            :beneficiary IS NULL
+            :beneficiaryId IS NULL
             OR (
-                LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
-                AND LOWER(TRIM(COALESCE(adc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+                u.assigned_death_case_id = :beneficiaryId
+                AND r.death_case_id = :beneficiaryId
             )
           )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
@@ -214,7 +228,7 @@ List<String> findDistinctBeneficiariesByDateRange(
     """,
     nativeQuery = true)
 org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(
-        @Param("beneficiary") String beneficiary,
+        @Param("beneficiaryId") Long beneficiaryId,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
