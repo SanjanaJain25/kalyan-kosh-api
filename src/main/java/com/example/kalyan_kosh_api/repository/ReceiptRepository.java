@@ -165,8 +165,15 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN district d ON u.department_district_id = d.id
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
+    LEFT JOIN death_case adc ON u.assigned_death_case_id = adc.id
     WHERE r.amount > 0
-      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
+      AND (
+            :beneficiary IS NULL
+            OR (
+                LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+                AND LOWER(TRIM(COALESCE(adc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+            )
+          )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -180,15 +187,22 @@ List<String> findDistinctBeneficiariesByDateRange(
     ORDER BY MAX(r.uploaded_at) DESC
     """,
     countQuery = """
-    SELECT COUNT(DISTINCT CONCAT(r.user_id, '-', COALESCE(dc.deceased_name, '')))
+    SELECT COUNT(DISTINCT u.id)
     FROM receipt r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
     LEFT JOIN district d ON u.department_district_id = d.id
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
+    LEFT JOIN death_case adc ON u.assigned_death_case_id = adc.id
     WHERE r.amount > 0
-      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
+      AND (
+            :beneficiary IS NULL
+            OR (
+                LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+                AND LOWER(TRIM(COALESCE(adc.deceased_name, ''))) = LOWER(TRIM(:beneficiary))
+            )
+          )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))

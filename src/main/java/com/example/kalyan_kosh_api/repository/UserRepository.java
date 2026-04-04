@@ -212,12 +212,12 @@ Page<User> searchAdminUsers(
               ))
               OR
               (:beneficiary IS NOT NULL
-                  AND LOWER(COALESCE(adc.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                  AND LOWER(TRIM(COALESCE(adc.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
                   AND u.id NOT IN (
                       SELECT DISTINCT r.user.id
                       FROM Receipt r
                       WHERE r.deathCase IS NOT NULL
-                        AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                        AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
                         AND r.amount > 0
                   )
               )
@@ -242,12 +242,12 @@ Page<User> searchAdminUsers(
               ))
               OR
               (:beneficiary IS NOT NULL
-                  AND LOWER(COALESCE(adc.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                  AND LOWER(TRIM(COALESCE(adc.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
                   AND u.id NOT IN (
                       SELECT DISTINCT r.user.id
                       FROM Receipt r
                       WHERE r.deathCase IS NOT NULL
-                        AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
+                        AND LOWER(TRIM(COALESCE(r.deathCase.deceasedName, ''))) = LOWER(TRIM(:beneficiary))
                         AND r.amount > 0
                   )
               )
