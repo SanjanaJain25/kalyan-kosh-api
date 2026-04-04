@@ -204,14 +204,19 @@ Page<User> searchAdminUsers(
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              :beneficiary IS NOT NULL
-              AND u.id NOT IN (
+              (:beneficiary IS NULL AND u.id NOT IN (
+                  SELECT DISTINCT r.user.id
+                  FROM Receipt r
+                  WHERE r.amount > 0
+              ))
+              OR
+              (:beneficiary IS NOT NULL AND u.id NOT IN (
                   SELECT DISTINCT r.user.id
                   FROM Receipt r
                   WHERE r.deathCase IS NOT NULL
                     AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
                     AND r.amount > 0
-              )
+              ))
           )
         """,
     countQuery = """
@@ -225,14 +230,19 @@ Page<User> searchAdminUsers(
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              :beneficiary IS NOT NULL
-              AND u.id NOT IN (
+              (:beneficiary IS NULL AND u.id NOT IN (
+                  SELECT DISTINCT r.user.id
+                  FROM Receipt r
+                  WHERE r.amount > 0
+              ))
+              OR
+              (:beneficiary IS NOT NULL AND u.id NOT IN (
                   SELECT DISTINCT r.user.id
                   FROM Receipt r
                   WHERE r.deathCase IS NOT NULL
                     AND LOWER(COALESCE(r.deathCase.deceasedName, '')) LIKE LOWER(CONCAT('%', :beneficiary, '%'))
                     AND r.amount > 0
-              )
+              ))
           )
         """
 )
@@ -246,6 +256,7 @@ Page<User> searchNonDonorsByBeneficiaryPaginated(
         @Param("block") String block,
         Pageable pageable
 );
+
 @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +
        "LEFT JOIN FETCH u.departmentSambhag sa " +
