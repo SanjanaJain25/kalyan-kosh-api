@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.jpa.repository.Query;
 
 public interface DeathCaseRepository extends JpaRepository<DeathCase, Long> {
 
@@ -19,4 +20,13 @@ public interface DeathCaseRepository extends JpaRepository<DeathCase, Long> {
     List<DeathCase> findByStatusOrderByCaseDateDesc(DeathCaseStatus status);
 // Find death cases by status ordered by creation date ascending (for round-robin assignment)
     List<DeathCase> findByStatusOrderByIdAsc(DeathCaseStatus status);
+
+    @Query("""
+    SELECT DISTINCT d.deceasedName
+    FROM DeathCase d
+    WHERE d.deceasedName IS NOT NULL
+      AND TRIM(d.deceasedName) <> ''
+    ORDER BY d.deceasedName
+""")
+List<String> findDistinctBeneficiaryNames();
 }

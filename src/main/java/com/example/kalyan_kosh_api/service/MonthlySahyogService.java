@@ -68,6 +68,63 @@ public class MonthlySahyogService {
         return sahyogRepo.save(sahyog);
     }
 
+public PageResponse<DonorResponse> searchDonorsByBeneficiary(
+        String beneficiary,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    Pageable pageable = PageRequest.of(page, size);
+
+    Page<Object[]> donorPage = receiptRepo.searchDonorsByBeneficiaryNative(
+            cleanBeneficiary,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            pageable
+    );
+
+    List<DonorResponse> donors = donorPage.getContent().stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+
+    return new PageResponse<>(
+            donors,
+            donorPage.getNumber(),
+            donorPage.getSize(),
+            donorPage.getTotalElements(),
+            donorPage.getTotalPages(),
+            donorPage.isLast(),
+            donorPage.isFirst()
+    );
+}
 
     public MonthlySahyog updateDeathCases(LocalDate sahyogDate) {
 
@@ -432,4 +489,8 @@ String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty())
 
         return response;
     }
+
+    public List<String> getAllBeneficiaryNames() {
+    return deathCaseRepo.findDistinctBeneficiaryNames();
+}
 }
