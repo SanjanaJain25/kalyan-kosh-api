@@ -151,43 +151,23 @@ public ResponseEntity<?> searchDonors(
 @GetMapping("/donors/beneficiaries-all")
 public ResponseEntity<?> getAllBeneficiaries() {
     try {
-        return ResponseEntity.ok(service.getAllBeneficiaryNames());
+        return ResponseEntity.ok(service.getAllBeneficiaryOptions());
     } catch (Exception e) {
         return ResponseEntity.internalServerError()
                 .body(createErrorResponse("FETCH_ERROR", "Failed to fetch beneficiaries: " + e.getMessage()));
     }
 }
 
-@GetMapping("/donors/search-by-beneficiary")
-public ResponseEntity<?> searchDonorsByBeneficiary(
-        @RequestParam(required = false) Long beneficiaryId,
-        @RequestParam(required = false) String name,
-        @RequestParam(required = false) String mobile,
-        @RequestParam(required = false) String userId,
-        @RequestParam(required = false) String sambhag,
-        @RequestParam(required = false) String district,
-        @RequestParam(required = false) String block,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
-    try {
-        PageResponse<DonorResponse> result = service.searchDonorsByBeneficiary(
-                beneficiaryId, name, mobile, userId, sambhag, district, block, page, size
-        );
-        return ResponseEntity.ok(result);
-    } catch (Exception e) {
-        return ResponseEntity.internalServerError()
-                .body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
-    }
-}
 @GetMapping("/non-donors/beneficiaries-all")
 public ResponseEntity<?> getAllBeneficiariesForNonDonors() {
     try {
-        return ResponseEntity.ok(service.getAllBeneficiaryNames());
+        return ResponseEntity.ok(service.getAllBeneficiaryOptions());
     } catch (Exception e) {
         return ResponseEntity.internalServerError()
                 .body(createErrorResponse("FETCH_ERROR", "Failed to fetch beneficiaries: " + e.getMessage()));
     }
 }
+
 @GetMapping("/non-donors/search-by-beneficiary")
 public ResponseEntity<?> searchNonDonorsByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,

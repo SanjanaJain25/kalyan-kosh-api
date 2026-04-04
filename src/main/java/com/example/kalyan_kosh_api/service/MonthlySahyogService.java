@@ -531,7 +531,7 @@ public PageResponse<DonorResponse> searchDonors(
         return response;
     }
 
-    public List<String> getAllBeneficiaryNames() {
-    return deathCaseRepo.findDistinctBeneficiaryNames();
+    public List<com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto> getAllBeneficiaryOptions() {
+    return deathCaseRepo.findAllBeneficiaryOptions();
 }
 }

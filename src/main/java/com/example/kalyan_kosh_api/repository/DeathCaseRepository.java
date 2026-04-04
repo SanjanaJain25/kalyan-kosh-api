@@ -3,7 +3,7 @@ package com.example.kalyan_kosh_api.repository;
 import com.example.kalyan_kosh_api.entity.DeathCase;
 import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
@@ -29,4 +29,13 @@ public interface DeathCaseRepository extends JpaRepository<DeathCase, Long> {
     ORDER BY d.deceasedName
 """)
 List<String> findDistinctBeneficiaryNames();
+
+@Query("""
+    SELECT new com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto(dc.id, dc.deceasedName)
+    FROM DeathCase dc
+    WHERE dc.deceasedName IS NOT NULL
+      AND TRIM(dc.deceasedName) <> ''
+    ORDER BY dc.deceasedName
+""")
+List<BeneficiaryOptionDto> findAllBeneficiaryOptions();
 }
