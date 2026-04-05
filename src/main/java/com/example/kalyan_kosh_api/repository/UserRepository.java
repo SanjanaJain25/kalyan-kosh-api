@@ -192,10 +192,10 @@ Page<User> searchAdminUsers(
     value = """
         SELECT u
         FROM User u
-        LEFT JOIN FETCH u.departmentState
-        LEFT JOIN FETCH u.departmentSambhag
-        LEFT JOIN FETCH u.departmentDistrict
-        LEFT JOIN FETCH u.departmentBlock
+        LEFT JOIN FETCH u.departmentState s
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
         LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
@@ -204,9 +204,9 @@ Page<User> searchAdminUsers(
                LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
           AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
           AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
-          AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
-          AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
-          AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
                 (:beneficiaryId IS NULL AND NOT EXISTS (
                     SELECT 1
@@ -231,6 +231,10 @@ Page<User> searchAdminUsers(
     countQuery = """
         SELECT COUNT(u)
         FROM User u
+        LEFT JOIN u.departmentState s
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
         LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
@@ -239,9 +243,9 @@ Page<User> searchAdminUsers(
                LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
           AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
           AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
-          AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
-          AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
-          AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
                 (:beneficiaryId IS NULL AND NOT EXISTS (
                     SELECT 1
