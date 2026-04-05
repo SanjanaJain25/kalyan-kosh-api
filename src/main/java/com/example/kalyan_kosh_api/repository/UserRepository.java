@@ -198,29 +198,34 @@ Page<User> searchAdminUsers(
         LEFT JOIN FETCH u.departmentBlock
         LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-          AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
-          AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
-          AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+          AND (:name IS NULL OR
+               LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
           AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              (:beneficiaryId IS NULL AND u.id NOT IN (
-                  SELECT DISTINCT r.user.id
-                  FROM Receipt r
-                  WHERE r.amount > 0
-              ))
-              OR
-              (:beneficiaryId IS NOT NULL
-                  AND adc.id = :beneficiaryId
-                  AND u.id NOT IN (
-                      SELECT DISTINCT r.user.id
-                      FROM Receipt r
-                      WHERE r.deathCase IS NOT NULL
-                        AND r.deathCase.id = :beneficiaryId
-                        AND r.amount > 0
-                  )
-              )
+                (:beneficiaryId IS NULL AND NOT EXISTS (
+                    SELECT 1
+                    FROM Receipt r
+                    WHERE r.user.id = u.id
+                      AND r.amount > 0
+                ))
+                OR
+                (:beneficiaryId IS NOT NULL
+                    AND adc.id = :beneficiaryId
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM Receipt r
+                        WHERE r.user.id = u.id
+                          AND r.deathCase IS NOT NULL
+                          AND r.deathCase.id = :beneficiaryId
+                          AND r.amount > 0
+                    )
+                )
           )
         """,
     countQuery = """
@@ -228,29 +233,34 @@ Page<User> searchAdminUsers(
         FROM User u
         LEFT JOIN u.assignedDeathCase adc
         WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-          AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')))
-          AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%'))
-          AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+          AND (:name IS NULL OR
+               LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
           AND (:sambhag IS NULL OR LOWER(COALESCE(u.departmentSambhag.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
           AND (:district IS NULL OR LOWER(COALESCE(u.departmentDistrict.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(u.departmentBlock.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-              (:beneficiaryId IS NULL AND u.id NOT IN (
-                  SELECT DISTINCT r.user.id
-                  FROM Receipt r
-                  WHERE r.amount > 0
-              ))
-              OR
-              (:beneficiaryId IS NOT NULL
-                  AND adc.id = :beneficiaryId
-                  AND u.id NOT IN (
-                      SELECT DISTINCT r.user.id
-                      FROM Receipt r
-                      WHERE r.deathCase IS NOT NULL
-                        AND r.deathCase.id = :beneficiaryId
-                        AND r.amount > 0
-                  )
-              )
+                (:beneficiaryId IS NULL AND NOT EXISTS (
+                    SELECT 1
+                    FROM Receipt r
+                    WHERE r.user.id = u.id
+                      AND r.amount > 0
+                ))
+                OR
+                (:beneficiaryId IS NOT NULL
+                    AND adc.id = :beneficiaryId
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM Receipt r
+                        WHERE r.user.id = u.id
+                          AND r.deathCase IS NOT NULL
+                          AND r.deathCase.id = :beneficiaryId
+                          AND r.amount > 0
+                    )
+                )
           )
         """
 )
