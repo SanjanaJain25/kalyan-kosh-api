@@ -464,7 +464,7 @@ public byte[] exportUsersExcel(List<AdminUserResponse> users) throws IOException
 
 sb.append("User ID,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
     for (DonorResponse donor : donors) {
-        sb.append(escapeCSV(donor.getId())).append(",")
+        sb.append(escapeCSV(donor.getRegistrationNumber())).append(",")
           .append(escapeCSV(donor.getName())).append(",")
           .append(escapeCSV(donor.getDepartment())).append(",")
           .append(escapeCSV(donor.getState())).append(",")
