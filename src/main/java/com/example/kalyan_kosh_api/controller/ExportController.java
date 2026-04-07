@@ -123,7 +123,12 @@ public ResponseEntity<byte[]> exportAsahyog(
             sahyogDate, name, mobile, userId, sambhag, district, block
     );
 
-    return ResponseEntity.ok(exportService.exportNonDonorsCsv(data));
+    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportNonDonorsCsv(data));
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=asahyog.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
 }
 
 @GetMapping("/pending-profiles")
@@ -139,9 +144,13 @@ public ResponseEntity<byte[]> exportPendingProfiles(
             sambhagId, districtId, blockId, name, mobile, userId
     );
 
-    return ResponseEntity.ok(exportService.exportPendingProfilesCsv(data));
-}
+    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportPendingProfilesCsv(data));
 
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=pending_profiles.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
     @GetMapping("/receipts")
     public ResponseEntity<String> export(
             @RequestParam int month,
