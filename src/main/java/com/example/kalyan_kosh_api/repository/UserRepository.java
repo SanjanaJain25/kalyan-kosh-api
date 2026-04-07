@@ -388,6 +388,54 @@ List<User> findPendingProfileUsersForExport(
         @Param("mobile") String mobile,
         @Param("userId") String userId
 );
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
+      AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+      AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+      AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+      AND (
+            (:beneficiaryId IS NULL AND NOT EXISTS (
+                SELECT 1
+                FROM Receipt r
+                WHERE r.user.id = u.id
+                  AND r.amount > 0
+            ))
+            OR
+            (:beneficiaryId IS NOT NULL
+                AND adc.id = :beneficiaryId
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM Receipt r
+                    WHERE r.user.id = u.id
+                      AND r.deathCase IS NOT NULL
+                      AND r.deathCase.id = :beneficiaryId
+                      AND r.amount > 0
+                )
+            )
+      )
+    """)
+List<User> searchNonDonorsByBeneficiaryForExport(
+        @Param("beneficiaryId") Long beneficiaryId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block
+);
 
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +

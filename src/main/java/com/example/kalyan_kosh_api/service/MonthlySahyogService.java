@@ -67,6 +67,77 @@ public class MonthlySahyogService {
 
         return sahyogRepo.save(sahyog);
     }
+public List<DonorResponse> getDonorsForExportByBeneficiary(
+        Long beneficiaryId,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block) {
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    List<Object[]> donorRows = receiptRepo.searchDonorsByBeneficiaryForExportNative(
+            beneficiaryId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock
+    );
+
+    return donorRows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+}
+public List<UserResponse> getNonDonorsForExportByBeneficiary(
+        Long beneficiaryId,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block) {
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    List<User> users = userRepo.searchNonDonorsByBeneficiaryForExport(
+            beneficiaryId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .toList();
+}
 
 public PageResponse<DonorResponse> searchDonorsByBeneficiary(
         Long beneficiaryId,
@@ -581,6 +652,7 @@ public PageResponse<DonorResponse> searchDonors(
         response.setSurname(user.getSurname());
         response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
+        response.setMobileNumber(user.getMobileNumber());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());
         response.setDateOfBirth(user.getDateOfBirth());

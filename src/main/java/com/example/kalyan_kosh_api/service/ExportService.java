@@ -117,6 +117,17 @@ public List<AdminUserResponse> getAllUsersForExport() {
             .toList();
 }
 
+public byte[] exportCsvWithBom(String csv) {
+    byte[] bom = new byte[] {(byte)0xEF, (byte)0xBB, (byte)0xBF};
+    byte[] content = csv != null ? csv.getBytes(java.nio.charset.StandardCharsets.UTF_8) : new byte[0];
+
+    byte[] result = new byte[bom.length + content.length];
+    System.arraycopy(bom, 0, result, 0, bom.length);
+    System.arraycopy(content, 0, result, bom.length, content.length);
+
+    return result;
+}
+
 public void exportAllUsersCsvStream(OutputStream outputStream) throws IOException {
     int page = 0;
     int size = 2000;
@@ -451,8 +462,7 @@ public byte[] exportUsersExcel(List<AdminUserResponse> users) throws IOException
     public String exportDonorsCsv(List<DonorResponse> donors) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("Registration Number,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
-
+sb.append("Registration Number,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
     for (DonorResponse donor : donors) {
         sb.append(escapeCSV(donor.getRegistrationNumber())).append(",")
           .append(escapeCSV(donor.getName())).append(",")
@@ -473,21 +483,21 @@ public byte[] exportUsersExcel(List<AdminUserResponse> users) throws IOException
 public String exportNonDonorsCsv(List<UserResponse> users) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("User ID,Name,Surname,Father Name,Email,Department,State,Sambhag,District,Block,School/Office,Mobile,Status\n");
+    sb.append("Registration Number,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Status\n");
 
     for (UserResponse user : users) {
-        sb.append(escapeCSV(user.getId())).append(",")
-          .append(escapeCSV(user.getName())).append(",")
-          .append(escapeCSV(user.getSurname())).append(",")
-          .append(escapeCSV(user.getFatherName())).append(",")
-          .append(escapeCSV(user.getEmail())).append(",")
+        String fullName = ((user.getName() != null ? user.getName() : "") +
+                (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
+
+        sb.append(escapeCSV(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : user.getId())).append(",")
+          .append(escapeCSV(fullName)).append(",")
+          .append(escapeCSV(user.getMobileNumber())).append(",")
           .append(escapeCSV(user.getDepartment())).append(",")
           .append(escapeCSV(user.getDepartmentState())).append(",")
           .append(escapeCSV(user.getDepartmentSambhag())).append(",")
           .append(escapeCSV(user.getDepartmentDistrict())).append(",")
           .append(escapeCSV(user.getDepartmentBlock())).append(",")
           .append(escapeCSV(user.getSchoolOfficeName())).append(",")
-          .append(escapeCSV(user.getMobileNumber())).append(",")
           .append("NON_DONOR")
           .append("\n");
     }
@@ -498,14 +508,14 @@ public String exportNonDonorsCsv(List<UserResponse> users) {
 public String exportPendingProfilesCsv(List<UserResponse> users) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("User ID,Name,Surname,Father Name,Email,Mobile,Department,State,Sambhag,District,Block,School/Office,Pending Reason\n");
+    sb.append("Registration Number,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
 
     for (UserResponse user : users) {
-        sb.append(escapeCSV(user.getId())).append(",")
-          .append(escapeCSV(user.getName())).append(",")
-          .append(escapeCSV(user.getSurname())).append(",")
-          .append(escapeCSV(user.getFatherName())).append(",")
-          .append(escapeCSV(user.getEmail())).append(",")
+        String fullName = ((user.getName() != null ? user.getName() : "") +
+                (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
+
+        sb.append(escapeCSV(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : user.getId())).append(",")
+          .append(escapeCSV(fullName)).append(",")
           .append(escapeCSV(user.getMobileNumber())).append(",")
           .append(escapeCSV(user.getDepartment())).append(",")
           .append(escapeCSV(user.getDepartmentState())).append(",")
@@ -518,8 +528,7 @@ public String exportPendingProfilesCsv(List<UserResponse> users) {
     }
 
     return sb.toString();
-}
-    /**
+}    /**
      * Escape CSV values to handle commas, quotes, and newlines
      */
     private String escapeCSV(String value) {

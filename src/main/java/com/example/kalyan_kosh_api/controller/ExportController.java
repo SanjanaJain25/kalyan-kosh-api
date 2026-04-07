@@ -39,7 +39,7 @@ public ResponseEntity<?> exportInsuranceInquiriesAndSendEmail() {
 }
 
 @GetMapping("/sahyog")
-public ResponseEntity<String> exportSahyog(
+public ResponseEntity<byte[]> exportSahyog(
         @RequestParam int month,
         @RequestParam int year,
         @RequestParam(required = false) String name,
@@ -56,11 +56,58 @@ public ResponseEntity<String> exportSahyog(
             sahyogDate, name, mobile, userId, sambhag, district, block, beneficiary
     );
 
-    return ResponseEntity.ok(exportService.exportDonorsCsv(data));
+byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportDonorsCsv(data));
+
+return ResponseEntity.ok()
+        .header("Content-Disposition", "attachment; filename=sahyog.csv")
+        .header("Content-Type", "text/csv; charset=UTF-8")
+        .body(csvBytes);
+        }
+@GetMapping("/sahyog/by-beneficiary")
+public ResponseEntity<byte[]> exportSahyogByBeneficiary(
+        @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block
+) {
+    var data = monthlySahyogService.getDonorsForExportByBeneficiary(
+            beneficiaryId, name, mobile, userId, sambhag, district, block
+    );
+
+    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportDonorsCsv(data));
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=sahyog_by_beneficiary.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+@GetMapping("/asahyog/by-beneficiary")
+public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
+        @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block
+) {
+    var data = monthlySahyogService.getNonDonorsForExportByBeneficiary(
+            beneficiaryId, name, mobile, userId, sambhag, district, block
+    );
+
+    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportNonDonorsCsv(data));
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=asahyog_by_beneficiary.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
 }
 
 @GetMapping("/asahyog")
-public ResponseEntity<String> exportAsahyog(
+public ResponseEntity<byte[]> exportAsahyog(
         @RequestParam int month,
         @RequestParam int year,
         @RequestParam(required = false) String name,
@@ -80,7 +127,7 @@ public ResponseEntity<String> exportAsahyog(
 }
 
 @GetMapping("/pending-profiles")
-public ResponseEntity<String> exportPendingProfiles(
+public ResponseEntity<byte[]> exportPendingProfiles(
         @RequestParam(required = false) String sambhagId,
         @RequestParam(required = false) String districtId,
         @RequestParam(required = false) String blockId,
