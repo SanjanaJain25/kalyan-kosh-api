@@ -437,6 +437,24 @@ List<User> searchNonDonorsByBeneficiaryForExport(
         @Param("block") String block
 );
 
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Receipt r
+          WHERE r.user.id = u.id
+            AND r.amount > 0
+      )
+    ORDER BY u.createdAt DESC
+    """)
+List<User> searchAllNonDonorsForExport();
+
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +

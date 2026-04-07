@@ -139,6 +139,33 @@ public List<UserResponse> getNonDonorsForExportByBeneficiary(
             .toList();
 }
 
+public List<DonorResponse> getAllDonorsForExport() {
+    List<Object[]> donorRows = receiptRepo.searchAllDonorsForExportNative();
+
+    return donorRows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+}
+
+public List<UserResponse> getAllNonDonorsForExport() {
+    List<User> users = userRepo.searchAllNonDonorsForExport();
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .toList();
+}
+
 public PageResponse<DonorResponse> searchDonorsByBeneficiary(
         Long beneficiaryId,
         String name,

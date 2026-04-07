@@ -333,5 +333,39 @@ List<Object[]> searchDonorsByBeneficiaryForExportNative(
         @Param("district") String district,
         @Param("block") String block
 );
-
+@Query(value = """
+    SELECT u.id,
+           u.department_unique_id,
+           u.name,
+           u.surname,
+           u.department,
+           s.name AS state_name,
+           sa.name AS sambhag_name,
+           d.name AS district_name,
+           b.name AS block_name,
+           u.school_office_name,
+           dc.deceased_name AS beneficiary,
+           MAX(r.uploaded_at) AS receipt_date
+    FROM receipt r
+    JOIN users u ON r.user_id = u.id
+    LEFT JOIN state s ON u.department_state_id = s.id
+    LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
+    LEFT JOIN district d ON u.department_district_id = d.id
+    LEFT JOIN block b ON u.department_block_id = b.id
+    LEFT JOIN death_case dc ON r.death_case_id = dc.id
+    WHERE r.amount > 0
+    GROUP BY u.id,
+             u.department_unique_id,
+             u.name,
+             u.surname,
+             u.department,
+             s.name,
+             sa.name,
+             d.name,
+             b.name,
+             u.school_office_name,
+             dc.deceased_name
+    ORDER BY MAX(r.uploaded_at) DESC
+    """, nativeQuery = true)
+List<Object[]> searchAllDonorsForExportNative();
 }

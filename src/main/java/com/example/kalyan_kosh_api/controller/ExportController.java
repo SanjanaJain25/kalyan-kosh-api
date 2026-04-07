@@ -131,6 +131,34 @@ public ResponseEntity<byte[]> exportAsahyog(
             .body(csvBytes);
 }
 
+@GetMapping("/sahyog/all")
+public ResponseEntity<byte[]> exportAllSahyog() {
+    var data = monthlySahyogService.getAllDonorsForExport();
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportDonorsCsv(data)
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=sahyog_all.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+
+@GetMapping("/asahyog/all")
+public ResponseEntity<byte[]> exportAllAsahyog() {
+    var data = monthlySahyogService.getAllNonDonorsForExport();
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportNonDonorsCsv(data)
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=asahyog_all.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+
 @GetMapping("/pending-profiles")
 public ResponseEntity<byte[]> exportPendingProfiles(
         @RequestParam(required = false) String sambhagId,

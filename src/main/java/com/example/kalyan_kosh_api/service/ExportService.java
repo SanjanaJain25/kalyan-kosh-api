@@ -462,9 +462,9 @@ public byte[] exportUsersExcel(List<AdminUserResponse> users) throws IOException
     public String exportDonorsCsv(List<DonorResponse> donors) {
     StringBuilder sb = new StringBuilder();
 
-sb.append("Registration Number,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
+sb.append("User ID,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
     for (DonorResponse donor : donors) {
-        sb.append(escapeCSV(donor.getRegistrationNumber())).append(",")
+        sb.append(escapeCSV(donor.getId())).append(",")
           .append(escapeCSV(donor.getName())).append(",")
           .append(escapeCSV(donor.getDepartment())).append(",")
           .append(escapeCSV(donor.getState())).append(",")
@@ -483,13 +483,13 @@ sb.append("Registration Number,Name,Department,State,Sambhag,District,Block,Scho
 public String exportNonDonorsCsv(List<UserResponse> users) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("Registration Number,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Status\n");
+    sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Status\n");
 
     for (UserResponse user : users) {
         String fullName = ((user.getName() != null ? user.getName() : "") +
                 (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
 
-        sb.append(escapeCSV(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : user.getId())).append(",")
+        sb.append(escapeCSV(user.getId())).append(",")
           .append(escapeCSV(fullName)).append(",")
           .append(escapeCSV(user.getMobileNumber())).append(",")
           .append(escapeCSV(user.getDepartment())).append(",")
@@ -508,13 +508,13 @@ public String exportNonDonorsCsv(List<UserResponse> users) {
 public String exportPendingProfilesCsv(List<UserResponse> users) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("Registration Number,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
+    sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
 
     for (UserResponse user : users) {
         String fullName = ((user.getName() != null ? user.getName() : "") +
                 (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
 
-        sb.append(escapeCSV(user.getDepartmentUniqueId() != null ? user.getDepartmentUniqueId() : user.getId())).append(",")
+        sb..append(escapeCSV(user.getId())).append(",")
           .append(escapeCSV(fullName)).append(",")
           .append(escapeCSV(user.getMobileNumber())).append(",")
           .append(escapeCSV(user.getDepartment())).append(",")
