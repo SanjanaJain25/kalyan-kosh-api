@@ -28,6 +28,8 @@ import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import com.example.kalyan_kosh_api.dto.DonorResponse;
+import com.example.kalyan_kosh_api.dto.UserResponse;
 
 @Service
 public class ExportService {
@@ -446,6 +448,77 @@ public byte[] exportUsersExcel(List<AdminUserResponse> users) throws IOException
         return sb.toString();
     }
     
+    public String exportDonorsCsv(List<DonorResponse> donors) {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("Registration Number,Name,Department,State,Sambhag,District,Block,School Name,Beneficiary,Receipt Upload Date\n");
+
+    for (DonorResponse donor : donors) {
+        sb.append(escapeCSV(donor.getRegistrationNumber())).append(",")
+          .append(escapeCSV(donor.getName())).append(",")
+          .append(escapeCSV(donor.getDepartment())).append(",")
+          .append(escapeCSV(donor.getState())).append(",")
+          .append(escapeCSV(donor.getSambhag())).append(",")
+          .append(escapeCSV(donor.getDistrict())).append(",")
+          .append(escapeCSV(donor.getBlock())).append(",")
+          .append(escapeCSV(donor.getSchoolName())).append(",")
+          .append(escapeCSV(donor.getBeneficiary())).append(",")
+          .append(donor.getReceiptUploadDate() != null ? donor.getReceiptUploadDate().toString() : "")
+          .append("\n");
+    }
+
+    return sb.toString();
+}
+
+public String exportNonDonorsCsv(List<UserResponse> users) {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("User ID,Name,Surname,Father Name,Email,Department,State,Sambhag,District,Block,School/Office,Mobile,Status\n");
+
+    for (UserResponse user : users) {
+        sb.append(escapeCSV(user.getId())).append(",")
+          .append(escapeCSV(user.getName())).append(",")
+          .append(escapeCSV(user.getSurname())).append(",")
+          .append(escapeCSV(user.getFatherName())).append(",")
+          .append(escapeCSV(user.getEmail())).append(",")
+          .append(escapeCSV(user.getDepartment())).append(",")
+          .append(escapeCSV(user.getDepartmentState())).append(",")
+          .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+          .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+          .append(escapeCSV(user.getDepartmentBlock())).append(",")
+          .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+          .append(escapeCSV(user.getMobileNumber())).append(",")
+          .append("NON_DONOR")
+          .append("\n");
+    }
+
+    return sb.toString();
+}
+
+public String exportPendingProfilesCsv(List<UserResponse> users) {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("User ID,Name,Surname,Father Name,Email,Mobile,Department,State,Sambhag,District,Block,School/Office,Pending Reason\n");
+
+    for (UserResponse user : users) {
+        sb.append(escapeCSV(user.getId())).append(",")
+          .append(escapeCSV(user.getName())).append(",")
+          .append(escapeCSV(user.getSurname())).append(",")
+          .append(escapeCSV(user.getFatherName())).append(",")
+          .append(escapeCSV(user.getEmail())).append(",")
+          .append(escapeCSV(user.getMobileNumber())).append(",")
+          .append(escapeCSV(user.getDepartment())).append(",")
+          .append(escapeCSV(user.getDepartmentState())).append(",")
+          .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+          .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+          .append(escapeCSV(user.getDepartmentBlock())).append(",")
+          .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+          .append("Profile Incomplete")
+          .append("\n");
+    }
+
+    return sb.toString();
+}
     /**
      * Escape CSV values to handle commas, quotes, and newlines
      */

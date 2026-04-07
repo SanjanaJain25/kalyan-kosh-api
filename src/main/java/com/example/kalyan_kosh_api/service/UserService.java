@@ -218,6 +218,33 @@ private LocalDate parseDate(String value, String fieldName) {
 }
 
 
+public List<UserResponse> getPendingProfileUsersForExport(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId) {
+
+    String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
+    String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
+    String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
+
+    List<User> users = userRepo.findPendingProfileUsersForExport(
+            sambhagId,
+            districtId,
+            blockId,
+            cleanName,
+            cleanMobile,
+            cleanUserId
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .collect(Collectors.toList());
+}
+
+
 /**
  * Filtered + Paginated method to get only pending-profile users
  * Pending profile = missing important profile/location fields
@@ -416,6 +443,7 @@ public PageResponse<UserResponse> getPendingProfileUsersFiltered(
         response.setSurname(user.getSurname());
         response.setFatherName(user.getFatherName());
         response.setEmail(user.getEmail());
+        response.setMobileNumber(user.getMobileNumber());
         response.setPincode(user.getPincode());
         response.setGender(user.getGender());
         response.setMaritalStatus(user.getMaritalStatus());

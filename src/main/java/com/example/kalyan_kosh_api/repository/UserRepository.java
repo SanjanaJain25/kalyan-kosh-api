@@ -330,6 +330,65 @@ Page<User> findPendingProfileUsersWithFilters(
         Pageable pageable
 );
 
+@Query("SELECT u FROM User u " +
+       "LEFT JOIN FETCH u.departmentState s " +
+       "LEFT JOIN FETCH u.departmentSambhag sa " +
+       "LEFT JOIN FETCH u.departmentDistrict d " +
+       "LEFT JOIN FETCH u.departmentBlock b " +
+       "WHERE u.id NOT IN (" +
+       "    SELECT DISTINCT r.user.id FROM Receipt r " +
+       "    WHERE MONTH(r.paymentDate) = :month " +
+       "    AND YEAR(r.paymentDate) = :year" +
+       ") " +
+       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+       "AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%')) " +
+       "AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%'))) " +
+       "AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%'))) " +
+       "AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))")
+List<User> searchNonDonorsForExport(
+        @Param("month") int month,
+        @Param("year") int year,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block
+);
+
+@Query("SELECT u FROM User u " +
+       "LEFT JOIN FETCH u.departmentState s " +
+       "LEFT JOIN FETCH u.departmentSambhag sa " +
+       "LEFT JOIN FETCH u.departmentDistrict d " +
+       "LEFT JOIN FETCH u.departmentBlock b " +
+       "WHERE (" +
+       "   u.department IS NULL OR TRIM(u.department) = '' " +
+       "   OR u.departmentState IS NULL " +
+       "   OR u.departmentSambhag IS NULL " +
+       "   OR u.departmentDistrict IS NULL " +
+       "   OR u.departmentBlock IS NULL " +
+       "   OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''" +
+       ") " +
+       "AND (:sambhagId IS NULL OR sa.id = :sambhagId) " +
+       "AND (:districtId IS NULL OR d.id = :districtId) " +
+       "AND (:blockId IS NULL OR b.id = :blockId) " +
+       "AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+       "     OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+       "AND (:mobile IS NULL OR u.mobileNumber LIKE CONCAT('%', :mobile, '%')) " +
+       "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%')))")
+List<User> findPendingProfileUsersForExport(
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId
+);
+
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +

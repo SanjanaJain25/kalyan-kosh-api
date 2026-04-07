@@ -35,7 +35,7 @@ public class UserResponse {
     private String nominee2Relation;
     private Role role;
     private Instant createdAt;
-
+private String mobileNumber;
     // Default constructor
     public UserResponse() {}
 
@@ -55,7 +55,13 @@ public class UserResponse {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
+public String getMobileNumber() { 
+    return mobileNumber; 
+}
 
+public void setMobileNumber(String mobileNumber) { 
+    this.mobileNumber = mobileNumber; 
+}
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
 

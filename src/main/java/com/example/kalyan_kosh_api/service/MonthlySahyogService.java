@@ -303,6 +303,91 @@ public List<String> getDistinctBeneficiaries(LocalDate sahyogDate) {
 
     return receiptRepo.findDistinctBeneficiariesByDateRange(startDate, endDate);
 }
+
+public List<DonorResponse> getDonorsForExport(
+        LocalDate sahyogDate,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        String beneficiary) {
+
+    LocalDate startDate = sahyogDate.withDayOfMonth(1);
+    LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
+
+    List<Object[]> donorRows = receiptRepo.searchDonorsForExportNative(
+            startDate,
+            endDate,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            cleanBeneficiary
+    );
+
+    return donorRows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+}
+
+public List<UserResponse> getNonDonorsForExport(
+        LocalDate sahyogDate,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block) {
+
+    int month = sahyogDate.getMonthValue();
+    int year = sahyogDate.getYear();
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    List<User> users = userRepo.searchNonDonorsForExport(
+            month,
+            year,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .toList();
+}
+
     /**
      * ✅ Search donors by full name (name + surname) and/or mobile number and/or userId
      */
