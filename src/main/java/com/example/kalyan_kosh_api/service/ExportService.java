@@ -514,7 +514,7 @@ public String exportPendingProfilesCsv(List<UserResponse> users) {
         String fullName = ((user.getName() != null ? user.getName() : "") +
                 (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
 
-        sb..append(escapeCSV(user.getId())).append(",")
+        sb.append(escapeCSV(user.getId())).append(",")
           .append(escapeCSV(fullName)).append(",")
           .append(escapeCSV(user.getMobileNumber())).append(",")
           .append(escapeCSV(user.getDepartment())).append(",")
