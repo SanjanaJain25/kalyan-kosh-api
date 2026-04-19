@@ -130,7 +130,13 @@ public class SecurityConfig {
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/beneficiaries-all").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search-by-beneficiary").permitAll()
                         // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
-                       .requestMatchers("/api/admin/**").hasAnyRole("SUPERADMIN", "ADMIN")
+                       .requestMatchers("/api/admin/**").hasAnyRole(
+    "SUPERADMIN",
+    "ADMIN",
+    "SAMBHAG_MANAGER",
+    "DISTRICT_MANAGER",
+    "BLOCK_MANAGER"
+)
                         .requestMatchers("/api/auth/login").permitAll()
 // .requestMatchers("/api/superadmin/**").hasRole("SUPERADMIN")
                         // Manager APIs - requires SAMBHAG_MANAGER or DISTRICT_MANAGER or BLOCK_MANAGER or ADMIN role

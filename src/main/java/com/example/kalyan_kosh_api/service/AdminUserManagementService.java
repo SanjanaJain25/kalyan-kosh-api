@@ -20,6 +20,7 @@ import com.example.kalyan_kosh_api.repository.ManagerQueryRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AdminUserManagementService {
@@ -202,14 +203,20 @@ public void permanentDeleteUser(String userId) {
 
     // Reset user password
 @Transactional
-public void resetUserPassword(String userId, String newPassword) {
+public void resetUserPassword(String userId) {
     User user = getUserById(userId);
-  validateNotReservedSuperAdmin(user);
+    validateNotReservedSuperAdmin(user);
+
     if (user.getStatus() == UserStatus.DELETED) {
         throw new IllegalArgumentException("Cannot reset password for deleted user");
     }
 
-    user.setPasswordHash(passwordEncoder.encode(newPassword)); // ✅ correct field in your project
+    if (user.getDateOfBirth() == null) {
+        throw new IllegalArgumentException("Date of birth is not available for this user");
+    }
+
+String dobPassword = user.getDateOfBirth()
+        .format(DateTimeFormatter.ofPattern("ddMMyyyy"));    user.setPasswordHash(passwordEncoder.encode(dobPassword));
     user.setUpdatedAt(Instant.now());
     userRepository.save(user);
 }

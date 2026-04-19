@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/users")
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER')")
 @CrossOrigin(origins = "*")
 public class AdminUserManagementController {
 
@@ -146,23 +146,13 @@ public class AdminUserManagementController {
  * PUT /api/admin/users/{id}/password-reset
  */
 @PutMapping("/{id}/password-reset")
-public ResponseEntity<?> resetUserPassword(
-        @PathVariable String id,
-        @Valid @RequestBody AdminResetPasswordRequest req
-) {
+public ResponseEntity<?> resetUserPassword(@PathVariable String id) {
     try {
-        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "New password and confirm password do not match"
-            ));
-        }
-
-        adminUserService.resetUserPassword(id, req.getNewPassword());
+        adminUserService.resetUserPassword(id);
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Password reset successfully",
+                "message", "Password reset successfully to user's DOB (dd/MM/yyyy)",
                 "userId", id
         ));
     } catch (IllegalArgumentException e) {
@@ -177,7 +167,6 @@ public ResponseEntity<?> resetUserPassword(
         ));
     }
 }
-
     /**
      * Delete a user (soft delete)
      */
