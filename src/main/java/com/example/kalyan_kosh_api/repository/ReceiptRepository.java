@@ -5,7 +5,7 @@ import com.example.kalyan_kosh_api.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+import java.util.Optional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -13,7 +13,7 @@ import java.util.Set;
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
-
+Optional<Receipt> findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(String userId, Long deathCaseId);
 void deleteByUser(User user);
 
     @Query("""

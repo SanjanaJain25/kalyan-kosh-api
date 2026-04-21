@@ -36,6 +36,13 @@ public class UserResponse {
     private Role role;
     private Instant createdAt;
 private String mobileNumber;
+private Long assignedDeathCaseId;
+private String assignedDeathCaseName;
+private String allocatedQrCode;
+private Boolean utrUploaded;
+private Long latestReceiptId;
+private String latestUtrNumber;
+private Instant utrUploadedAt;
     // Default constructor
     public UserResponse() {}
 
@@ -125,4 +132,60 @@ public void setMobileNumber(String mobileNumber) {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+public Long getAssignedDeathCaseId() {
+    return assignedDeathCaseId;
+}
+
+public void setAssignedDeathCaseId(Long assignedDeathCaseId) {
+    this.assignedDeathCaseId = assignedDeathCaseId;
+}
+
+public String getAssignedDeathCaseName() {
+    return assignedDeathCaseName;
+}
+
+public void setAssignedDeathCaseName(String assignedDeathCaseName) {
+    this.assignedDeathCaseName = assignedDeathCaseName;
+}
+
+public String getAllocatedQrCode() {
+    return allocatedQrCode;
+}
+
+public void setAllocatedQrCode(String allocatedQrCode) {
+    this.allocatedQrCode = allocatedQrCode;
+}
+
+public Boolean getUtrUploaded() {
+    return utrUploaded;
+}
+
+public void setUtrUploaded(Boolean utrUploaded) {
+    this.utrUploaded = utrUploaded;
+}
+
+public Long getLatestReceiptId() {
+    return latestReceiptId;
+}
+
+public void setLatestReceiptId(Long latestReceiptId) {
+    this.latestReceiptId = latestReceiptId;
+}
+
+public String getLatestUtrNumber() {
+    return latestUtrNumber;
+}
+
+public void setLatestUtrNumber(String latestUtrNumber) {
+    this.latestUtrNumber = latestUtrNumber;
+}
+
+public Instant getUtrUploadedAt() {
+    return utrUploadedAt;
+}
+
+public void setUtrUploadedAt(Instant utrUploadedAt) {
+    this.utrUploadedAt = utrUploadedAt;
+}
 }

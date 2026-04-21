@@ -31,6 +31,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.example.kalyan_kosh_api.entity.DeathCase;
+import com.example.kalyan_kosh_api.entity.Receipt;
+import com.example.kalyan_kosh_api.repository.ReceiptRepository;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -43,6 +47,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final IdGeneratorService idGeneratorService;
     private final EmailService emailService;
+private final ReceiptRepository receiptRepo;
 
     public UserService(UserRepository userRepo,
                        BlockRepository blockRepo,
@@ -51,7 +56,8 @@ public class UserService {
                        StateRepository stateRepo,
                        PasswordEncoder passwordEncoder,
                        IdGeneratorService idGeneratorService,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       ReceiptRepository receiptRepo) {
         this.userRepo = userRepo;
         this.blockRepo = blockRepo;
         this.districtRepo = districtRepo;
@@ -60,6 +66,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.idGeneratorService = idGeneratorService;
         this.emailService = emailService;
+           this.receiptRepo = receiptRepo;
     }
 
     private String normalizeString(String value) {
@@ -479,7 +486,46 @@ public PageResponse<UserResponse> getPendingProfileUsersFiltered(
         response.setNominee2Relation(user.getNominee2Relation());
         response.setRole(user.getRole());
         response.setCreatedAt(user.getCreatedAt());
+if (user.getAssignedDeathCase() != null) {
+    DeathCase deathCase = user.getAssignedDeathCase();
 
+    response.setAssignedDeathCaseId(deathCase.getId());
+    response.setAssignedDeathCaseName(deathCase.getDeceasedName());
+
+    String allocatedQrCode = deathCase.getNominee1QrCode();
+    if (allocatedQrCode == null || allocatedQrCode.isBlank()) {
+        allocatedQrCode = deathCase.getNominee2QrCode();
+    }
+
+    Optional<Receipt> latestReceiptOpt =
+            receiptRepo.findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(
+                    user.getId(),
+                    deathCase.getId()
+            );
+
+    if (latestReceiptOpt.isPresent()) {
+        Receipt latestReceipt = latestReceiptOpt.get();
+
+        response.setUtrUploaded(true);
+        response.setLatestReceiptId(latestReceipt.getId());
+        response.setLatestUtrNumber(latestReceipt.getUtrNumber());
+        response.setUtrUploadedAt(latestReceipt.getUploadedAt());
+
+        // If UTR already uploaded, QR should not be shown
+        response.setAllocatedQrCode(null);
+    } else {
+        response.setUtrUploaded(false);
+        response.setAllocatedQrCode(allocatedQrCode);
+    }
+} else {
+    response.setAssignedDeathCaseId(null);
+    response.setAssignedDeathCaseName(null);
+    response.setAllocatedQrCode(null);
+    response.setUtrUploaded(false);
+    response.setLatestReceiptId(null);
+    response.setLatestUtrNumber(null);
+    response.setUtrUploadedAt(null);
+}
         return response;
     }
 

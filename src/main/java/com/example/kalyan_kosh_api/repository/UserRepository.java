@@ -32,11 +32,12 @@ List<User> findAllByCreatedMonthAndYear(
         @Param("year") int year);
         
     // ✅ Fetch all users with their location relationships
-    @Query("SELECT DISTINCT u FROM User u " +
-           "LEFT JOIN FETCH u.departmentState s " +
-           "LEFT JOIN FETCH u.departmentSambhag sa " +
-           "LEFT JOIN FETCH u.departmentDistrict d " +
-           "LEFT JOIN FETCH u.departmentBlock b")
+   @Query("SELECT DISTINCT u FROM User u " +
+       "LEFT JOIN FETCH u.departmentState s " +
+       "LEFT JOIN FETCH u.departmentSambhag sa " +
+       "LEFT JOIN FETCH u.departmentDistrict d " +
+       "LEFT JOIN FETCH u.departmentBlock b " +
+       "LEFT JOIN FETCH u.assignedDeathCase adc")
     List<User> findAllWithLocations();
 
 @Query(
@@ -56,13 +57,14 @@ Page<User> findExportUsersPaged(
 );
 
     // ✅ Paginated query - fetch users with locations
-    @Query(value = "SELECT u FROM User u " +
-           "LEFT JOIN FETCH u.departmentState s " +
-           "LEFT JOIN FETCH u.departmentSambhag sa " +
-           "LEFT JOIN FETCH u.departmentDistrict d " +
-           "LEFT JOIN FETCH u.departmentBlock b",
-           countQuery = "SELECT COUNT(u) FROM User u")
-    Page<User> findAllWithLocations(Pageable pageable);
+@Query(value = "SELECT u FROM User u " +
+       "LEFT JOIN FETCH u.departmentState s " +
+       "LEFT JOIN FETCH u.departmentSambhag sa " +
+       "LEFT JOIN FETCH u.departmentDistrict d " +
+       "LEFT JOIN FETCH u.departmentBlock b " +
+       "LEFT JOIN FETCH u.assignedDeathCase adc",
+       countQuery = "SELECT COUNT(u) FROM User u")
+       Page<User> findAllWithLocations(Pageable pageable);
 
     // ✅ Filtered + Paginated query with Sambhag, District, Block, Name, Mobile, UserId filters
     @Query(value = "SELECT u FROM User u " +
@@ -70,6 +72,7 @@ Page<User> findExportUsersPaged(
            "LEFT JOIN FETCH u.departmentSambhag sa " +
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b " +
+            "LEFT JOIN FETCH u.assignedDeathCase adc " +
            "WHERE (:sambhagId IS NULL OR sa.id = :sambhagId) " +
            "AND (:districtId IS NULL OR d.id = :districtId) " +
            "AND (:blockId IS NULL OR b.id = :blockId) " +
@@ -153,6 +156,7 @@ Page<User> searchAdminUsers(
            "LEFT JOIN FETCH u.departmentSambhag sa " +
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b " +
+            "LEFT JOIN FETCH u.assignedDeathCase adc " +
            "WHERE u.id = :id")
     Optional<User> findByIdWithLocations(String id);
 
