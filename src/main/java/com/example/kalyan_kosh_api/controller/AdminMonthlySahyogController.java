@@ -167,6 +167,39 @@ public ResponseEntity<?> getAllBeneficiariesForNonDonors() {
                 .body(createErrorResponse("FETCH_ERROR", "Failed to fetch beneficiaries: " + e.getMessage()));
     }
 }
+@GetMapping("/no-utr-ever")
+public ResponseEntity<?> noUtrEverUsersPaginated(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "250") int size) {
+    try {
+        PageResponse<UserResponse> result = service.getNoUtrEverUsersPaginated(page, size);
+        return ResponseEntity.ok(result);
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("FETCH_ERROR", "Failed to fetch no-UTR-ever users: " + e.getMessage()));
+    }
+}
+
+@GetMapping("/no-utr-ever/search")
+public ResponseEntity<?> searchNoUtrEverUsers(
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "250") int size) {
+    try {
+        PageResponse<UserResponse> result =
+                service.searchNoUtrEverUsers(name, mobile, userId, sambhag, district, block, page, size);
+        return ResponseEntity.ok(result);
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("SEARCH_ERROR", "Failed to search no-UTR-ever users: " + e.getMessage()));
+    }
+}
+
 @GetMapping("/donors/search-by-beneficiary")
 public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,

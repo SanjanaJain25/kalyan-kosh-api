@@ -191,6 +191,104 @@ Page<User> searchAdminUsers(
            "    AND YEAR(r.paymentDate) = :year" +
            ")")
     Page<User> findNonDonorsPaginated(@Param("month") int month, @Param("year") int year, Pageable pageable);
+
+//no utr
+
+// ✅ Users who never uploaded even a single UTR ever
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState s
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        LEFT JOIN FETCH u.assignedDeathCase adc
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Receipt r
+              WHERE r.user.id = u.id
+                AND r.utrNumber IS NOT NULL
+                AND TRIM(r.utrNumber) <> ''
+          )
+        """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Receipt r
+              WHERE r.user.id = u.id
+                AND r.utrNumber IS NOT NULL
+                AND TRIM(r.utrNumber) <> ''
+          )
+        """
+)
+Page<User> findNoUtrEverUsersPaginated(Pageable pageable);
+
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState s
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        LEFT JOIN FETCH u.assignedDeathCase adc
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND (:name IS NULL OR
+               LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Receipt r
+              WHERE r.user.id = u.id
+                AND r.utrNumber IS NOT NULL
+                AND TRIM(r.utrNumber) <> ''
+          )
+        """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND (:name IS NULL OR
+               LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+               LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+          AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+          AND NOT EXISTS (
+              SELECT 1
+              FROM Receipt r
+              WHERE r.user.id = u.id
+                AND r.utrNumber IS NOT NULL
+                AND TRIM(r.utrNumber) <> ''
+          )
+        """
+)
+Page<User> searchNoUtrEverUsersPaginated(
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block,
+        Pageable pageable
+);
 // ✅ Filtered + Paginated query for pending-profile users only
 @Query(
     value = """
