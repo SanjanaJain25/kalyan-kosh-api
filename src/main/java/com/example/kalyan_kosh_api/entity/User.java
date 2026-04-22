@@ -78,4 +78,11 @@ private DeathCase assignedDeathCase;
     private Instant createdAt;
 
     private Instant updatedAt;
+        private Instant deletedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
+    private String deleteReason;
 }

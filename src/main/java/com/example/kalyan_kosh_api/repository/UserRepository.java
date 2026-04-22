@@ -19,7 +19,9 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
 List<User> findAllByRoleOrderByCreatedAtAsc(Role role);
     // ✅ Find users by role
     List<User> findByRole(Role role);
+    List<User> findByStatusOrderByUpdatedAtDesc(UserStatus status);
 
+Optional<User> findByIdAndStatusNot(String id, UserStatus status);
 @Query("SELECT DISTINCT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +
        "LEFT JOIN FETCH u.departmentSambhag sa " +
@@ -30,7 +32,11 @@ List<User> findAllByRoleOrderByCreatedAtAsc(Role role);
 List<User> findAllByCreatedMonthAndYear(
         @Param("month") int month,
         @Param("year") int year);
-        
+        @Query("SELECT u FROM User u " +
+       "LEFT JOIN FETCH u.deletedBy db " +
+       "WHERE u.status = :status " +
+       "ORDER BY u.deletedAt DESC")
+List<User> findDeletedUsers(@Param("status") UserStatus status);
     // ✅ Fetch all users with their location relationships
    @Query("SELECT DISTINCT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +

@@ -25,7 +25,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -87,6 +88,20 @@ private LocalDate parseDate(String value, String fieldName) {
     } catch (Exception e) {
         throw new IllegalArgumentException("Invalid date format for " + fieldName + ". Use yyyy-MM-dd");
     }
+}
+public String getCurrentUserId() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getName() == null) {
+        throw new IllegalArgumentException("Current user not found in security context.");
+    }
+
+    return authentication.getName();
+}
+
+public User findById(String userId) {
+    return userRepo.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 }
 
     public UserResponse getUserById(String id) {
@@ -391,7 +406,7 @@ public PageResponse<UserResponse> getPendingProfileUsersFiltered(
         int page,
         int size) {
 
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createperformedAtdAt"));
 
     // Clean up empty strings to null for proper query handling
     String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
@@ -660,7 +675,7 @@ if (user.getAssignedDeathCase() != null) {
      * Optimized for large datasets (60000+ users)
      */
     public PageResponse<UserResponse> getAllUsersPaginated(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "performedAt"));
 
         Page<User> userPage = userRepo
                 .findAllWithLocations(pageable);
@@ -696,7 +711,7 @@ if (user.getAssignedDeathCase() != null) {
             int page,
             int size) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "performedAt"));
 
         // Clean up empty strings to null for proper query handling
         String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
