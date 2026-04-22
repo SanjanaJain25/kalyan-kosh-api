@@ -289,6 +289,71 @@ Page<User> searchNoUtrEverUsersPaginated(
         @Param("block") String block,
         Pageable pageable
 );
+//zero export
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR COALESCE(u.id, '') LIKE CONCAT('%', :userId, '%'))
+      AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+      AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+      AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Receipt r
+          WHERE r.user.id = u.id
+            AND r.utrNumber IS NOT NULL
+            AND TRIM(r.utrNumber) <> ''
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> searchNoUtrEverUsersForExport(
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block
+);
+//filter users
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+      AND (:districtId IS NULL OR d.id = :districtId)
+      AND (:blockId IS NULL OR b.id = :blockId)
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+    ORDER BY u.createdAt DESC
+""")
+List<User> findAllUsersForExport(
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId
+);
 // ✅ Filtered + Paginated query for pending-profile users only
 @Query(
     value = """
@@ -466,7 +531,8 @@ List<User> searchNonDonorsForExport(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE (" +
+       "WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER " +
+       "AND (" +
        "   u.department IS NULL OR TRIM(u.department) = '' " +
        "   OR u.departmentState IS NULL " +
        "   OR u.departmentSambhag IS NULL " +

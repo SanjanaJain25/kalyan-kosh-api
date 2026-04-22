@@ -13,10 +13,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import com.example.kalyan_kosh_api.service.MonthlySahyogService;
 import com.example.kalyan_kosh_api.service.UserService;
 import java.time.LocalDate;
+import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.service.SystemSettingService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 @RestController
 @RequestMapping("/api/admin/export")
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER')")
 @CrossOrigin(origins = "*")
 public class ExportController {
 
@@ -24,15 +29,40 @@ public class ExportController {
     private final ExportService exportService;
 private final MonthlySahyogService monthlySahyogService;
 private final UserService userService;
+private final SystemSettingService systemSettingService;
+   public ExportController(AdminReceiptService receiptService,
+                        ExportService exportService,
+                        MonthlySahyogService monthlySahyogService,
+                        UserService userService,
+                        SystemSettingService systemSettingService) {
+    this.receiptService = receiptService;
+    this.exportService = exportService;
+    this.monthlySahyogService = monthlySahyogService;
+    this.userService = userService;
+    this.systemSettingService = systemSettingService;
+}
 
-    public ExportController(AdminReceiptService receiptService,
-                            ExportService exportService,MonthlySahyogService monthlySahyogService,
-UserService userService) {
-        this.receiptService = receiptService;
-        this.exportService = exportService;
-        this.monthlySahyogService = monthlySahyogService;
-this.userService = userService;
+private Role getCurrentUserRole() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getAuthorities() == null) {
+        return null;
     }
+
+    return authentication.getAuthorities().stream()
+            .map(granted -> granted.getAuthority())
+            .filter(auth -> auth.startsWith("ROLE_"))
+            .filter(auth -> !"ROLE_ANONYMOUS".equals(auth))
+            .findFirst()
+            .map(auth -> {
+                try {
+                    return Role.valueOf(auth);
+                } catch (IllegalArgumentException ex) {
+                    return null;
+                }
+            })
+            .orElse(null);
+}
 @PostMapping("/insurance-inquiries/email")
 public ResponseEntity<?> exportInsuranceInquiriesAndSendEmail() {
     return ResponseEntity.ok(exportService.exportInsuranceInquiriesAndSendEmail());
@@ -98,8 +128,11 @@ public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
             beneficiaryId, name, mobile, userId, sambhag, district, block
     );
 
-    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportNonDonorsCsv(data));
+boolean includeMobile = systemSettingService.canExportMobileNumber(getCurrentUserRole());
 
+byte[] csvBytes = exportService.exportCsvWithBom(
+        exportService.exportNonDonorsCsv(data, includeMobile)
+);
     return ResponseEntity.ok()
             .header("Content-Disposition", "attachment; filename=asahyog_by_beneficiary.csv")
             .header("Content-Type", "text/csv; charset=UTF-8")
@@ -123,8 +156,11 @@ public ResponseEntity<byte[]> exportAsahyog(
             sahyogDate, name, mobile, userId, sambhag, district, block
     );
 
-    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportNonDonorsCsv(data));
+boolean includeMobile = systemSettingService.canExportMobileNumber(getCurrentUserRole());
 
+byte[] csvBytes = exportService.exportCsvWithBom(
+        exportService.exportNonDonorsCsv(data, includeMobile)
+);
     return ResponseEntity.ok()
             .header("Content-Disposition", "attachment; filename=asahyog.csv")
             .header("Content-Type", "text/csv; charset=UTF-8")
@@ -149,9 +185,11 @@ public ResponseEntity<byte[]> exportAllSahyog() {
 public ResponseEntity<byte[]> exportAllAsahyog() {
     var data = monthlySahyogService.getAllNonDonorsForExport();
 
-    byte[] csvBytes = exportService.exportCsvWithBom(
-            exportService.exportNonDonorsCsv(data)
-    );
+    boolean includeMobile = systemSettingService.canExportMobileNumber(getCurrentUserRole());
+
+byte[] csvBytes = exportService.exportCsvWithBom(
+        exportService.exportNonDonorsCsv(data, includeMobile)
+);
 
     return ResponseEntity.ok()
             .header("Content-Disposition", "attachment; filename=asahyog_all.csv")
@@ -172,8 +210,11 @@ public ResponseEntity<byte[]> exportPendingProfiles(
             sambhagId, districtId, blockId, name, mobile, userId
     );
 
-    byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportPendingProfilesCsv(data));
+boolean includeMobile = systemSettingService.canExportMobileNumber(getCurrentUserRole());
 
+byte[] csvBytes = exportService.exportCsvWithBom(
+        exportService.exportPendingProfilesCsv(data, includeMobile)
+);
     return ResponseEntity.ok()
             .header("Content-Disposition", "attachment; filename=pending_profiles.csv")
             .header("Content-Type", "text/csv; charset=UTF-8")

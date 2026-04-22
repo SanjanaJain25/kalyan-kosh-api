@@ -131,6 +131,13 @@ public class SecurityConfig {
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search-by-beneficiary").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/search").permitAll()
+                       .requestMatchers(HttpMethod.GET, "/api/users/export").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/export").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/export").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/export").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/export").permitAll()
+                       .requestMatchers(HttpMethod.GET, "/api/public/export/sahyog/by-beneficiary").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/public/export/asahyog/by-beneficiary").permitAll()
                         // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
                        .requestMatchers("/api/admin/**").hasAnyRole(
     "SUPERADMIN",
@@ -150,7 +157,14 @@ public class SecurityConfig {
 .requestMatchers(HttpMethod.GET, "/api/death-cases/public").permitAll()
 
 // everything else under death-cases requires ADMIN
-.requestMatchers("/api/death-cases/**").hasAnyRole("SUPERADMIN", "USER","ADMIN")
+.requestMatchers("/api/death-cases/**").hasAnyRole(
+    "SUPERADMIN",
+    "USER",
+    "ADMIN",
+    "SAMBHAG_MANAGER",
+    "DISTRICT_MANAGER",
+    "BLOCK_MANAGER"
+)
 .requestMatchers(HttpMethod.GET, "/api/public/self-donation-settings").permitAll()
                         // Any other request needs authentication
                         .anyRequest().authenticated()

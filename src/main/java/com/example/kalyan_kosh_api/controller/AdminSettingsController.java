@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/settings")
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER')")
 public class AdminSettingsController {
 
     private final SystemSettingService settingService;
@@ -103,6 +103,44 @@ public Map<String, Object> updateExportMobileNumber(@RequestBody Map<String, Boo
     return Map.of(
             "success", true,
             "exportMobileNumberEnabled", enabled
+    );
+}
+@GetMapping("/district-manager-export-mobile")
+public Map<String, Boolean> getDistrictManagerExportMobileSetting() {
+    return Map.of(
+            "districtManagerExportMobileEnabled",
+            settingService.isDistrictManagerExportMobileEnabled()
+    );
+}
+
+@PutMapping("/district-manager-export-mobile")
+public Map<String, Object> updateDistrictManagerExportMobile(@RequestBody Map<String, Boolean> req) {
+    boolean enabled = req.getOrDefault("enabled", false);
+
+    settingService.updateDistrictManagerExportMobileSetting(enabled);
+
+    return Map.of(
+            "success", true,
+            "districtManagerExportMobileEnabled", enabled
+    );
+}
+@GetMapping("/block-manager-export-mobile")
+public Map<String, Boolean> getBlockManagerExportMobileSetting() {
+    return Map.of(
+            "blockManagerExportMobileEnabled",
+            settingService.isBlockManagerExportMobileEnabled()
+    );
+}
+
+@PutMapping("/block-manager-export-mobile")
+public Map<String, Object> updateBlockManagerExportMobile(@RequestBody Map<String, Boolean> req) {
+    boolean enabled = req.getOrDefault("enabled", false);
+
+    settingService.updateBlockManagerExportMobileSetting(enabled);
+
+    return Map.of(
+            "success", true,
+            "blockManagerExportMobileEnabled", enabled
     );
 }
 }

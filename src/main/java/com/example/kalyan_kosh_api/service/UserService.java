@@ -49,6 +49,7 @@ public class UserService {
     private final EmailService emailService;
 private final ReceiptRepository receiptRepo;
 
+
     public UserService(UserRepository userRepo,
                        BlockRepository blockRepo,
                        DistrictRepository districtRepo,
@@ -102,6 +103,11 @@ private LocalDate parseDate(String value, String fieldName) {
                 .map(this::toUserResponse)
                 .toList();
     }
+    private String csvSafeExcelText(String value) {
+    if (value == null) return "";
+    String cleaned = value.replace("\"", "\"\"").replace("\n", " ").replace("\r", " ");
+    return "=\"" + cleaned + "\"";
+}
 
    public UserResponse updateUser(String id, UpdateUserRequest req) {
     User user = userRepo.findById(id)
@@ -224,6 +230,125 @@ private LocalDate parseDate(String value, String fieldName) {
     return toUserResponse(user);
 }
 
+private String generateTimestampedFileName(String baseName) {
+    return baseName + "_" +
+            java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"))
+            + ".csv";
+}
+private String csvSafe(String value) {
+    return value != null ? value.replace(",", " ").replace("\n", " ").replace("\r", " ") : "";
+}
+public void exportUsersCsv(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        boolean includeMobile,
+        java.io.PrintWriter writer) {
+
+    String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
+    String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
+    String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
+
+    List<User> users = userRepo.findAllUsersForExport(
+            sambhagId, districtId, blockId, cleanName, cleanMobile, cleanUserId
+    );
+writer.write("\uFEFF");
+if (includeMobile) {
+    writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+} else {
+    writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+}
+    for (User user : users) {
+    UserResponse u = toUserResponse(user);
+
+    if (includeMobile) {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+               csvSafeExcelText(u.getMobileNumber()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    } else {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    }
+}
+
+    writer.flush();
+}
+public void exportPendingProfilesCsv(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        boolean includeMobile,
+        java.io.PrintWriter writer) {
+
+    List<UserResponse> users = getPendingProfileUsersForExport(
+            sambhagId, districtId, blockId, name, mobile, userId
+    );
+writer.write("\uFEFF");
+if (includeMobile) {
+    writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+} else {
+    writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+}
+for (UserResponse u : users) {
+    if (includeMobile) {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+               csvSafeExcelText(u.getMobileNumber()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    } else {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    }
+}
+
+    writer.flush();
+}
 
 public List<UserResponse> getPendingProfileUsersForExport(
         String sambhagId,

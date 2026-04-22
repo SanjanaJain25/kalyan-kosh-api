@@ -480,55 +480,89 @@ sb.append("User ID,Name,Department,State,Sambhag,District,Block,School Name,Bene
     return sb.toString();
 }
 
-public String exportNonDonorsCsv(List<UserResponse> users) {
+public String exportNonDonorsCsv(List<UserResponse> users, boolean includeMobile) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Status\n");
+    if (includeMobile) {
+        sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Status\n");
+    } else {
+        sb.append("User ID,Name,Department,State,Sambhag,District,Block,School Name,Status\n");
+    }
 
     for (UserResponse user : users) {
         String fullName = ((user.getName() != null ? user.getName() : "") +
                 (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
 
-        sb.append(escapeCSV(user.getId())).append(",")
-          .append(escapeCSV(fullName)).append(",")
-          .append(escapeCSV(user.getMobileNumber())).append(",")
-          .append(escapeCSV(user.getDepartment())).append(",")
-          .append(escapeCSV(user.getDepartmentState())).append(",")
-          .append(escapeCSV(user.getDepartmentSambhag())).append(",")
-          .append(escapeCSV(user.getDepartmentDistrict())).append(",")
-          .append(escapeCSV(user.getDepartmentBlock())).append(",")
-          .append(escapeCSV(user.getSchoolOfficeName())).append(",")
-          .append("NON_DONOR")
-          .append("\n");
+        if (includeMobile) {
+            sb.append(escapeCSV(user.getId())).append(",")
+              .append(escapeCSV(fullName)).append(",")
+              .append(escapeCSV(user.getMobileNumber())).append(",")
+              .append(escapeCSV(user.getDepartment())).append(",")
+              .append(escapeCSV(user.getDepartmentState())).append(",")
+              .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+              .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+              .append(escapeCSV(user.getDepartmentBlock())).append(",")
+              .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+              .append("NON_DONOR")
+              .append("\n");
+        } else {
+            sb.append(escapeCSV(user.getId())).append(",")
+              .append(escapeCSV(fullName)).append(",")
+              .append(escapeCSV(user.getDepartment())).append(",")
+              .append(escapeCSV(user.getDepartmentState())).append(",")
+              .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+              .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+              .append(escapeCSV(user.getDepartmentBlock())).append(",")
+              .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+              .append("NON_DONOR")
+              .append("\n");
+        }
     }
 
     return sb.toString();
 }
 
-public String exportPendingProfilesCsv(List<UserResponse> users) {
+public String exportPendingProfilesCsv(List<UserResponse> users, boolean includeMobile) {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
+    if (includeMobile) {
+        sb.append("User ID,Name,Mobile,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
+    } else {
+        sb.append("User ID,Name,Department,State,Sambhag,District,Block,School Name,Pending Reason\n");
+    }
 
     for (UserResponse user : users) {
         String fullName = ((user.getName() != null ? user.getName() : "") +
                 (user.getSurname() != null ? " " + user.getSurname() : "")).trim();
 
-        sb.append(escapeCSV(user.getId())).append(",")
-          .append(escapeCSV(fullName)).append(",")
-          .append(escapeCSV(user.getMobileNumber())).append(",")
-          .append(escapeCSV(user.getDepartment())).append(",")
-          .append(escapeCSV(user.getDepartmentState())).append(",")
-          .append(escapeCSV(user.getDepartmentSambhag())).append(",")
-          .append(escapeCSV(user.getDepartmentDistrict())).append(",")
-          .append(escapeCSV(user.getDepartmentBlock())).append(",")
-          .append(escapeCSV(user.getSchoolOfficeName())).append(",")
-          .append("Profile Incomplete")
-          .append("\n");
+        if (includeMobile) {
+            sb.append(escapeCSV(user.getId())).append(",")
+              .append(escapeCSV(fullName)).append(",")
+              .append(escapeCSV(user.getMobileNumber())).append(",")
+              .append(escapeCSV(user.getDepartment())).append(",")
+              .append(escapeCSV(user.getDepartmentState())).append(",")
+              .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+              .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+              .append(escapeCSV(user.getDepartmentBlock())).append(",")
+              .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+              .append("Profile Incomplete")
+              .append("\n");
+        } else {
+            sb.append(escapeCSV(user.getId())).append(",")
+              .append(escapeCSV(fullName)).append(",")
+              .append(escapeCSV(user.getDepartment())).append(",")
+              .append(escapeCSV(user.getDepartmentState())).append(",")
+              .append(escapeCSV(user.getDepartmentSambhag())).append(",")
+              .append(escapeCSV(user.getDepartmentDistrict())).append(",")
+              .append(escapeCSV(user.getDepartmentBlock())).append(",")
+              .append(escapeCSV(user.getSchoolOfficeName())).append(",")
+              .append("Profile Incomplete")
+              .append("\n");
+        }
     }
 
     return sb.toString();
-}    /**
+}   /**
      * Escape CSV values to handle commas, quotes, and newlines
      */
     private String escapeCSV(String value) {

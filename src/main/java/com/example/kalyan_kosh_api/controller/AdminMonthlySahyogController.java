@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.service.SystemSettingService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,13 +25,29 @@ import java.util.Map;
 public class AdminMonthlySahyogController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminMonthlySahyogController.class);
-
+private final SystemSettingService systemSettingService;
     private final MonthlySahyogService service;
 
-    public AdminMonthlySahyogController(MonthlySahyogService service) {
-        this.service = service;
+   public AdminMonthlySahyogController(MonthlySahyogService service,
+                                    SystemSettingService systemSettingService) {
+    this.service = service;
+    this.systemSettingService = systemSettingService;
+}
+
+private Role getCurrentUserRole() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getAuthorities() == null) {
+        return null;
     }
 
+    return authentication.getAuthorities().stream()
+            .map(granted -> granted.getAuthority())
+            .filter(auth -> auth.startsWith("ROLE_"))
+            .findFirst()
+            .map(Role::valueOf)
+            .orElse(null);
+}
     // Helper method to convert month/year to LocalDate (first day of month)
     private LocalDate resolveDate(LocalDate sahyogDate, Integer month, Integer year) {
         if (sahyogDate != null) {
@@ -179,7 +198,30 @@ public ResponseEntity<?> noUtrEverUsersPaginated(
                 .body(createErrorResponse("FETCH_ERROR", "Failed to fetch no-UTR-ever users: " + e.getMessage()));
     }
 }
+@GetMapping("/no-utr-ever/export")
+public void exportNoUtrEver(
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(required = false) String sambhag,
+        @RequestParam(required = false) String district,
+        @RequestParam(required = false) String block,
+        HttpServletResponse response) throws Exception {
+Role currentRole = getCurrentUserRole();
+boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
+    String timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
+   response.setContentType("text/csv; charset=UTF-8");
+response.setCharacterEncoding("UTF-8");
+    response.setHeader(
+            "Content-Disposition",
+            "attachment; filename=zero_utr_members_list_" + timestamp + ".csv"
+    );
+
+service.exportNoUtrEverCsv(
+        name, mobile, userId, sambhag, district, block, includeMobile, response.getWriter()
+);}
 @GetMapping("/no-utr-ever/search")
 public ResponseEntity<?> searchNoUtrEverUsers(
         @RequestParam(required = false) String name,

@@ -67,6 +67,9 @@ public class MonthlySahyogService {
 
         return sahyogRepo.save(sahyog);
     }
+    private String csvSafe(String value) {
+    return value != null ? value.replace(",", " ").replace("\n", " ").replace("\r", " ") : "";
+}
 public List<DonorResponse> getDonorsForExportByBeneficiary(
         Long beneficiaryId,
         String name,
@@ -107,6 +110,66 @@ public List<DonorResponse> getDonorsForExportByBeneficiary(
                     .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
                     .build())
             .toList();
+}
+public void exportNoUtrEverCsv(
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        boolean includeMobile,
+        PrintWriter writer) {
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    List<User> users = userRepo.searchNoUtrEverUsersForExport(
+            cleanName, cleanMobile, cleanUserId, cleanSambhag, cleanDistrict, cleanBlock
+    );
+writer.write("\uFEFF");
+if (includeMobile) {
+    writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+} else {
+    writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+}
+for (User user : users) {
+    UserResponse u = toUserResponse(user);
+
+    if (includeMobile) {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+                csvSafe(u.getMobileNumber()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    } else {
+        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                csvSafe(u.getId()),
+                csvSafe(u.getName()),
+                csvSafe(u.getSurname()),
+                csvSafe(u.getDepartment()),
+                csvSafe(u.getDepartmentState()),
+                csvSafe(u.getDepartmentSambhag()),
+                csvSafe(u.getDepartmentDistrict()),
+                csvSafe(u.getDepartmentBlock()),
+                csvSafe(u.getSchoolOfficeName()),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+        );
+    }
+}
+    writer.flush();
 }
 public List<UserResponse> getNonDonorsForExportByBeneficiary(
         Long beneficiaryId,

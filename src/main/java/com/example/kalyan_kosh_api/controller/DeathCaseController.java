@@ -48,7 +48,7 @@ public class DeathCaseController {
         );
     }
 
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER')")
     @GetMapping
     public ResponseEntity<List<DeathCaseResponse>> getAll() {
         return ResponseEntity.ok(service.getAll());

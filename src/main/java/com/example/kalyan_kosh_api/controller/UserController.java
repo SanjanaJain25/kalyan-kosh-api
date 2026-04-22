@@ -14,19 +14,46 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import jakarta.servlet.http.HttpServletResponse;
+import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.service.SystemSettingService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
-
+private final SystemSettingService systemSettingService;
     private final UserService userService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
+  public UserController(UserService userService, SystemSettingService systemSettingService) {
+    this.userService = userService;
+    this.systemSettingService = systemSettingService;
+}
+
+private Role getCurrentUserRole() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getAuthorities() == null) {
+        return null;
     }
 
-    // REGISTER USER
+    for (var authority : authentication.getAuthorities()) {
+        String auth = authority.getAuthority();
+
+        if (auth == null || !auth.startsWith("ROLE_") || "ROLE_ANONYMOUS".equals(auth)) {
+            continue;
+        }
+
+        try {
+            return Role.valueOf(auth);
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    return null;
+}   // REGISTER USER
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         try {
@@ -66,7 +93,29 @@ public class UserController {
         PageResponse<UserResponse> response = userService.getAllUsersPaginated(page, size);
         return ResponseEntity.ok(response);
     }
+@GetMapping("/export")
+public void exportUsers(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        HttpServletResponse response) throws Exception {
+Role currentRole = getCurrentUserRole();
+boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
+    String timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
+   response.setContentType("text/csv; charset=UTF-8");
+response.setCharacterEncoding("UTF-8");
+    response.setHeader("Content-Disposition",
+            "attachment; filename=our_member_list_" + timestamp + ".csv");
+
+userService.exportUsersCsv(
+        sambhagId, districtId, blockId, name, mobile, userId, includeMobile, response.getWriter()
+);
+}
     /**
      * GET ALL USERS WITH FILTERS AND PAGINATION
      *
@@ -126,7 +175,29 @@ public ResponseEntity<PageResponse<UserResponse>> getPendingProfileUsersFiltered
 
     return ResponseEntity.ok(response);
 }
+@GetMapping("/pending-profiles/export")
+public void exportPendingProfiles(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        HttpServletResponse response) throws Exception {
+Role currentRole = getCurrentUserRole();
+boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
+    String timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
+  response.setContentType("text/csv; charset=UTF-8");
+response.setCharacterEncoding("UTF-8");
+    response.setHeader("Content-Disposition",
+            "attachment; filename=not_profile_updated_list_" + timestamp + ".csv");
+
+userService.exportPendingProfilesCsv(
+        sambhagId, districtId, blockId, name, mobile, userId, includeMobile, response.getWriter()
+);
+}
     // UPDATE USER
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
