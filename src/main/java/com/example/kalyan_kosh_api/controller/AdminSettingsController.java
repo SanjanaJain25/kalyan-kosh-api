@@ -143,4 +143,18 @@ public Map<String, Object> updateBlockManagerExportMobile(@RequestBody Map<Strin
             "blockManagerExportMobileEnabled", enabled
     );
 }
+@GetMapping("/profile-field-locks")
+public Map<String, Boolean> getProfileFieldLocks() {
+    return settingService.getProfileFieldLockSettings();
+}
+
+@PutMapping("/profile-field-locks")
+public Map<String, Object> updateProfileFieldLocks(@RequestBody Map<String, Boolean> req) {
+    settingService.updateProfileFieldLockSettings(req);
+
+    return Map.of(
+            "success", true,
+            "settings", settingService.getProfileFieldLockSettings()
+    );
+}
 }

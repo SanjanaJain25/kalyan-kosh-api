@@ -66,7 +66,10 @@ private Role getCurrentUserRole() {
             return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
         }
     }
-
+@GetMapping("/profile-field-locks")
+public ResponseEntity<Map<String, Boolean>> getProfileFieldLocksForUser() {
+    return ResponseEntity.ok(systemSettingService.getProfileFieldLockSettings());
+}
     // GET USER BY ID
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUser(@PathVariable String id) {

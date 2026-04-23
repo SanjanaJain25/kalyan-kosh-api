@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String>, JpaSpecificationExecutor<User> {
     Optional<User> findByMobileNumber(String mobile);
     Optional<User> findByEmail(String email);
+    Optional<User> findByDepartmentUniqueId(String departmentUniqueId);
 List<User> findAllByRoleOrderByCreatedAtAsc(Role role);
     // ✅ Find users by role
     List<User> findByRole(Role role);

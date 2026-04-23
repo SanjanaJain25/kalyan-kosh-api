@@ -28,6 +28,13 @@ public void initializeDefaultSettings() {
     getOrCreateSetting("self_donation_qr_url", "");
     getOrCreateSetting("district_manager_export_mobile_enabled", "false");
     getOrCreateSetting("block_manager_export_mobile_enabled", "false");
+
+    // Profile field lock settings
+    getOrCreateSetting("profile_lock_full_name", "false");
+    getOrCreateSetting("profile_lock_date_of_birth", "false");
+    getOrCreateSetting("profile_lock_mobile_number", "false");
+    getOrCreateSetting("profile_lock_email", "false");
+    getOrCreateSetting("profile_lock_department_unique_id", "false");
 }
 
     public SystemSettingService(SystemSettingRepository repo) {
@@ -134,5 +141,87 @@ public void updateSelfDonationQrUrl(String qrUrl) {
     setting.setUpdatedAt(Instant.now());
 
     repo.save(setting);
+}
+public boolean isProfileLockFullNameEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("profile_lock_full_name", "false").getSettingValue()
+    );
+}
+
+public void updateProfileLockFullName(boolean enabled) {
+    SystemSetting setting = getOrCreateSetting("profile_lock_full_name", "false");
+    setting.setSettingValue(String.valueOf(enabled));
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public boolean isProfileLockDateOfBirthEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("profile_lock_date_of_birth", "false").getSettingValue()
+    );
+}
+
+public void updateProfileLockDateOfBirth(boolean enabled) {
+    SystemSetting setting = getOrCreateSetting("profile_lock_date_of_birth", "false");
+    setting.setSettingValue(String.valueOf(enabled));
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public boolean isProfileLockMobileNumberEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("profile_lock_mobile_number", "false").getSettingValue()
+    );
+}
+
+public void updateProfileLockMobileNumber(boolean enabled) {
+    SystemSetting setting = getOrCreateSetting("profile_lock_mobile_number", "false");
+    setting.setSettingValue(String.valueOf(enabled));
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public boolean isProfileLockEmailEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("profile_lock_email", "false").getSettingValue()
+    );
+}
+
+public void updateProfileLockEmail(boolean enabled) {
+    SystemSetting setting = getOrCreateSetting("profile_lock_email", "false");
+    setting.setSettingValue(String.valueOf(enabled));
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public boolean isProfileLockDepartmentUniqueIdEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("profile_lock_department_unique_id", "false").getSettingValue()
+    );
+}
+
+public void updateProfileLockDepartmentUniqueId(boolean enabled) {
+    SystemSetting setting = getOrCreateSetting("profile_lock_department_unique_id", "false");
+    setting.setSettingValue(String.valueOf(enabled));
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public java.util.Map<String, Boolean> getProfileFieldLockSettings() {
+    java.util.Map<String, Boolean> settings = new java.util.HashMap<>();
+    settings.put("fullName", isProfileLockFullNameEnabled());
+    settings.put("dateOfBirth", isProfileLockDateOfBirthEnabled());
+    settings.put("mobileNumber", isProfileLockMobileNumberEnabled());
+    settings.put("email", isProfileLockEmailEnabled());
+    settings.put("departmentUniqueId", isProfileLockDepartmentUniqueIdEnabled());
+    return settings;
+}
+
+public void updateProfileFieldLockSettings(java.util.Map<String, Boolean> req) {
+    updateProfileLockFullName(req.getOrDefault("fullName", false));
+    updateProfileLockDateOfBirth(req.getOrDefault("dateOfBirth", false));
+    updateProfileLockMobileNumber(req.getOrDefault("mobileNumber", false));
+    updateProfileLockEmail(req.getOrDefault("email", false));
+    updateProfileLockDepartmentUniqueId(req.getOrDefault("departmentUniqueId", false));
 }
 }
