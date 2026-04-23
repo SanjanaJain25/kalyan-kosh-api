@@ -35,6 +35,31 @@ public void initializeDefaultSettings() {
     getOrCreateSetting("profile_lock_mobile_number", "false");
     getOrCreateSetting("profile_lock_email", "false");
     getOrCreateSetting("profile_lock_department_unique_id", "false");
+    getOrCreateSetting("home_notice_html",
+        "👉 वर्तमान सहयोग प्रक्रिया समाप्त हो चुकी है।<br /><br />" +
+        "आगामी सहयोग से संबंधित सभी अपडेट एवं जानकारी के लिए कृपया WhatsApp चैनल/ग्रुप को अवश्य फॉलो करें।<br /><br />" +
+        "<a href=\"https://www.whatsapp.com/channel/0029Vaw20ci5K3zZkmv3jV1g\" target=\"_blank\" rel=\"noopener noreferrer\">WhatsApp चैनल देखें</a>");
+
+getOrCreateSetting("statistics_content_html",
+        "दिवंगत साथी<br />" +
+        "स्व. श्री रेवाराम अलोने जी (जिला धार)<br />" +
+        "सदस्यता क्रमांक: PMUMS 202411574<br />" +
+        "सदस्यता दिनांक: 18/09/2025<br />" +
+        "मृत्यु दिनांक: 20/12/2025<br />" +
+        "स्व. श्री महेंद्र सिंह मुवेल जी (जिला धार)<br />" +
+        "सदस्यता क्रमांक: PMUMS 20248814<br />" +
+        "सदस्यता दिनांक: 12/09/2025<br />" +
+        "मृत्यु दिनांक: 25/12/2025<br /><br />" +
+        "<b>⚠️ सहयोग हेतु महत्वपूर्ण निर्देश</b><br /><br />" +
+        "1.कृपया अपने लॉगिन में दिए गए निर्धारित परिवार के QR कोड पर ही सहयोग करें।<br />" +
+        "2.व्हाट्सएप ग्रुप या अन्य किसी माध्यम से प्राप्त QR कोड पर सहयोग न करें।<br />" +
+        "3.सहयोग केवल स्वयं / पति / पत्नी / पुत्र / पुत्री / नामांकित (Nominee) के खाते से ही करें। " +
+        "यदि इनमें से कोई UPI का उपयोग नहीं करता है, तो कृपया किसी एक की UPI ID अवश्य बनवा लें।<br />" +
+        "4.यह योजना “सहयोग के बदले सहयोग” सिद्धांत पर आधारित है। " +
+        "यदि कोई सदस्य सहयोग नहीं करता है और भविष्य में उसके साथ कोई अप्रिय घटना होती है, " +
+        "तो उसे योजना का लाभ (सहयोग) प्रदान नहीं किया जाएगा।<br />" +
+        "5.सभी सदस्य अपनी प्रोफाइल अनिवार्य अपडेट कर लें। किसी भी समस्या के समाधान हेतु व्हाट्सएप नंबर.... पर मेसेज करें.<br />" +
+        "<b>WhatsApp helpline 6262565803</b>");
 }
 
     public SystemSettingService(SystemSettingRepository repo) {
@@ -223,5 +248,38 @@ public void updateProfileFieldLockSettings(java.util.Map<String, Boolean> req) {
     updateProfileLockMobileNumber(req.getOrDefault("mobileNumber", false));
     updateProfileLockEmail(req.getOrDefault("email", false));
     updateProfileLockDepartmentUniqueId(req.getOrDefault("departmentUniqueId", false));
+}
+public String getHomeNoticeHtml() {
+    return getOrCreateSetting("home_notice_html", "").getSettingValue();
+}
+
+public void updateHomeNoticeHtml(String value) {
+    SystemSetting setting = getOrCreateSetting("home_notice_html", "");
+    setting.setSettingValue(value != null ? value : "");
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public String getStatisticsContentHtml() {
+    return getOrCreateSetting("statistics_content_html", "").getSettingValue();
+}
+
+public void updateStatisticsContentHtml(String value) {
+    SystemSetting setting = getOrCreateSetting("statistics_content_html", "");
+    setting.setSettingValue(value != null ? value : "");
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public java.util.Map<String, String> getHomeDisplayContentSettings() {
+    java.util.Map<String, String> settings = new java.util.HashMap<>();
+    settings.put("homeNoticeHtml", getHomeNoticeHtml());
+    settings.put("statisticsContentHtml", getStatisticsContentHtml());
+    return settings;
+}
+
+public void updateHomeDisplayContentSettings(java.util.Map<String, String> req) {
+    updateHomeNoticeHtml(req.get("homeNoticeHtml"));
+    updateStatisticsContentHtml(req.get("statisticsContentHtml"));
 }
 }

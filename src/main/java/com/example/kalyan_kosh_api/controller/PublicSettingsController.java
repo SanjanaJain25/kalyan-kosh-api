@@ -16,6 +16,10 @@ public class PublicSettingsController {
     public PublicSettingsController(SystemSettingService settingService) {
         this.settingService = settingService;
     }
+    @GetMapping("/home-display-content")
+public Map<String, String> getHomeDisplayContent() {
+    return settingService.getHomeDisplayContentSettings();
+}
 
     @GetMapping("/self-donation-settings")
     public Map<String, Object> getSelfDonationSettings() {

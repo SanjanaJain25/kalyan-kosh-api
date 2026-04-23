@@ -139,6 +139,7 @@ public class SecurityConfig {
                        .requestMatchers(HttpMethod.GET, "/api/public/export/sahyog/by-beneficiary").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/public/export/asahyog/by-beneficiary").permitAll()
               .requestMatchers("/api/delete-approval/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/public/home-display-content").permitAll()
                         // Admin APIs - requires ADMIN role (general rule - must come after specific permitAll rules)
                        .requestMatchers("/api/admin/**").hasAnyRole(
     "SUPERADMIN",

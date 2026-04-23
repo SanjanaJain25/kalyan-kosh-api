@@ -17,8 +17,9 @@ public class SystemSetting {
     @Column(name = "setting_key", unique = true)
     private String settingKey;
 
-    @Column(name = "setting_value")
-    private String settingValue;
+@Lob
+@Column(name = "setting_value", columnDefinition = "LONGTEXT")
+private String settingValue;
 
     private Instant updatedAt;
 }

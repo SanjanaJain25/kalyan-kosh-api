@@ -157,4 +157,18 @@ public Map<String, Object> updateProfileFieldLocks(@RequestBody Map<String, Bool
             "settings", settingService.getProfileFieldLockSettings()
     );
 }
+@GetMapping("/home-display-content")
+public Map<String, String> getHomeDisplayContentSettings() {
+    return settingService.getHomeDisplayContentSettings();
+}
+
+@PutMapping("/home-display-content")
+public Map<String, Object> updateHomeDisplayContentSettings(@RequestBody Map<String, String> req) {
+    settingService.updateHomeDisplayContentSettings(req);
+
+    return Map.of(
+            "success", true,
+            "settings", settingService.getHomeDisplayContentSettings()
+    );
+}
 }
