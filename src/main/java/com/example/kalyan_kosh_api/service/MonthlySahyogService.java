@@ -18,7 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
+import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.io.PrintWriter;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -576,7 +576,157 @@ public List<DonorResponse> getDonorsForExport(
                     .build())
             .toList();
 }
+public List<DonorResponse> getDonorsForExport(
+        LocalDate sahyogDate,
+        String name,
+        String mobile,
+        String userId,
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String beneficiary,
+        ManagerAreaScope scope) {
 
+    LocalDate startDate = sahyogDate.withDayOfMonth(1);
+    LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+    String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
+
+    List<Object[]> donorRows = receiptRepo.searchDonorsForExportScopedNative(
+            startDate,
+            endDate,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanBeneficiary,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    return donorRows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+}
+public List<UserResponse> getNonDonorsForExport(
+        LocalDate sahyogDate,
+        String name,
+        String mobile,
+        String userId,
+        String sambhagId,
+        String districtId,
+        String blockId,
+        ManagerAreaScope scope) {
+
+    int month = sahyogDate.getMonthValue();
+    int year = sahyogDate.getYear();
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+
+    List<User> users = userRepo.searchNonDonorsForExportScoped(
+            month,
+            year,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .toList();
+}
+public List<DonorResponse> getAllDonorsForExport(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        ManagerAreaScope scope) {
+
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+
+    List<Object[]> donorRows = receiptRepo.searchAllDonorsForExportScopedNative(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    return donorRows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .beneficiary((String) row[10])
+                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .build())
+            .toList();
+}
+public List<UserResponse> getAllNonDonorsForExport(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        ManagerAreaScope scope) {
+
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+
+    List<User> users = userRepo.searchAllNonDonorsForExportScoped(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .toList();
+}
 public List<UserResponse> getNonDonorsForExport(
         LocalDate sahyogDate,
         String name,

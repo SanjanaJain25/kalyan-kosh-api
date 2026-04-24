@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.time.ZoneId;
 import com.example.kalyan_kosh_api.dto.AdminCreateUserRequest;
 import com.example.kalyan_kosh_api.dto.AdminUserMatchResponse;
+import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 
 @Service
 public class UserService {
@@ -438,7 +439,6 @@ for (UserResponse u : users) {
 
     writer.flush();
 }
-
 public List<UserResponse> getPendingProfileUsersForExport(
         String sambhagId,
         String districtId,
@@ -447,17 +447,53 @@ public List<UserResponse> getPendingProfileUsersForExport(
         String mobile,
         String userId) {
 
-    String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
-    String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
-    String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
 
     List<User> users = userRepo.findPendingProfileUsersForExport(
-            sambhagId,
-            districtId,
-            blockId,
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
             cleanName,
             cleanMobile,
             cleanUserId
+    );
+
+    return users.stream()
+            .map(this::toUserResponse)
+            .collect(Collectors.toList());
+}
+public List<UserResponse> getPendingProfileUsersForExport(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        ManagerAreaScope scope) {
+
+    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
+    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
+    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+
+    List<User> users = userRepo.findPendingProfileUsersForExportScoped(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
     );
 
     return users.stream()

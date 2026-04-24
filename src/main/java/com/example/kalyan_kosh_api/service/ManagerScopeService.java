@@ -6,7 +6,7 @@ import com.example.kalyan_kosh_api.dto.manager.ManagerScopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +74,80 @@ public class ManagerScopeService {
             .totalUsers(totalUsers)
             .build();
     }
-    
+    public boolean isAdminOrSuperAdmin(User user) {
+    return user != null &&
+            (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_SUPERADMIN);
+}
+
+public boolean isManagerRole(Role role) {
+    return role == Role.ROLE_SAMBHAG_MANAGER
+            || role == Role.ROLE_DISTRICT_MANAGER
+            || role == Role.ROLE_BLOCK_MANAGER;
+}
+
+public boolean isManager(User user) {
+    return user != null && isManagerRole(user.getRole());
+}
+
+public ManagerAreaScope buildAreaScope(User currentUser) {
+    if (isAdminOrSuperAdmin(currentUser)) {
+        return ManagerAreaScope.builder()
+                .unrestricted(true)
+                .sambhagIds(List.of("__ALL__"))
+                .districtIds(List.of("__ALL__"))
+                .blockIds(List.of("__ALL__"))
+                .build();
+    }
+
+    if (!isManager(currentUser)) {
+        return ManagerAreaScope.builder()
+                .unrestricted(false)
+                .sambhagIds(List.of("__NO_SAMBHAG__"))
+                .districtIds(List.of("__NO_DISTRICT__"))
+                .blockIds(List.of("__NO_BLOCK__"))
+                .build();
+    }
+
+    List<ManagerAssignment> assignments =
+            managerAssignmentRepository.findByManagerAndIsActiveTrue(currentUser);
+
+    List<String> sambhagIds = assignments.stream()
+            .filter(a -> a.getSambhag() != null)
+            .map(a -> a.getSambhag().getId().toString())
+            .distinct()
+            .toList();
+
+    List<String> districtIds = assignments.stream()
+            .filter(a -> a.getDistrict() != null)
+            .map(a -> a.getDistrict().getId().toString())
+            .distinct()
+            .toList();
+
+    List<String> blockIds = assignments.stream()
+            .filter(a -> a.getBlock() != null)
+            .map(a -> a.getBlock().getId().toString())
+            .distinct()
+            .toList();
+
+    if (sambhagIds.isEmpty()) {
+        sambhagIds = List.of("__NO_SAMBHAG__");
+    }
+
+    if (districtIds.isEmpty()) {
+        districtIds = List.of("__NO_DISTRICT__");
+    }
+
+    if (blockIds.isEmpty()) {
+        blockIds = List.of("__NO_BLOCK__");
+    }
+
+    return ManagerAreaScope.builder()
+            .unrestricted(false)
+            .sambhagIds(sambhagIds)
+            .districtIds(districtIds)
+            .blockIds(blockIds)
+            .build();
+}
     /**
      * Check if manager has access to specific sambhag
      */
@@ -86,16 +159,57 @@ public class ManagerScopeService {
      * Check if manager has access to specific district
      */
     public boolean hasAccessToDistrict(User manager, UUID districtId) {
-        return managerAssignmentRepository.hasAssignmentForDistrict(manager, districtId);
+    if (isAdminOrSuperAdmin(manager)) {
+        return true;
     }
-    
-    /**
-     * Check if manager has access to specific block
-     */
-    public boolean hasAccessToBlock(User manager, UUID blockId) {
-        return managerAssignmentRepository.hasAssignmentForBlock(manager, blockId);
+
+    if (managerAssignmentRepository.hasAssignmentForDistrict(manager, districtId)) {
+        return true;
     }
-    
+
+    List<ManagerAssignment> assignments =
+            managerAssignmentRepository.findByManagerAndIsActiveTrue(manager);
+
+    return assignments.stream().anyMatch(a ->
+            a.getSambhag() != null
+                    && a.getDistrict() == null
+                    && a.getBlock() == null
+                    && a.getSambhag().getDistricts() != null
+                    && a.getSambhag().getDistricts().stream()
+                    .anyMatch(d -> d.getId().equals(districtId))
+    );
+}
+
+public boolean hasAccessToBlock(User manager, UUID blockId) {
+    if (isAdminOrSuperAdmin(manager)) {
+        return true;
+    }
+
+    if (managerAssignmentRepository.hasAssignmentForBlock(manager, blockId)) {
+        return true;
+    }
+
+    List<ManagerAssignment> assignments =
+            managerAssignmentRepository.findByManagerAndIsActiveTrue(manager);
+
+    return assignments.stream().anyMatch(a -> {
+        if (a.getDistrict() != null && a.getBlock() == null) {
+            return a.getDistrict().getBlocks() != null
+                    && a.getDistrict().getBlocks().stream()
+                    .anyMatch(b -> b.getId().equals(blockId));
+        }
+
+        if (a.getSambhag() != null && a.getDistrict() == null && a.getBlock() == null) {
+            return a.getSambhag().getDistricts() != null
+                    && a.getSambhag().getDistricts().stream()
+                    .anyMatch(d -> d.getBlocks() != null
+                            && d.getBlocks().stream()
+                            .anyMatch(b -> b.getId().equals(blockId)));
+        }
+
+        return false;
+    });
+}
     /**
      * Get all sambhag IDs that manager has access to
      */

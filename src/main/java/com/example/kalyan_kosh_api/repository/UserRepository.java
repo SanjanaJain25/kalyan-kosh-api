@@ -63,6 +63,132 @@ Page<User> findExportUsersPaged(
         Pageable pageable
 );
 
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+      AND NOT EXISTS (
+            SELECT 1
+            FROM Receipt r
+            WHERE r.user.id = u.id
+              AND r.amount > 0
+      )
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> findPendingProfileUsersForExportScoped(
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+      AND u.id NOT IN (
+            SELECT DISTINCT r.user.id
+            FROM Receipt r
+            WHERE MONTH(r.paymentDate) = :month
+              AND YEAR(r.paymentDate) = :year
+              AND r.amount > 0
+      )
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> searchNonDonorsForExportScoped(
+        @Param("month") int month,
+        @Param("year") int year,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Receipt r
+          WHERE r.user.id = u.id
+            AND r.amount > 0
+      )
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> searchAllNonDonorsForExportScoped(
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
     // ✅ Paginated query - fetch users with locations
 @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +
