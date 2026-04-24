@@ -90,6 +90,7 @@ public class SecurityConfig {
                         // Public endpoints - Authentication & Registration
                         .requestMatchers("/api/auth/**").permitAll()
 .requestMatchers("/uploads/**").permitAll()
+.requestMatchers("/api/security/**").authenticated()
                         // Public endpoints - Email OTP
                         .requestMatchers("/api/auth/email-otp/**").permitAll()
 

@@ -67,6 +67,24 @@ private final PoolAssignmentService poolAssignmentService;
     this.poolAssignmentService = poolAssignmentService;
     
 }
+
+@Transactional(readOnly = true)
+public void verifyCurrentUserPassword(String userId, String rawPassword) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+        throw new IllegalArgumentException("Invalid password");
+    }
+
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
+    }
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
+    }
+}
     @Transactional
     public User registerAfterOtp(RegisterRequest req) {
         // Check if user with this email already exists
