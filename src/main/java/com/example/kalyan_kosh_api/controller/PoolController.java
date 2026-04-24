@@ -22,8 +22,8 @@ public class PoolController {
     }
 
     // ✅ User gets only his assigned pool death case
- @PreAuthorize("hasAnyRole('SUPERADMIN','USER','ADMIN')")
-  @GetMapping("/my")
+@PreAuthorize("hasAnyRole('USER','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER','ADMIN','SUPERADMIN')")
+@GetMapping("/my")
 public ResponseEntity<?> myPool(Authentication auth) {
 
     User u = userRepo.findById(auth.getName())

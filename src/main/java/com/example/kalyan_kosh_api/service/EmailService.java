@@ -7,7 +7,8 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.MimeMessageHelper;
-
+import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.entity.Receipt;
 @Service
 public class EmailService {
 
@@ -72,7 +73,112 @@ public class EmailService {
                 PMUIMS Kalyan Kosh Team
                 """.formatted(otp);
     }
+public void sendEmailWithAttachment(
+        String toEmail,
+        String subject,
+        String body,
+        byte[] attachmentBytes,
+        String attachmentFileName
+) {
+    if (toEmail == null || toEmail.isBlank()) {
+        return;
+    }
 
+    if (!emailEnabled) {
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("📧 EMAIL WITH ATTACHMENT (CONSOLE OUTPUT)");
+        System.out.println("=".repeat(70));
+        System.out.println("To: " + toEmail);
+        System.out.println("Subject: " + subject);
+        System.out.println("Attachment: " + attachmentFileName);
+        System.out.println("Body: " + body);
+        System.out.println("=".repeat(70) + "\n");
+        return;
+    }
+
+    try {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setFrom(fromEmail);
+        helper.setTo(toEmail);
+        helper.setSubject(subject);
+        helper.setText(body, false);
+
+        if (attachmentBytes != null && attachmentBytes.length > 0 && attachmentFileName != null) {
+            helper.addAttachment(
+                    attachmentFileName,
+                    new ByteArrayResource(attachmentBytes)
+            );
+        }
+
+        mailSender.send(message);
+
+        System.out.println("✅ Email with attachment sent successfully to: " + toEmail);
+    } catch (Exception e) {
+        System.err.println("❌ Failed to send email with attachment to " + toEmail);
+        System.err.println("📧 Error details: " + e.getMessage());
+        throw new RuntimeException("Failed to send email with attachment", e);
+    }
+}
+public void sendReceiptUploadConfirmationEmail(User user, Receipt receipt) {
+    if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+        return;
+    }
+
+    String fullName = ((user.getName() != null ? user.getName() : "") + " " +
+            (user.getSurname() != null ? user.getSurname() : "")).trim();
+
+    String subject = "PMUMS UTR / Receipt Upload Confirmation";
+
+    String body = """
+            प्रिय %s जी,
+
+            आपकी सहयोग राशि की UTR / Receipt सफलतापूर्वक अपलोड हो गई है।
+
+            रजिस्ट्रेशन नंबर: %s
+            UTR नंबर: %s
+            राशि: ₹%s
+            भुगतान दिनांक: %s
+            स्थिति: Pending Verification
+
+            Admin verification के बाद यह सहयोग सूची में दिखाई देगा।
+
+            धन्यवाद,
+            PMUMS शिक्षक संघ / कर्मचारी कल्याण कोष
+            """.formatted(
+            fullName.isBlank() ? "सदस्य" : fullName,
+            user.getId(),
+            receipt.getUtrNumber() != null ? receipt.getUtrNumber() : "-",
+receipt.getAmount(),            receipt.getPaymentDate() != null ? receipt.getPaymentDate() : "-"
+    );
+
+    if (!emailEnabled) {
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("📧 RECEIPT UPLOAD EMAIL (CONSOLE OUTPUT)");
+        System.out.println("=".repeat(70));
+        System.out.println("To: " + user.getEmail());
+        System.out.println("Subject: " + subject);
+        System.out.println(body);
+        System.out.println("=".repeat(70) + "\n");
+        return;
+    }
+
+    try {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(user.getEmail());
+        message.setSubject(subject);
+        message.setText(body);
+
+        mailSender.send(message);
+
+        System.out.println("✅ Receipt upload confirmation email sent to: " + user.getEmail());
+    } catch (Exception e) {
+        System.err.println("❌ Failed to send receipt upload email to " + user.getEmail());
+        System.err.println("📧 Error details: " + e.getMessage());
+    }
+}
     /**
      * Send registration confirmation email
      */
@@ -120,48 +226,7 @@ public class EmailService {
         System.out.println("=".repeat(70) + "\n");
     }
 
-    public void sendEmailWithAttachment(
-        String toEmail,
-        String subject,
-        String body,
-        byte[] attachmentBytes,
-        String attachmentFileName
-) {
-    if (!emailEnabled) {
-        System.out.println("\n" + "=".repeat(70));
-        System.out.println("📧 EMAIL WITH ATTACHMENT (CONSOLE OUTPUT)");
-        System.out.println("=".repeat(70));
-        System.out.println("To: " + toEmail);
-        System.out.println("Subject: " + subject);
-        System.out.println("Attachment: " + attachmentFileName);
-        System.out.println("Body: " + body);
-        System.out.println("=".repeat(70) + "\n");
-        return;
-    }
-
-    try {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-        helper.setFrom(fromEmail);
-        helper.setTo(toEmail);
-        helper.setSubject(subject);
-        helper.setText(body, false);
-
-        helper.addAttachment(
-                attachmentFileName,
-                new ByteArrayResource(attachmentBytes)
-        );
-
-        mailSender.send(message);
-
-        System.out.println("✅ Email with attachment sent successfully to: " + toEmail);
-    } catch (Exception e) {
-        System.err.println("❌ Failed to send email with attachment to " + toEmail);
-        System.err.println("📧 Error details: " + e.getMessage());
-        throw new RuntimeException("Failed to send email with attachment", e);
-    }
-}
+   
 
     /**
      * Build registration confirmation email body in Hindi

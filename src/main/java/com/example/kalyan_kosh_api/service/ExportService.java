@@ -578,6 +578,34 @@ public String exportPendingProfilesCsv(List<UserResponse> users, boolean include
         return value;
     }
 
+public String exportRetentionUsersCsv(List<User> users, String reportName, boolean includeMobile) {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("Report,User ID,Name,Email,Mobile,Sambhag,District,Block,Department,Department Unique ID,School/Office,Last Login,Registration Date,Status\n");
+
+    for (User u : users) {
+        String fullName = ((u.getName() != null ? u.getName() : "") + " " +
+                (u.getSurname() != null ? u.getSurname() : "")).trim();
+
+        sb.append(csv(reportName)).append(",");
+        sb.append(csv(u.getId())).append(",");
+        sb.append(csv(fullName)).append(",");
+        sb.append(csv(u.getEmail())).append(",");
+        sb.append(csv(includeMobile ? u.getMobileNumber() : "")).append(",");
+        sb.append(csv(u.getDepartmentSambhag() != null ? u.getDepartmentSambhag().getName() : "")).append(",");
+        sb.append(csv(u.getDepartmentDistrict() != null ? u.getDepartmentDistrict().getName() : "")).append(",");
+        sb.append(csv(u.getDepartmentBlock() != null ? u.getDepartmentBlock().getName() : "")).append(",");
+        sb.append(csv(u.getDepartment())).append(",");
+        sb.append(csv(u.getDepartmentUniqueId())).append(",");
+        sb.append(csv(u.getSchoolOfficeName())).append(",");
+        sb.append(csv(u.getLastLoginAt() != null ? u.getLastLoginAt().toString() : "Never Logged In")).append(",");
+        sb.append(csv(u.getCreatedAt() != null ? u.getCreatedAt().toString() : "")).append(",");
+        sb.append(csv(u.getStatus() != null ? u.getStatus().name() : ""));
+        sb.append("\n");
+    }
+
+    return sb.toString();
+}
     /**
      * Export death cases data to Excel format
      */

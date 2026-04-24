@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,7 +63,77 @@ Page<User> findExportUsersPaged(
         @Param("reservedSuperAdminRole") Role reservedSuperAdminRole,
         Pageable pageable
 );
-
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+      AND (
+            u.lastLoginAt < :cutoff
+            OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
+      )
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.lastLoginAt ASC NULLS FIRST, u.createdAt ASC
+""")
+List<User> findUsersNotLoggedInSinceForExportScoped(
+        @Param("cutoff") Instant cutoff,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+      AND NOT EXISTS (
+            SELECT 1
+            FROM Receipt r
+            WHERE r.user.id = u.id
+              AND r.amount > 0
+              AND r.paymentDate >= :cutoffDate
+      )
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> findUsersNotContributedSinceForExportScoped(
+        @Param("cutoffDate") LocalDate cutoffDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
 @Query("""
     SELECT u
     FROM User u

@@ -980,8 +980,16 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
                 fullName = fullName + " " + savedUser.getSurname().trim();
             }
         }
-        emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName.trim(), savedUser.getId());
-
+try {
+    emailService.sendRegistrationConfirmationEmail(
+            savedUser.getEmail(),
+            fullName.trim(),
+            savedUser.getId()
+    );
+} catch (Exception emailError) {
+    System.err.println("❌ Registration email failed for user: " + savedUser.getId());
+    System.err.println("📧 Error details: " + emailError.getMessage());
+}
         return toUserResponse(savedUser);
     }
 

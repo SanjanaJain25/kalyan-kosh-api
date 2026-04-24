@@ -111,7 +111,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
+import com.example.kalyan_kosh_api.dto.AdminManualSahyogMoveRequest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -125,18 +126,88 @@ public class ReceiptService {
     private final UserRepository userRepo;
     private final ModelMapper mapper;
     private final PoolAssignmentService poolAssignmentService;
+private final DeathCaseRepository deathCaseRepo;
+private final AuditLogService auditLogService;
+private final EmailService emailService;
+   public ReceiptService(
+        ReceiptRepository receiptRepo,
+        UserRepository userRepo,
+        ModelMapper mapper,
+        PoolAssignmentService poolAssignmentService,
+        DeathCaseRepository deathCaseRepo,
+        AuditLogService auditLogService,
+        EmailService emailService
+) {
+    this.receiptRepo = receiptRepo;
+    this.userRepo = userRepo;
+    this.mapper = mapper;
+    this.poolAssignmentService = poolAssignmentService;
+    this.deathCaseRepo = deathCaseRepo;
+    this.auditLogService = auditLogService;
+    this.emailService = emailService;
+}
 
-    public ReceiptService(
-            ReceiptRepository receiptRepo,
-            UserRepository userRepo,
-            ModelMapper mapper,
-            PoolAssignmentService poolAssignmentService
-    ) {
-        this.receiptRepo = receiptRepo;
-        this.userRepo = userRepo;
-        this.mapper = mapper;
-        this.poolAssignmentService = poolAssignmentService;
+@Transactional
+public ReceiptResponse manualMoveAsahyogToSahyog(
+        AdminManualSahyogMoveRequest req,
+        User adminUser,
+        String ipAddress
+) {
+    if (adminUser.getRole() != Role.ROLE_ADMIN && adminUser.getRole() != Role.ROLE_SUPERADMIN) {
+        throw new IllegalArgumentException("Only Admin/Super Admin can manually move user to Sahyog");
     }
+
+    User targetUser = userRepo.findById(req.getUserId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + req.getUserId()));
+
+    if (targetUser.getStatus() != UserStatus.ACTIVE) {
+        throw new IllegalArgumentException("Only active users can be moved to Sahyog");
+    }
+
+    DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
+            .orElseThrow(() -> new IllegalArgumentException("Death case not found: " + req.getDeathCaseId()));
+
+    Receipt receipt = Receipt.builder()
+            .user(targetUser)
+            .deathCase(deathCase)
+            .amount(req.getAmount())
+            .paymentDate(req.getPaymentDate())
+            .referenceName(
+                    req.getReferenceName() != null && !req.getReferenceName().isBlank()
+                            ? req.getReferenceName().trim()
+                            : "Manual Admin Entry"
+            )
+            .utrNumber(
+                    req.getUtrNumber() != null && !req.getUtrNumber().isBlank()
+                            ? req.getUtrNumber().trim()
+                            : "MANUAL-" + targetUser.getId() + "-" + System.currentTimeMillis()
+            )
+            .status(ReceiptStatus.VERIFIED)
+            .uploadedAt(Instant.now())
+            .build();
+
+    Receipt saved = receiptRepo.save(receipt);
+
+    auditLogService.saveLog(
+            DeleteEntityType.RECEIPT,
+            String.valueOf(saved.getId()),
+            AuditActionType.CREATE,
+            null,
+            "Manual Asahyog to Sahyog move. User=" + targetUser.getId()
+                    + ", DeathCase=" + deathCase.getId()
+                    + ", Amount=" + req.getAmount()
+                    + ", PaymentDate=" + req.getPaymentDate(),
+            adminUser,
+            req.getRemarks() != null ? req.getRemarks() : "Manual move from Asahyog to Sahyog",
+            ipAddress
+    );
+
+    ReceiptResponse resp = mapper.map(saved, ReceiptResponse.class);
+    resp.setDeathCaseId(saved.getDeathCase().getId());
+    resp.setDeceasedName(saved.getDeathCase().getDeceasedName());
+
+    return resp;
+}
 
     @Transactional
     public ReceiptResponse upload(UploadReceiptRequest req, String userId) {
@@ -186,7 +257,11 @@ public class ReceiptService {
                 .build();
 
         Receipt saved = receiptRepo.save(receipt);
-
+try {
+    emailService.sendReceiptUploadConfirmationEmail(user, saved);
+} catch (Exception emailError) {
+    log.error("Receipt upload email failed for receipt ID: {}", saved.getId(), emailError);
+}
         // ✅ return mapped response
         ReceiptResponse resp = mapper.map(saved, ReceiptResponse.class);
         resp.setDeathCaseId(saved.getDeathCase().getId());

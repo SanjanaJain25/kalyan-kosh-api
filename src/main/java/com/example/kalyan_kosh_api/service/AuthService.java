@@ -38,34 +38,35 @@ public class AuthService {
 //pool assignment service to assign new users to death case pools
 private final PoolAssignmentService poolAssignmentService;
     // Constructor with required dependencies (Spring will autowire)
-    public AuthService(UserRepository userRepo,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       CustomUserDetailsService userDetailsService,
-                       JwtUtil jwtUtil,
-                       ModelMapper mapper,
-                       IdGeneratorService idGeneratorService,
-                       StateRepository stateRepo,
-                       SambhagRepository sambhagRepo,
-                       DistrictRepository districtRepo,
-                       BlockRepository blockRepo,
-                       EmailService emailService,
-                       PoolAssignmentService poolAssignmentService) {
-        this.userRepo = userRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.userDetailsService = userDetailsService;
-        this.jwtUtil = jwtUtil;
-        this.mapper = mapper;
-        this.idGeneratorService = idGeneratorService;
-        this.stateRepo = stateRepo;
-        this.sambhagRepo = sambhagRepo;
-        this.districtRepo = districtRepo;
-        this.blockRepo = blockRepo;
-        this.emailService = emailService;
-        this.poolAssignmentService = poolAssignmentService;
-    }
-
+   public AuthService(UserRepository userRepo,
+                   PasswordEncoder passwordEncoder,
+                   AuthenticationManager authenticationManager,
+                   CustomUserDetailsService userDetailsService,
+                   JwtUtil jwtUtil,
+                   ModelMapper mapper,
+                   IdGeneratorService idGeneratorService,
+                   StateRepository stateRepo,
+                   SambhagRepository sambhagRepo,
+                   DistrictRepository districtRepo,
+                   BlockRepository blockRepo,
+                   EmailService emailService,
+                   PoolAssignmentService poolAssignmentService
+                   ) {
+    this.userRepo = userRepo;
+    this.passwordEncoder = passwordEncoder;
+    this.authenticationManager = authenticationManager;
+    this.userDetailsService = userDetailsService;
+    this.jwtUtil = jwtUtil;
+    this.mapper = mapper;
+    this.idGeneratorService = idGeneratorService;
+    this.stateRepo = stateRepo;
+    this.sambhagRepo = sambhagRepo;
+    this.districtRepo = districtRepo;
+    this.blockRepo = blockRepo;
+    this.emailService = emailService;
+    this.poolAssignmentService = poolAssignmentService;
+    
+}
     @Transactional
     public User registerAfterOtp(RegisterRequest req) {
         // Check if user with this email already exists
@@ -181,8 +182,16 @@ poolAssignmentService.assignPoolToNewUser(u);
                     fullName = fullName + " " + savedUser.getSurname().trim();
                 }
             }
-            emailService.sendRegistrationConfirmationEmail(savedUser.getEmail(), fullName.trim(), savedUser.getId());
-
+try {
+    emailService.sendRegistrationConfirmationEmail(
+            savedUser.getEmail(),
+            fullName.trim(),
+            savedUser.getId()
+    );
+} catch (Exception emailError) {
+    System.err.println("❌ Registration email failed for user: " + savedUser.getId());
+    System.err.println("📧 Error details: " + emailError.getMessage());
+}
             return savedUser;
 
         } catch (Exception e) {
@@ -216,32 +225,32 @@ poolAssignmentService.assignPoolToNewUser(u);
      * Authenticate credentials and return login response with both JWT token and user details.
      * Throws AuthenticationException (runtime) if credentials invalid.
      */
-    public LoginResponse authenticateAndGetLoginResponse(String userId, String rawPassword) {
-        // this will throw a subclass of AuthenticationException if auth fails
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userId, rawPassword));
+   @Transactional
+public LoginResponse authenticateAndGetLoginResponse(String userId, String rawPassword) {
+    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userId, rawPassword));
 
-        // Find user by userId to get the user entity
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found after authentication"));
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found after authentication"));
 
-// ✅ Prevent blocked/deleted users from logging in
-if (user.getStatus() == UserStatus.BLOCKED) {
-    throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
-}
-if (user.getStatus() == UserStatus.DELETED) {
-    throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
-}
-        // Load UserDetails using userId (this is what goes into JWT)
-        UserDetails ud = userDetailsService.loadUserByUsername(user.getId());
-
-        // Generate JWT using JwtUtil (will contain userId as subject)
-        String token = jwtUtil.generateToken(ud);
-
-        // Map user entity to response DTO
-        UserResponse userResponse = mapper.map(user, UserResponse.class);
-
-        return new LoginResponse(token, userResponse);
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
     }
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
+    }
+
+    user.setLastLoginAt(Instant.now());
+    user.setUpdatedAt(Instant.now());
+    userRepo.save(user);
+
+    UserDetails ud = userDetailsService.loadUserByUsername(user.getId());
+    String token = jwtUtil.generateToken(ud);
+
+    UserResponse userResponse = mapper.map(user, UserResponse.class);
+
+    return new LoginResponse(token, userResponse);
+}
 
     @Transactional
     public void resetPassword(String mobile, String newPassword) {

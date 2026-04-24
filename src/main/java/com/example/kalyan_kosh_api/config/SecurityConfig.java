@@ -154,7 +154,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/manager/**").hasAnyRole("SUPERADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER", "ADMIN")
 
                         // User APIs - requires USER or ADMIN role
-                        .requestMatchers("/api/receipts/**").hasAnyRole("SUPERADMIN", "USER", "ADMIN")
+                        .requestMatchers("/api/receipts/**").hasAnyRole("USER", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER", "ADMIN", "SUPERADMIN")
                         // public list only
 .requestMatchers(HttpMethod.GET, "/api/death-cases/public").permitAll()
 

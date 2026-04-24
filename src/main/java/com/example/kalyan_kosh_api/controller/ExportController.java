@@ -21,7 +21,9 @@ import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ManagerScopeService;
-
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -51,6 +53,9 @@ public ExportController(AdminReceiptService receiptService,
     this.systemSettingService = systemSettingService;
     this.userRepository = userRepository;
     this.managerScopeService = managerScopeService;
+}
+private String blankToNull(String value) {
+    return value == null || value.trim().isEmpty() ? null : value.trim();
 }
 @PostMapping("/insurance-inquiries/email")
 public ResponseEntity<?> exportInsuranceInquiriesAndSendEmail() {
@@ -94,7 +99,84 @@ public ResponseEntity<byte[]> exportSahyog(
             .header("Content-Type", "text/csv; charset=UTF-8")
             .body(csvBytes);
 }
+@GetMapping("/retention/no-login-3-months")
+public ResponseEntity<byte[]> exportNoLoginThreeMonths(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId
+) {
+    User currentUser = getCurrentUser();
+    validateRequestedAreaAccess(currentUser, sambhagId, districtId, blockId);
 
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);
+
+    List<User> data = userRepository.findUsersNotLoggedInSinceForExportScoped(
+            cutoff,
+            blankToNull(sambhagId),
+            blankToNull(districtId),
+            blankToNull(blockId),
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportRetentionUsersCsv(
+                    data,
+                    "No Login Since Last 3 Months",
+                    includeMobile
+            )
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=no_login_3_months_users.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+@GetMapping("/retention/no-sahyog-2-months")
+public ResponseEntity<byte[]> exportNoSahyogTwoMonths(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId
+) {
+    User currentUser = getCurrentUser();
+    validateRequestedAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    LocalDate cutoffDate = LocalDate.now().minusMonths(2);
+
+    List<User> data = userRepository.findUsersNotContributedSinceForExportScoped(
+            cutoffDate,
+            blankToNull(sambhagId),
+            blankToNull(districtId),
+            blankToNull(blockId),
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportRetentionUsersCsv(
+                    data,
+                    "No Sahyog Since Last 2 Months",
+                    includeMobile
+            )
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=no_sahyog_2_months_users.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
 @GetMapping("/sahyog/by-beneficiary")
 public ResponseEntity<byte[]> exportSahyogByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,

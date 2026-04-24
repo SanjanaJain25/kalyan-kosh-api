@@ -78,6 +78,7 @@ private DeathCase assignedDeathCase;
     private Instant createdAt;
 
     private Instant updatedAt;
+    private Instant lastLoginAt;
         private Instant deletedAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -85,4 +86,5 @@ private DeathCase assignedDeathCase;
     private User deletedBy;
 
     private String deleteReason;
+
 }
