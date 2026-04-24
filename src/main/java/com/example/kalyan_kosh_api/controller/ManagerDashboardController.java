@@ -123,7 +123,7 @@ public class ManagerDashboardController {
             // Query statistics - null safe
             Map<String, Object> queryMap = new HashMap<>();
             queryMap.put("pending", queryStats != null ? queryStats.getPendingCount() : 0);
-            queryMap.put("inProgress", queryStats != null ? queryStats.getInProgressCount() : 0);
+            queryMap.put("needClarification", queryStats != null ? queryStats.getNeedClarificationCount() : 0);
             queryMap.put("resolved", queryStats != null ? queryStats.getResolvedCount() : 0);
             queryMap.put("overdue", queryStats != null ? queryStats.getOverdueCount() : 0);
             queryMap.put("totalAssigned", queryStats != null ? queryStats.getTotalAssigned() : 0);
@@ -267,7 +267,7 @@ public class ManagerDashboardController {
      * Calculate query resolution rate
      */
     private double calculateResolutionRate(ManagerQueryService.ManagerQueryStats stats) {
-        int total = stats.getPendingCount() + stats.getInProgressCount() + stats.getResolvedCount();
+        int total = stats.getPendingCount() + stats.getNeedClarificationCount() + stats.getResolvedCount();
         if (total == 0) return 0.0;
         return (double) stats.getResolvedCount() / total * 100;
     }

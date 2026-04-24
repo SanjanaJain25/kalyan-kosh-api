@@ -10,7 +10,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.time.Instant;
 import java.time.Instant;
 import java.util.List;
 
@@ -47,7 +49,48 @@ void deleteByResolvedBy(User resolvedBy);
     Page<ManagerQuery> findByStatusAndAssignedToOrderByCreatedAtDesc(
         QueryStatus status, User assignedTo, Pageable pageable
     );
-    
+    @Query("""
+    SELECT q
+    FROM ManagerQuery q
+    LEFT JOIN q.createdBy cb
+    LEFT JOIN q.assignedTo at
+    LEFT JOIN q.relatedUser ru
+    WHERE
+        (
+            :mode = 'all'
+            OR (:mode = 'created' AND cb.id = :viewerId)
+            OR (:mode = 'assigned' AND at.id = :viewerId)
+        )
+        AND (:ticketId IS NULL OR q.id = :ticketId)
+        AND (:status IS NULL OR q.status = :status)
+        AND (:priority IS NULL OR q.priority = :priority)
+        AND (:createdById IS NULL OR cb.id = :createdById)
+        AND (:relatedUserId IS NULL OR ru.id = :relatedUserId)
+        AND (:fromDate IS NULL OR q.createdAt >= :fromDate)
+        AND (:toDate IS NULL OR q.createdAt <= :toDate)
+        AND (
+            :search IS NULL
+            OR LOWER(COALESCE(q.title, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(COALESCE(q.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(COALESCE(cb.name, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(COALESCE(cb.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(COALESCE(ru.name, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(COALESCE(ru.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+    """)
+Page<ManagerQuery> searchTickets(
+        @Param("viewerId") String viewerId,
+        @Param("mode") String mode,
+        @Param("ticketId") Long ticketId,
+        @Param("search") String search,
+        @Param("status") QueryStatus status,
+        @Param("priority") QueryPriority priority,
+        @Param("createdById") String createdById,
+        @Param("relatedUserId") String relatedUserId,
+        @Param("fromDate") Instant fromDate,
+        @Param("toDate") Instant toDate,
+        Pageable pageable
+);
     // Find queries related to specific location areas for sambhag manager
     @Query("SELECT mq FROM ManagerQuery mq WHERE " +
            "mq.relatedSambhag.id IN :sambhagIds " +

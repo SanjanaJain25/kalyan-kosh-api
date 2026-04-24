@@ -8,7 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.example.kalyan_kosh_api.dto.manager.ManagerQueryMessageResponse;
+import com.example.kalyan_kosh_api.repository.ManagerQueryMessageRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -31,7 +32,8 @@ public class ManagerQueryService {
     
     @Autowired
     private ManagerScopeService managerScopeService;
-    
+    @Autowired
+private ManagerQueryMessageRepository managerQueryMessageRepository;
     @Autowired
     private SambhagRepository sambhagRepository;
     
@@ -93,10 +95,70 @@ public class ManagerQueryService {
         
         ManagerQuery query = queryBuilder.build();
         ManagerQuery savedQuery = managerQueryRepository.save(query);
-        
+        if (request.getDescription() != null && !request.getDescription().trim().isEmpty()) {
+    managerQueryMessageRepository.save(
+            ManagerQueryMessage.builder()
+                    .query(savedQuery)
+                    .sender(createdBy)
+                    .message(request.getDescription())
+                    .build()
+    );
+}
         return mapToResponse(savedQuery);
     }
     
+    @Transactional(readOnly = true)
+public ManagerQueryResponse getQueryById(Long queryId, User currentUser) {
+    ManagerQuery query = managerQueryRepository.findById(queryId)
+            .orElseThrow(() -> new IllegalArgumentException("Query not found"));
+
+    if (!canUpdateQuery(currentUser, query)
+            && !query.getCreatedBy().getId().equals(currentUser.getId())) {
+        throw new IllegalArgumentException("You don't have authority to view this query");
+    }
+
+    return mapToResponse(query);
+}
+
+@Transactional(readOnly = true)
+public Page<ManagerQueryResponse> searchTickets(
+        User currentUser,
+        String mode,
+        Long ticketId,
+        String search,
+        QueryStatus status,
+        QueryPriority priority,
+        String createdById,
+        String relatedUserId,
+        Instant fromDate,
+        Instant toDate,
+        Pageable pageable
+) {
+    String cleanMode = mode == null || mode.isBlank() ? "assigned" : mode.toLowerCase();
+
+    Page<ManagerQuery> queries = managerQueryRepository.searchTickets(
+            currentUser.getId(),
+            cleanMode,
+            ticketId,
+            cleanString(search),
+            status,
+            priority,
+            cleanString(createdById),
+            cleanString(relatedUserId),
+            fromDate,
+            toDate,
+            pageable
+    );
+
+    return queries.map(this::mapToResponse);
+}
+
+private String cleanString(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return value.trim();
+}
     /**
      * Get queries for manager dashboard
      */
@@ -105,7 +167,7 @@ public class ManagerQueryService {
                                                           QueryPriority priority, Pageable pageable) {
         Page<ManagerQuery> queries;
         
-        if (manager.getRole() == Role.ROLE_ADMIN) {
+      if (manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN) {
             // Admin sees all queries
             queries = managerQueryRepository.findWithFilters(null, null, status, priority, 
                                                             null, null, null, pageable);
@@ -137,6 +199,56 @@ public class ManagerQueryService {
         return queries.map(this::mapToResponse);
     }
     
+    public ManagerQueryMessageResponse addMessage(Long queryId, String message, User sender) {
+    ManagerQuery query = managerQueryRepository.findById(queryId)
+            .orElseThrow(() -> new IllegalArgumentException("Query not found"));
+
+    if (!canUpdateQuery(sender, query)
+            && !query.getCreatedBy().getId().equals(sender.getId())) {
+        throw new IllegalArgumentException("You don't have authority to comment on this query");
+    }
+
+    ManagerQueryMessage saved = managerQueryMessageRepository.save(
+            ManagerQueryMessage.builder()
+                    .query(query)
+                    .sender(sender)
+                    .message(message)
+                    .build()
+    );
+
+    query.setUpdatedAt(Instant.now());
+    managerQueryRepository.save(query);
+
+    return mapMessageToResponse(saved);
+}
+@Transactional(readOnly = true)
+public List<ManagerQueryMessageResponse> getMessages(Long queryId, User currentUser) {
+    ManagerQuery query = managerQueryRepository.findById(queryId)
+            .orElseThrow(() -> new IllegalArgumentException("Query not found"));
+
+    if (!canUpdateQuery(currentUser, query)
+            && !query.getCreatedBy().getId().equals(currentUser.getId())) {
+        throw new IllegalArgumentException("You don't have authority to view messages");
+    }
+
+    return managerQueryMessageRepository.findByQueryOrderByCreatedAtAsc(query)
+            .stream()
+            .map(this::mapMessageToResponse)
+            .toList();
+}
+private ManagerQueryMessageResponse mapMessageToResponse(ManagerQueryMessage message) {
+    User sender = message.getSender();
+
+    return ManagerQueryMessageResponse.builder()
+            .id(message.getId())
+            .senderId(sender.getId())
+            .senderName((sender.getName() == null ? "" : sender.getName()) + " " +
+                    (sender.getSurname() == null ? "" : sender.getSurname()))
+            .senderRole(sender.getRole() != null ? sender.getRole().name() : null)
+            .message(message.getMessage())
+            .createdAt(message.getCreatedAt())
+            .build();
+}
     /**
      * Assign query to manager
      */
@@ -201,7 +313,31 @@ public class ManagerQueryService {
         ManagerQuery savedQuery = managerQueryRepository.save(query);
         return mapToResponse(savedQuery);
     }
-    
+    @Transactional(readOnly = true)
+public Page<ManagerQueryResponse> getAllQueries(
+        QueryStatus status,
+        QueryPriority priority,
+        Pageable pageable
+) {
+    Page<ManagerQuery> queries;
+
+    if (status != null || priority != null) {
+        queries = managerQueryRepository.findWithFilters(
+                null,
+                null,
+                status,
+                priority,
+                null,
+                null,
+                null,
+                pageable
+        );
+    } else {
+        queries = managerQueryRepository.findAll(pageable);
+    }
+
+    return queries.map(this::mapToResponse);
+}
     /**
      * Escalate query to higher level
      */
@@ -220,7 +356,7 @@ public class ManagerQueryService {
         }
         
         query.setAssignedTo(higherManager);
-        query.setStatus(QueryStatus.ESCALATED);
+        query.setStatus(QueryStatus.NEED_CLARIFICATION);
         query.setPriority(escalatePriority(query.getPriority()));
         
         ManagerQuery savedQuery = managerQueryRepository.save(query);
@@ -231,29 +367,36 @@ public class ManagerQueryService {
      * Get query statistics for dashboard
      */
     @Transactional(readOnly = true)
-    public ManagerQueryStats getQueryStats(User manager) {
-        Long pendingCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.PENDING, manager);
-        Long inProgressCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.IN_PROGRESS, manager);
-        Long resolvedCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.RESOLVED, manager);
-        
-        // Find overdue queries (older than 7 days for regular, 3 days for urgent)
-        Instant overdueRegular = Instant.now().minus(7, ChronoUnit.DAYS);
-        Instant overdueUrgent = Instant.now().minus(3, ChronoUnit.DAYS);
-        List<ManagerQuery> overdueQueries = managerQueryRepository.findOverdueQueries(overdueRegular);
-        
-        // Filter overdue queries for this manager
-        long overdueCount = overdueQueries.stream()
+public ManagerQueryStats getQueryStats(User manager) {
+    Long pendingCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.PENDING, manager);
+    Long needClarificationCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.NEED_CLARIFICATION, manager);
+    Long resolvedCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.RESOLVED, manager);
+    Long cancelCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.CANCEL, manager);
+
+    // Find overdue queries older than 7 days
+    Instant overdueRegular = Instant.now().minus(7, ChronoUnit.DAYS);
+    List<ManagerQuery> overdueQueries = managerQueryRepository.findOverdueQueries(overdueRegular);
+
+    // Filter overdue queries for this manager
+    long overdueCount = overdueQueries.stream()
             .filter(q -> q.getAssignedTo() != null && q.getAssignedTo().getId().equals(manager.getId()))
+            .filter(q -> q.getStatus() != QueryStatus.RESOLVED && q.getStatus() != QueryStatus.CANCEL)
             .count();
-        
-        return ManagerQueryStats.builder()
+
+    return ManagerQueryStats.builder()
             .pendingCount(pendingCount.intValue())
-            .inProgressCount(inProgressCount.intValue())
+            .needClarificationCount(needClarificationCount.intValue())
             .resolvedCount(resolvedCount.intValue())
+            .cancelCount(cancelCount.intValue())
             .overdueCount((int) overdueCount)
-            .totalAssigned(pendingCount.intValue() + inProgressCount.intValue())
+            .totalAssigned(
+                    pendingCount.intValue()
+                            + needClarificationCount.intValue()
+                            + resolvedCount.intValue()
+                            + cancelCount.intValue()
+            )
             .build();
-    }
+}
     
     /**
      * Auto-assign query based on hierarchy and location
@@ -329,23 +472,21 @@ public class ManagerQueryService {
      * Check if user can assign query
      */
     private boolean canAssignQuery(User assignedBy, ManagerQuery query, User targetManager) {
-        // Admin can assign anything
-        if (assignedBy.getRole() == Role.ROLE_ADMIN) {
-            return true;
-        }
-        
-        // Can assign if you're higher in hierarchy than target
-        return isHigherInHierarchy(assignedBy.getRole(), targetManager.getRole());
+    if (assignedBy.getRole() == Role.ROLE_ADMIN || assignedBy.getRole() == Role.ROLE_SUPERADMIN) {
+        return true;
     }
+
+    return isHigherInHierarchy(assignedBy.getRole(), targetManager.getRole());
+}
     
     /**
      * Check if user can update query
      */
     private boolean canUpdateQuery(User user, ManagerQuery query) {
         // Admin can update anything
-        if (user.getRole() == Role.ROLE_ADMIN) {
-            return true;
-        }
+        if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_SUPERADMIN) {
+    return true;
+}
         
         // Creator can update their own query
         if (query.getCreatedBy().getId().equals(user.getId())) {
@@ -447,66 +588,89 @@ public class ManagerQueryService {
      * DTO for query statistics
      */
     public static class ManagerQueryStats {
+    private int pendingCount;
+    private int needClarificationCount;
+    private int resolvedCount;
+    private int cancelCount;
+    private int overdueCount;
+    private int totalAssigned;
+
+    public static ManagerQueryStatsBuilder builder() {
+        return new ManagerQueryStatsBuilder();
+    }
+
+    public static class ManagerQueryStatsBuilder {
         private int pendingCount;
-        private int inProgressCount;
+        private int needClarificationCount;
         private int resolvedCount;
+        private int cancelCount;
         private int overdueCount;
         private int totalAssigned;
-        
-        // Constructors, getters, setters
-        public static ManagerQueryStatsBuilder builder() {
-            return new ManagerQueryStatsBuilder();
+
+        public ManagerQueryStatsBuilder pendingCount(int pendingCount) {
+            this.pendingCount = pendingCount;
+            return this;
         }
-        
-        // Builder pattern implementation
-        public static class ManagerQueryStatsBuilder {
-            private int pendingCount;
-            private int inProgressCount;
-            private int resolvedCount;
-            private int overdueCount;
-            private int totalAssigned;
-            
-            public ManagerQueryStatsBuilder pendingCount(int pendingCount) {
-                this.pendingCount = pendingCount;
-                return this;
-            }
-            
-            public ManagerQueryStatsBuilder inProgressCount(int inProgressCount) {
-                this.inProgressCount = inProgressCount;
-                return this;
-            }
-            
-            public ManagerQueryStatsBuilder resolvedCount(int resolvedCount) {
-                this.resolvedCount = resolvedCount;
-                return this;
-            }
-            
-            public ManagerQueryStatsBuilder overdueCount(int overdueCount) {
-                this.overdueCount = overdueCount;
-                return this;
-            }
-            
-            public ManagerQueryStatsBuilder totalAssigned(int totalAssigned) {
-                this.totalAssigned = totalAssigned;
-                return this;
-            }
-            
-            public ManagerQueryStats build() {
-                ManagerQueryStats stats = new ManagerQueryStats();
-                stats.pendingCount = this.pendingCount;
-                stats.inProgressCount = this.inProgressCount;
-                stats.resolvedCount = this.resolvedCount;
-                stats.overdueCount = this.overdueCount;
-                stats.totalAssigned = this.totalAssigned;
-                return stats;
-            }
+
+        public ManagerQueryStatsBuilder needClarificationCount(int needClarificationCount) {
+            this.needClarificationCount = needClarificationCount;
+            return this;
         }
-        
-        // Getters
-        public int getPendingCount() { return pendingCount; }
-        public int getInProgressCount() { return inProgressCount; }
-        public int getResolvedCount() { return resolvedCount; }
-        public int getOverdueCount() { return overdueCount; }
-        public int getTotalAssigned() { return totalAssigned; }
+
+        public ManagerQueryStatsBuilder resolvedCount(int resolvedCount) {
+            this.resolvedCount = resolvedCount;
+            return this;
+        }
+
+        public ManagerQueryStatsBuilder cancelCount(int cancelCount) {
+            this.cancelCount = cancelCount;
+            return this;
+        }
+
+        public ManagerQueryStatsBuilder overdueCount(int overdueCount) {
+            this.overdueCount = overdueCount;
+            return this;
+        }
+
+        public ManagerQueryStatsBuilder totalAssigned(int totalAssigned) {
+            this.totalAssigned = totalAssigned;
+            return this;
+        }
+
+        public ManagerQueryStats build() {
+            ManagerQueryStats stats = new ManagerQueryStats();
+            stats.pendingCount = this.pendingCount;
+            stats.needClarificationCount = this.needClarificationCount;
+            stats.resolvedCount = this.resolvedCount;
+            stats.cancelCount = this.cancelCount;
+            stats.overdueCount = this.overdueCount;
+            stats.totalAssigned = this.totalAssigned;
+            return stats;
+        }
     }
+
+    public int getPendingCount() {
+        return pendingCount;
+    }
+
+    public int getNeedClarificationCount() {
+        return needClarificationCount;
+    }
+
+    public int getResolvedCount() {
+        return resolvedCount;
+    }
+
+    public int getCancelCount() {
+        return cancelCount;
+    }
+
+    public int getOverdueCount() {
+        return overdueCount;
+    }
+
+    public int getTotalAssigned() {
+        return totalAssigned;
+    }
+}
 }

@@ -35,7 +35,10 @@ public class ManagerQueryResponse {
     // Status and priority
     private QueryPriority priority;
     private QueryStatus status;
-    
+    private Integer messageCount;
+private String lastMessage;
+private String lastMessageBy;
+private Instant lastMessageAt;
     // Related location
     private UUID relatedSambhagId;
     private String relatedSambhagName;
@@ -92,18 +95,22 @@ public class ManagerQueryResponse {
     /**
      * Helper method for user-friendly status display
      */
-    public String getStatusDisplay() {
-        if (status == null) return "Unknown";
-        
-        switch (status) {
-            case PENDING: return "Pending Review";
-            case IN_PROGRESS: return "In Progress";
-            case RESOLVED: return "Resolved";
-            case REJECTED: return "Rejected";
-            case ESCALATED: return "Escalated";
-            default: return status.toString();
-        }
+   public String getStatusDisplay() {
+    if (status == null) return "Unknown";
+
+    switch (status) {
+        case PENDING:
+            return "लंबित";
+        case RESOLVED:
+            return "समाधानित";
+        case CANCEL:
+            return "निरस्त";
+        case NEED_CLARIFICATION:
+            return "स्पष्टीकरण आवश्यक";
+        default:
+            return status.toString();
     }
+}
     
     /**
      * Helper method for user-friendly priority display
@@ -131,13 +138,14 @@ public class ManagerQueryResponse {
     /**
      * Check if query is overdue (more than 7 days for regular, 3 days for urgent)
      */
-    public boolean isOverdue() {
-        long days = getDaysSinceCreated();
-        if (status == QueryStatus.RESOLVED || status == QueryStatus.REJECTED) {
-            return false;
-        }
-        
-        return (priority == QueryPriority.URGENT && days > 3) || 
-               (priority != QueryPriority.URGENT && days > 7);
+   public boolean isOverdue() {
+    long days = getDaysSinceCreated();
+
+    if (status == QueryStatus.RESOLVED || status == QueryStatus.CANCEL) {
+        return false;
     }
+
+    return (priority == QueryPriority.URGENT && days > 3)
+            || (priority != QueryPriority.URGENT && days > 7);
+}
 }

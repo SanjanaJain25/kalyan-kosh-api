@@ -11,10 +11,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import jakarta.validation.Valid;
 import java.util.Map;
-
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 /**
  * Controller for Manager Query System
  * Handles query creation, assignment, resolution, and escalation
@@ -31,7 +35,97 @@ public class ManagerQueryController {
     private UserRepository userRepository;
 
     // ============ QUERY MANAGEMENT ENDPOINTS ============
-    
+    @GetMapping
+@PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
+public ResponseEntity<?> getQueries(
+        @RequestParam(required = false) Long ticketId,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) QueryStatus status,
+        @RequestParam(required = false) QueryPriority priority,
+        @RequestParam(required = false) String createdById,
+        @RequestParam(required = false) String relatedUserId,
+        @RequestParam(required = false) String fromDate,
+        @RequestParam(required = false) String toDate,
+        @RequestParam(defaultValue = "assigned") String type,
+        @RequestParam(defaultValue = "createdAt") String sortBy,
+        @RequestParam(defaultValue = "desc") String sortDir,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        Authentication authentication
+) {
+    try {
+        User currentUser = getCurrentUser(authentication);
+
+        String cleanType = type == null || type.isBlank()
+                ? "assigned"
+                : type.toLowerCase();
+
+        if ("all".equalsIgnoreCase(cleanType)) {
+            boolean isAdmin =
+                    currentUser.getRole() == Role.ROLE_ADMIN ||
+                    currentUser.getRole() == Role.ROLE_SUPERADMIN;
+
+            if (!isAdmin) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("error", "Only admin can view all tickets"));
+            }
+        }
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        String safeSortBy = switch (sortBy) {
+            case "id", "title", "createdAt", "updatedAt", "priority", "status" -> sortBy;
+            default -> "createdAt";
+        };
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(direction, safeSortBy)
+        );
+
+        Page<ManagerQueryResponse> queries = managerQueryService.searchTickets(
+                currentUser,
+                cleanType,
+                ticketId,
+                search,
+                status,
+                priority,
+                createdById,
+                relatedUserId,
+                parseStartDate(fromDate),
+                parseEndDate(toDate),
+                pageable
+        );
+
+        return ResponseEntity.ok(queries);
+
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
+private Instant parseStartDate(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+
+    return LocalDate.parse(value.trim())
+            .atStartOfDay(ZoneId.of("Asia/Kolkata"))
+            .toInstant();
+}
+
+private Instant parseEndDate(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+
+    return LocalDate.parse(value.trim())
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.of("Asia/Kolkata"))
+            .toInstant();
+}
     /**
      * Create new query
      */
@@ -51,29 +145,7 @@ public class ManagerQueryController {
     /**
      * Get queries for manager dashboard
      */
-    @GetMapping
-    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
-    public ResponseEntity<?> getQueries(
-            @RequestParam(required = false) QueryStatus status,
-            @RequestParam(required = false) QueryPriority priority,
-            @RequestParam(required = false, defaultValue = "assigned") String type, // "assigned", "created", "all"
-            Pageable pageable,
-            Authentication authentication) {
-        try {
-            User manager = getCurrentUser(authentication);
-            
-            Page<ManagerQueryResponse> queries;
-            if ("created".equals(type)) {
-                queries = managerQueryService.getCreatedQueries(manager, pageable);
-            } else {
-                queries = managerQueryService.getQueriesForManager(manager, status, priority, pageable);
-            }
-            
-            return ResponseEntity.ok(queries);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
+ 
     
     /**
      * Get query statistics for dashboard
@@ -94,20 +166,42 @@ public class ManagerQueryController {
      * Get specific query details
      */
     @GetMapping("/{queryId}")
-    @PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
-    public ResponseEntity<?> getQuery(@PathVariable Long queryId,
-                                     Authentication authentication) {
-        try {
-            User manager = getCurrentUser(authentication);
-            
-            // This would need additional authorization logic to ensure manager can access this query
-            // For now, we'll use a placeholder approach
-            return ResponseEntity.ok(Map.of("message", "Query details would be returned here"));
-            
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+@PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
+public ResponseEntity<?> getQuery(@PathVariable Long queryId,
+                                  Authentication authentication) {
+    try {
+        User currentUser = getCurrentUser(authentication);
+        return ResponseEntity.ok(managerQueryService.getQueryById(queryId, currentUser));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
     }
+}
+
+@GetMapping("/{queryId}/messages")
+@PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
+public ResponseEntity<?> getMessages(@PathVariable Long queryId,
+                                     Authentication authentication) {
+    try {
+        User currentUser = getCurrentUser(authentication);
+        return ResponseEntity.ok(managerQueryService.getMessages(queryId, currentUser));
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
+@PostMapping("/{queryId}/messages")
+@PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER') or hasRole('BLOCK_MANAGER')")
+public ResponseEntity<?> addMessage(@PathVariable Long queryId,
+                                    @Valid @RequestBody AddManagerQueryMessageRequest request,
+                                    Authentication authentication) {
+    try {
+        User currentUser = getCurrentUser(authentication);
+        return ResponseEntity.ok(
+                managerQueryService.addMessage(queryId, request.getMessage(), currentUser)
+        );
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+}
     
     // ============ QUERY ACTION ENDPOINTS ============
     
