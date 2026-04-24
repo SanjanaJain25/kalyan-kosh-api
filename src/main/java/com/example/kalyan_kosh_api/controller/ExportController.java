@@ -57,6 +57,12 @@ public ExportController(AdminReceiptService receiptService,
 private String blankToNull(String value) {
     return value == null || value.trim().isEmpty() ? null : value.trim();
 }
+private LocalDate parseOptionalDate(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return LocalDate.parse(value.trim());
+}
 @PostMapping("/insurance-inquiries/email")
 public ResponseEntity<?> exportInsuranceInquiriesAndSendEmail() {
     return ResponseEntity.ok(exportService.exportInsuranceInquiriesAndSendEmail());
@@ -96,6 +102,92 @@ public ResponseEntity<byte[]> exportSahyog(
 
     return ResponseEntity.ok()
             .header("Content-Disposition", "attachment; filename=sahyog.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+@GetMapping("/users/joining-date")
+public ResponseEntity<byte[]> exportUsersByJoiningDate(
+        @RequestParam(required = false) String fromDate,
+        @RequestParam(required = false) String toDate,
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId
+) {
+    User currentUser = getCurrentUser();
+    validateRequestedAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    LocalDate from = parseOptionalDate(fromDate);
+    LocalDate to = parseOptionalDate(toDate);
+
+    List<User> data = userRepository.findUsersForJoiningDateExportScoped(
+            from,
+            to,
+            blankToNull(sambhagId),
+            blankToNull(districtId),
+            blankToNull(blockId),
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportUserDateReportCsv(
+                    data,
+                    "Joining Date Report",
+                    includeMobile
+            )
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=joining_date_users.csv")
+            .header("Content-Type", "text/csv; charset=UTF-8")
+            .body(csvBytes);
+}
+@GetMapping("/users/retirement-date")
+public ResponseEntity<byte[]> exportUsersByRetirementDate(
+        @RequestParam(required = false) String fromDate,
+        @RequestParam(required = false) String toDate,
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId
+) {
+    User currentUser = getCurrentUser();
+    validateRequestedAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    LocalDate from = parseOptionalDate(fromDate);
+    LocalDate to = parseOptionalDate(toDate);
+
+    List<User> data = userRepository.findUsersForRetirementDateExportScoped(
+            from,
+            to,
+            blankToNull(sambhagId),
+            blankToNull(districtId),
+            blankToNull(blockId),
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
+    );
+
+    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+
+    byte[] csvBytes = exportService.exportCsvWithBom(
+            exportService.exportUserDateReportCsv(
+                    data,
+                    "Retirement Date Report",
+                    includeMobile
+            )
+    );
+
+    return ResponseEntity.ok()
+            .header("Content-Disposition", "attachment; filename=retirement_date_users.csv")
             .header("Content-Type", "text/csv; charset=UTF-8")
             .body(csvBytes);
 }

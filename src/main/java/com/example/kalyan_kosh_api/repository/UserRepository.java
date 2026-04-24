@@ -134,6 +134,78 @@ List<User> findUsersNotContributedSinceForExportScoped(
         @Param("scopeDistrictIds") List<String> scopeDistrictIds,
         @Param("scopeBlockIds") List<String> scopeBlockIds
 );
+
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState st
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+      AND u.joiningDate IS NOT NULL
+      AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
+      AND (:toDate IS NULL OR u.joiningDate <= :toDate)
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.joiningDate ASC, u.createdAt DESC
+""")
+List<User> findUsersForJoiningDateExportScoped(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("toDate") LocalDate toDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
+
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState st
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+      AND u.retirementDate IS NOT NULL
+      AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
+      AND (:toDate IS NULL OR u.retirementDate <= :toDate)
+      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+      AND (
+            :unrestricted = true
+            OR CAST(sa.id AS string) IN :scopeSambhagIds
+            OR CAST(d.id AS string) IN :scopeDistrictIds
+            OR CAST(b.id AS string) IN :scopeBlockIds
+      )
+    ORDER BY u.retirementDate ASC, u.createdAt DESC
+""")
+List<User> findUsersForRetirementDateExportScoped(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("toDate") LocalDate toDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds
+);
+
+
 @Query("""
     SELECT u
     FROM User u
