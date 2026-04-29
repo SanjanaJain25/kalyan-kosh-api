@@ -104,13 +104,18 @@ public class ReceiptController {
      *  deathCase is auto-attached from user's assigned pool
      */
     @PostMapping
-    public ResponseEntity<ReceiptResponse> upload(
-            @Valid @RequestBody UploadReceiptRequest req,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(service.upload(req, authentication.getName()));
-    }
-
+public ResponseEntity<ReceiptResponse> upload(
+        @Valid @RequestBody UploadReceiptRequest req,
+        Authentication authentication
+) {
+    return ResponseEntity.ok(service.upload(req, authentication.getName()));
+}
+@PostMapping("/public-upload")
+public ResponseEntity<ReceiptResponse> publicUpload(
+        @Valid @RequestBody UploadReceiptRequest req
+) {
+    return ResponseEntity.ok(service.publicUpload(req));
+}
     @GetMapping("/my")
     public ResponseEntity<?> myReceipts(Authentication authentication) {
         return ResponseEntity.ok(service.getMyReceipts(authentication.getName()));

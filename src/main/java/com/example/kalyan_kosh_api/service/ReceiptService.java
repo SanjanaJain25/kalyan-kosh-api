@@ -1,103 +1,3 @@
-// package com.example.kalyan_kosh_api.service;
-
-// import com.example.kalyan_kosh_api.dto.ReceiptResponse;
-// import com.example.kalyan_kosh_api.dto.UploadReceiptRequest;
-// import com.example.kalyan_kosh_api.entity.*;
-// import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
-// import com.example.kalyan_kosh_api.repository.ReceiptRepository;
-// import com.example.kalyan_kosh_api.repository.UserRepository;
-// import org.modelmapper.ModelMapper;
-// import org.slf4j.Logger;
-// import org.slf4j.LoggerFactory;
-// import org.springframework.stereotype.Service;
-
-// import java.time.Instant;
-// import java.time.LocalDate;
-// import java.util.List;
-
-// @Service
-// public class ReceiptService {
-
-//     private static final Logger log = LoggerFactory.getLogger(ReceiptService.class);
-
-//     private final ReceiptRepository receiptRepo;
-//     private final UserRepository userRepo;
-//     private final DeathCaseRepository deathCaseRepo;
-//     private final ModelMapper mapper;
-
-//     public ReceiptService(
-//             ReceiptRepository receiptRepo,
-//             UserRepository userRepo,
-//             DeathCaseRepository deathCaseRepo,
-//             ModelMapper mapper
-//     ) {
-//         this.receiptRepo = receiptRepo;
-//         this.userRepo = userRepo;
-//         this.deathCaseRepo = deathCaseRepo;
-//         this.mapper = mapper;
-//     }
-
-
-//     // UPLOAD RECEIPT (without file - just payment details)
-//     public ReceiptResponse upload(UploadReceiptRequest req, String userId) {
-
-//         log.info("Creating receipt for user: {}, deathCaseId: {}, amount: {}",
-//                  userId, req.getDeathCaseId(), req.getAmount());
-
-//         // Validate user
-//         User user = userRepo.findById(userId)
-//                 .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
-
-//         // Validate death case
-//         DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
-//                 .orElseThrow(() -> new IllegalStateException("Death case not found: " + req.getDeathCaseId()));
-
-//         // Validate UTR number is provided
-//         if (req.getUtrNumber() == null || req.getUtrNumber().trim().isEmpty()) {
-//             throw new IllegalArgumentException("UTR number is required");
-//         }
-
-//         // Auto-set payment date to current date
-//         LocalDate paymentDate = LocalDate.now();
-//         Instant currentDateTime = Instant.now();
-
-//         Receipt receipt = Receipt.builder()
-//                 .user(user)
-//                 .deathCase(deathCase)
-//                 .amount(req.getAmount())
-//                 .paymentDate(paymentDate)  // Auto-set to current date
-//                 .referenceName(req.getReferenceName())
-//                 .utrNumber(req.getUtrNumber())
-//                 .status(ReceiptStatus.UPLOADED)
-//                 .uploadedAt(currentDateTime)
-//                 .build();
-
-//         Receipt saved = receiptRepo.save(receipt);
-//         log.info("Receipt created successfully with ID: {}, paymentDate: {}", saved.getId(), paymentDate);
-
-//         return mapper.map(saved, ReceiptResponse.class);
-//     }
-
-
-//     // USER RECEIPT HISTORY
-//     public List<ReceiptResponse> getMyReceipts(String userId) {
-
-//         User user = userRepo.findById(userId)
-//                 .orElseThrow(() -> new IllegalStateException("User not found"));
-
-//         return receiptRepo.findByUserOrderByUploadedAtDesc(user)
-//                 .stream()
-//                 .map(receipt -> {
-//                     ReceiptResponse resp =
-//                             mapper.map(receipt, ReceiptResponse.class);
-//                     resp.setDeathCaseId(receipt.getDeathCase().getId());
-//                     resp.setDeceasedName(
-//                             receipt.getDeathCase().getDeceasedName());
-//                     return resp;
-//                 })
-//                 .toList();
-//     }
-// }
 
 package com.example.kalyan_kosh_api.service;
 
@@ -210,64 +110,97 @@ public ReceiptResponse manualMoveAsahyogToSahyog(
 }
 
     @Transactional
-    public ReceiptResponse upload(UploadReceiptRequest req, String userId) {
+public ReceiptResponse upload(UploadReceiptRequest req, String loggedInUserId) {
 
-        // ✅ Validate user
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+    String targetUserId = req.getUserId();
 
-        // ✅ Ensure user has pool assigned; if not, assign now
-        if (user.getAssignedDeathCase() == null) {
-            poolAssignmentService.assignPoolToNewUser(user);
-            userRepo.save(user);
-        }
-
-        // ✅ Still null means: no active OPEN death cases exist
-        if (user.getAssignedDeathCase() == null) {
-            throw new IllegalStateException("No active death case pool available. Please contact admin.");
-        }
-
-        DeathCase assignedCase = user.getAssignedDeathCase();
-
-        // ✅ Optional (recommended): only allow receipts for OPEN cases
-        if (assignedCase.getStatus() != DeathCaseStatus.OPEN) {
-            throw new IllegalStateException("Your assigned pool is not active (not OPEN). Please contact admin.");
-        }
-
-        // ✅ Validate UTR number
-        if (req.getUtrNumber() == null || req.getUtrNumber().trim().isEmpty()) {
-            throw new IllegalArgumentException("UTR number is required");
-        }
-
-        LocalDate paymentDate = LocalDate.now();
-        Instant now = Instant.now();
-
-        log.info("Creating receipt for user: {}, assignedDeathCaseId: {}, amount: {}",
-                userId, assignedCase.getId(), req.getAmount());
-
-        Receipt receipt = Receipt.builder()
-                .user(user)
-                .deathCase(assignedCase) // ✅ AUTO attach
-                .amount(req.getAmount())
-                .paymentDate(paymentDate)
-                .referenceName(req.getReferenceName())
-                .utrNumber(req.getUtrNumber())
-                .status(ReceiptStatus.UPLOADED)
-                .uploadedAt(now)
-                .build();
-
-        Receipt saved = receiptRepo.save(receipt);
-try {
-    emailService.sendReceiptUploadConfirmationEmail(user, saved);
-} catch (Exception emailError) {
-    log.error("Receipt upload email failed for receipt ID: {}", saved.getId(), emailError);
-}
-        // ✅ return mapped response
-        ReceiptResponse resp = mapper.map(saved, ReceiptResponse.class);
-        resp.setDeathCaseId(saved.getDeathCase().getId());
-        resp.setDeceasedName(saved.getDeathCase().getDeceasedName());
-        return resp;
+    /*
+     * If frontend sends selected userId, use that.
+     * Otherwise fallback to logged-in user.
+     */
+    if (targetUserId == null || targetUserId.trim().isEmpty()) {
+        targetUserId = loggedInUserId;
     }
+
+    return createReceiptForTargetUser(req, targetUserId);
+}
+@Transactional
+public ReceiptResponse publicUpload(UploadReceiptRequest req) {
+
+    String targetUserId = req.getUserId();
+
+    if (targetUserId == null || targetUserId.trim().isEmpty()) {
+        if (req.getMobileNumber() == null || req.getMobileNumber().trim().isEmpty()) {
+            throw new IllegalArgumentException("User ID or mobile number is required");
+        }
+
+        User userByMobile = userRepo.findByMobileNumber(req.getMobileNumber().trim())
+                .orElseThrow(() -> new IllegalArgumentException("User not found with this mobile number"));
+
+        targetUserId = userByMobile.getId();
+    }
+
+    return createReceiptForTargetUser(req, targetUserId);
+}
+private ReceiptResponse createReceiptForTargetUser(UploadReceiptRequest req, String targetUserId) {
+
+    User user = userRepo.findById(targetUserId)
+            .orElseThrow(() -> new IllegalStateException("User not found: " + targetUserId));
+
+    if (user.getStatus() != UserStatus.ACTIVE) {
+        throw new IllegalStateException("Only active users can upload UTR.");
+    }
+
+    if (user.getAssignedDeathCase() == null) {
+        poolAssignmentService.assignPoolToNewUser(user);
+        userRepo.save(user);
+    }
+
+    if (user.getAssignedDeathCase() == null) {
+        throw new IllegalStateException("No active death case pool available. Please contact admin.");
+    }
+
+    DeathCase assignedCase = user.getAssignedDeathCase();
+
+    if (assignedCase.getStatus() != DeathCaseStatus.OPEN) {
+        throw new IllegalStateException("Assigned pool is not active. Please contact admin.");
+    }
+
+    if (req.getUtrNumber() == null || req.getUtrNumber().trim().isEmpty()) {
+        throw new IllegalArgumentException("UTR number is required");
+    }
+
+    LocalDate paymentDate = LocalDate.now();
+    Instant now = Instant.now();
+
+    log.info("Creating receipt for targetUser: {}, assignedDeathCaseId: {}, amount: {}",
+            targetUserId, assignedCase.getId(), req.getAmount());
+
+    Receipt receipt = Receipt.builder()
+            .user(user)
+            .deathCase(assignedCase)
+            .amount(req.getAmount())
+            .paymentDate(paymentDate)
+            .referenceName(req.getReferenceName())
+            .utrNumber(req.getUtrNumber().trim())
+            .status(ReceiptStatus.UPLOADED)
+            .uploadedAt(now)
+            .build();
+
+    Receipt saved = receiptRepo.save(receipt);
+
+    try {
+        emailService.sendReceiptUploadConfirmationEmail(user, saved);
+    } catch (Exception emailError) {
+        log.error("Receipt upload email failed for receipt ID: {}", saved.getId(), emailError);
+    }
+
+    ReceiptResponse resp = mapper.map(saved, ReceiptResponse.class);
+    resp.setDeathCaseId(saved.getDeathCase().getId());
+    resp.setDeceasedName(saved.getDeathCase().getDeceasedName());
+
+    return resp;
+}
 
     public List<ReceiptResponse> getMyReceipts(String userId) {
 

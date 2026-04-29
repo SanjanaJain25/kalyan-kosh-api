@@ -8,18 +8,29 @@ import lombok.Data;
 @Data
 public class UploadReceiptRequest {
 
-    // @NotNull(message = "Death case ID is required")
-    // private Long deathCaseId;
+    /*
+     * Optional target user.
+     *
+     * For logged-in normal user upload:
+     * - userId can be blank, backend will use logged-in user.
+     *
+     * For TeachersList / public Home upload:
+     * - frontend will send selected teacher/member userId.
+     */
+    private String userId;
+
+    /*
+     * Optional mobile number fallback for public upload.
+     * If userId is not available, backend can find user by mobile number.
+     */
+    private String mobileNumber;
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     private Double amount;
 
-
-    // Reference name for the payment (optional)
     private String referenceName;
 
-    // UTR (Unique Transaction Reference) number - required for payment verification
     @NotBlank(message = "UTR number is required")
     private String utrNumber;
 }

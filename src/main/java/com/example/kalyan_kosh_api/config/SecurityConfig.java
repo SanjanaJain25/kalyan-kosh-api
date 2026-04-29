@@ -153,7 +153,7 @@ public class SecurityConfig {
 // .requestMatchers("/api/superadmin/**").hasRole("SUPERADMIN")
                         // Manager APIs - requires SAMBHAG_MANAGER or DISTRICT_MANAGER or BLOCK_MANAGER or ADMIN role
                         .requestMatchers("/api/manager/**").hasAnyRole("SUPERADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER", "ADMIN")
-
+.requestMatchers(HttpMethod.POST, "/api/receipts/public-upload").permitAll()
                         // User APIs - requires USER or ADMIN role
                         .requestMatchers("/api/receipts/**").hasAnyRole("USER", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER", "ADMIN", "SUPERADMIN")
                         // public list only
