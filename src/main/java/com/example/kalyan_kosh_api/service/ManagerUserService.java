@@ -40,7 +40,7 @@ public class ManagerUserService {
                                                      Pageable pageable) {
         
         // Admin can see all users
-        if (manager.getRole() == Role.ROLE_ADMIN) {
+        if (manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN) {
             return getAllUsersWithFilters(searchTerm, filterRole, filterStatus, 
                                         filterStateId, filterSambhagId, filterDistrictId, filterBlockId, pageable);
         }
@@ -65,7 +65,7 @@ public class ManagerUserService {
      * Check if manager can access specific user
      */
     public boolean canAccessUser(User manager, String userId) {
-        if (manager.getRole() == Role.ROLE_ADMIN) {
+        if (manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN) {
             return true;
         }
         
@@ -81,7 +81,7 @@ public class ManagerUserService {
      * Get users count in manager's scope
      */
     public ManagerUserStats getUserStats(User manager) {
-        if (manager.getRole() == Role.ROLE_ADMIN) {
+        if (manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN) {
             // Admin sees global stats
             return getGlobalUserStats();
         }
@@ -313,34 +313,136 @@ private Specification<User> buildLocationSpecification(String locationType, UUID
     /**
      * Get global user statistics
      */
-    private ManagerUserStats getGlobalUserStats() {
-        long totalUsers = userRepository.count();
-        long activeUsers = userRepository.countByStatus(UserStatus.ACTIVE);
-        long blockedUsers = userRepository.countByStatus(UserStatus.BLOCKED);
-        long deletedUsers = userRepository.countByStatus(UserStatus.DELETED);
-        
-        return ManagerUserStats.builder()
+   private ManagerUserStats getGlobalUserStats() {
+    Specification<User> totalSpec = (root, query, criteriaBuilder) ->
+            criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("role"), Role.ROLE_USER),
+                    criteriaBuilder.notEqual(root.get("status"), UserStatus.DELETED)
+            );
+
+    Specification<User> activeSpec = (root, query, criteriaBuilder) ->
+            criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("role"), Role.ROLE_USER),
+                    criteriaBuilder.equal(root.get("status"), UserStatus.ACTIVE)
+            );
+
+    Specification<User> blockedSpec = (root, query, criteriaBuilder) ->
+            criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("role"), Role.ROLE_USER),
+                    criteriaBuilder.equal(root.get("status"), UserStatus.BLOCKED)
+            );
+
+    Specification<User> deletedSpec = (root, query, criteriaBuilder) ->
+            criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("role"), Role.ROLE_USER),
+                    criteriaBuilder.equal(root.get("status"), UserStatus.DELETED)
+            );
+
+    long totalUsers = userRepository.count(totalSpec);
+    long activeUsers = userRepository.count(activeSpec);
+    long blockedUsers = userRepository.count(blockedSpec);
+    long deletedUsers = userRepository.count(deletedSpec);
+
+    return ManagerUserStats.builder()
             .totalUsers((int) totalUsers)
             .activeUsers((int) activeUsers)
             .blockedUsers((int) blockedUsers)
             .deletedUsers((int) deletedUsers)
             .build();
-    }
+}
     
     /**
      * Get location-based user statistics
      */
-private ManagerUserStats getLocationBasedStats(List<UUID> sambhagIds,
-                                                  List<UUID> districtIds, List<UUID> blockIds) {
-        // This would require more complex queries - placeholder implementation
-        return ManagerUserStats.builder()
-            .totalUsers(0)
-            .activeUsers(0)
-            .blockedUsers(0)
-            .deletedUsers(0)
+private ManagerUserStats getLocationBasedStats(
+        List<UUID> sambhagIds,
+        List<UUID> districtIds,
+        List<UUID> blockIds
+) {
+    Specification<User> baseSpec = buildStatsSpecification(
+            sambhagIds,
+            districtIds,
+            blockIds,
+            null
+    );
+
+    Specification<User> activeSpec = buildStatsSpecification(
+            sambhagIds,
+            districtIds,
+            blockIds,
+            UserStatus.ACTIVE
+    );
+
+    Specification<User> blockedSpec = buildStatsSpecification(
+            sambhagIds,
+            districtIds,
+            blockIds,
+            UserStatus.BLOCKED
+    );
+
+    Specification<User> deletedSpec = buildStatsSpecification(
+            sambhagIds,
+            districtIds,
+            blockIds,
+            UserStatus.DELETED
+    );
+
+    long totalUsers = userRepository.count(baseSpec);
+    long activeUsers = userRepository.count(activeSpec);
+    long blockedUsers = userRepository.count(blockedSpec);
+    long deletedUsers = userRepository.count(deletedSpec);
+
+    return ManagerUserStats.builder()
+            .totalUsers((int) totalUsers)
+            .activeUsers((int) activeUsers)
+            .blockedUsers((int) blockedUsers)
+            .deletedUsers((int) deletedUsers)
             .build();
-    }
-    
+}    
+
+private Specification<User> buildStatsSpecification(
+        List<UUID> sambhagIds,
+        List<UUID> districtIds,
+        List<UUID> blockIds,
+        UserStatus status
+) {
+    return (root, query, criteriaBuilder) -> {
+        List<Predicate> predicates = new ArrayList<>();
+
+        // Count only normal members, not managers/admins
+        predicates.add(criteriaBuilder.equal(root.get("role"), Role.ROLE_USER));
+
+        if (status != null) {
+            predicates.add(criteriaBuilder.equal(root.get("status"), status));
+        } else {
+            // Total users should not include deleted users
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), UserStatus.DELETED));
+        }
+
+        List<Predicate> locationPredicates = new ArrayList<>();
+
+        if (sambhagIds != null && !sambhagIds.isEmpty()) {
+            locationPredicates.add(root.get("departmentSambhag").get("id").in(sambhagIds));
+        }
+
+        if (districtIds != null && !districtIds.isEmpty()) {
+            locationPredicates.add(root.get("departmentDistrict").get("id").in(districtIds));
+        }
+
+        if (blockIds != null && !blockIds.isEmpty()) {
+            locationPredicates.add(root.get("departmentBlock").get("id").in(blockIds));
+        }
+
+        if (!locationPredicates.isEmpty()) {
+            predicates.add(criteriaBuilder.or(locationPredicates.toArray(new Predicate[0])));
+        } else {
+            // Manager has no assigned area, so count should be 0
+            predicates.add(criteriaBuilder.disjunction());
+        }
+
+        return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    };
+}
     /**
      * Check if manager can assign specific role
      */

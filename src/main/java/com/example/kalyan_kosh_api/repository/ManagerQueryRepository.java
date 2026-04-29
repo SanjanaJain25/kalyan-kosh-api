@@ -121,12 +121,12 @@ Page<ManagerQuery> searchTickets(
     Long countByStatusAndAssignedTo(@Param("status") QueryStatus status, @Param("manager") User manager);
     
     // Find overdue queries (older than specified hours)
-    @Query("SELECT mq FROM ManagerQuery mq WHERE " +
-           "mq.status IN ('PENDING', 'IN_PROGRESS') AND " +
-           "mq.createdAt < :cutoffTime " +
-           "ORDER BY mq.createdAt ASC")
-    List<ManagerQuery> findOverdueQueries(@Param("cutoffTime") Instant cutoffTime);
-    
+   @Query("SELECT mq FROM ManagerQuery mq WHERE " +
+       "mq.status = 'PENDING' AND " +
+       "mq.createdAt < :cutoffTime " +
+       "ORDER BY mq.createdAt ASC")
+List<ManagerQuery> findOverdueQueries(@Param("cutoffTime") Instant cutoffTime);
+
     // Complex query for manager dashboard with multiple filters
     @Query("SELECT mq FROM ManagerQuery mq WHERE " +
            "(:createdBy IS NULL OR mq.createdBy = :createdBy) AND " +
@@ -147,4 +147,51 @@ Page<ManagerQuery> searchTickets(
         @Param("blockId") Long blockId,
         Pageable pageable
     );
+
+    @Query("""
+    SELECT COUNT(mq)
+    FROM ManagerQuery mq
+    WHERE mq.status = :status
+""")
+Long countAllByStatus(@Param("status") QueryStatus status);
+
+
+@Query("""
+    SELECT COUNT(mq)
+    FROM ManagerQuery mq
+    WHERE mq.status = :status
+      AND (
+            mq.assignedTo = :manager
+            OR mq.createdBy = :manager
+          )
+""")
+Long countVisibleByStatusForManager(
+        @Param("status") QueryStatus status,
+        @Param("manager") User manager
+);
+
+
+@Query("""
+    SELECT COUNT(mq)
+    FROM ManagerQuery mq
+    WHERE mq.createdAt < :cutoffTime
+      AND mq.status = 'PENDING'
+""")
+Long countAllOverdueQueries(@Param("cutoffTime") Instant cutoffTime);
+
+
+@Query("""
+    SELECT COUNT(mq)
+    FROM ManagerQuery mq
+    WHERE mq.createdAt < :cutoffTime
+      AND mq.status = 'PENDING'
+      AND (
+            mq.assignedTo = :manager
+            OR mq.createdBy = :manager
+          )
+""")
+Long countVisibleOverdueQueriesForManager(
+        @Param("manager") User manager,
+        @Param("cutoffTime") Instant cutoffTime
+);
 }

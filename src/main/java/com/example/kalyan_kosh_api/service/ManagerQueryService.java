@@ -366,35 +366,46 @@ public Page<ManagerQueryResponse> getAllQueries(
     /**
      * Get query statistics for dashboard
      */
-    @Transactional(readOnly = true)
+  @Transactional(readOnly = true)
 public ManagerQueryStats getQueryStats(User manager) {
-    Long pendingCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.PENDING, manager);
-    Long needClarificationCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.NEED_CLARIFICATION, manager);
-    Long resolvedCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.RESOLVED, manager);
-    Long cancelCount = managerQueryRepository.countByStatusAndAssignedTo(QueryStatus.CANCEL, manager);
+    boolean isAdminOrSuperAdmin =
+            manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN;
 
-    // Find overdue queries older than 7 days
-    Instant overdueRegular = Instant.now().minus(7, ChronoUnit.DAYS);
-    List<ManagerQuery> overdueQueries = managerQueryRepository.findOverdueQueries(overdueRegular);
+    Long pendingCount;
+    Long needClarificationCount;
+    Long resolvedCount;
+    Long cancelCount;
+    Long overdueCount;
 
-    // Filter overdue queries for this manager
-    long overdueCount = overdueQueries.stream()
-            .filter(q -> q.getAssignedTo() != null && q.getAssignedTo().getId().equals(manager.getId()))
-            .filter(q -> q.getStatus() != QueryStatus.RESOLVED && q.getStatus() != QueryStatus.CANCEL)
-            .count();
+    Instant overdueCutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+
+    if (isAdminOrSuperAdmin) {
+        pendingCount = managerQueryRepository.countAllByStatus(QueryStatus.PENDING);
+        needClarificationCount = managerQueryRepository.countAllByStatus(QueryStatus.NEED_CLARIFICATION);
+        resolvedCount = managerQueryRepository.countAllByStatus(QueryStatus.RESOLVED);
+        cancelCount = managerQueryRepository.countAllByStatus(QueryStatus.CANCEL);
+        overdueCount = managerQueryRepository.countAllOverdueQueries(overdueCutoff);
+    } else {
+        pendingCount = managerQueryRepository.countVisibleByStatusForManager(QueryStatus.PENDING, manager);
+        needClarificationCount = managerQueryRepository.countVisibleByStatusForManager(QueryStatus.NEED_CLARIFICATION, manager);
+        resolvedCount = managerQueryRepository.countVisibleByStatusForManager(QueryStatus.RESOLVED, manager);
+        cancelCount = managerQueryRepository.countVisibleByStatusForManager(QueryStatus.CANCEL, manager);
+        overdueCount = managerQueryRepository.countVisibleOverdueQueriesForManager(manager, overdueCutoff);
+    }
+
+    int pending = pendingCount != null ? pendingCount.intValue() : 0;
+    int clarification = needClarificationCount != null ? needClarificationCount.intValue() : 0;
+    int resolved = resolvedCount != null ? resolvedCount.intValue() : 0;
+    int cancel = cancelCount != null ? cancelCount.intValue() : 0;
+    int overdue = overdueCount != null ? overdueCount.intValue() : 0;
 
     return ManagerQueryStats.builder()
-            .pendingCount(pendingCount.intValue())
-            .needClarificationCount(needClarificationCount.intValue())
-            .resolvedCount(resolvedCount.intValue())
-            .cancelCount(cancelCount.intValue())
-            .overdueCount((int) overdueCount)
-            .totalAssigned(
-                    pendingCount.intValue()
-                            + needClarificationCount.intValue()
-                            + resolvedCount.intValue()
-                            + cancelCount.intValue()
-            )
+            .pendingCount(pending)
+            .needClarificationCount(clarification)
+            .resolvedCount(resolved)
+            .cancelCount(cancel)
+            .overdueCount(overdue)
+            .totalAssigned(pending + clarification + resolved + cancel)
             .build();
 }
     
