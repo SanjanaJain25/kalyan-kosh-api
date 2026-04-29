@@ -44,4 +44,5 @@ private String nominee2UpiLink;
 
     private Instant createdAt;
     private Instant updatedAt;
+    private Long assignedUserCount;
 }

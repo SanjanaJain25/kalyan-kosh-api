@@ -14,23 +14,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.example.kalyan_kosh_api.repository.UserRepository;
 import java.util.List;
+import com.example.kalyan_kosh_api.repository.AccountDetailsRepository;
 
 @Service
 public class DeathCaseService {
 
     private static final Logger log = LoggerFactory.getLogger(DeathCaseService.class);
 
-    private final DeathCaseRepository repository;
-    private final ModelMapper mapper;
-    private final FileStorageService fileStorageService;
+   private final DeathCaseRepository repository;
+private final AccountDetailsRepository accountDetailsRepository;
+private final ModelMapper mapper;
+private final FileStorageService fileStorageService;
+private final UserRepository userRepository;
 
-    public DeathCaseService(DeathCaseRepository repository, ModelMapper mapper, FileStorageService fileStorageService) {
-        this.repository = repository;
-        this.mapper = mapper;
-        this.fileStorageService = fileStorageService;
-    }
+public DeathCaseService(
+        DeathCaseRepository repository,
+        AccountDetailsRepository accountDetailsRepository,
+        FileStorageService fileStorageService,
+        UserRepository userRepository,
+        ModelMapper mapper
+) {
+    this.repository = repository;
+    this.accountDetailsRepository = accountDetailsRepository;
+    this.fileStorageService = fileStorageService;
+    this.userRepository = userRepository;
+    this.mapper = mapper;
+}
 private String normalizeUpiValue(String value) {
     if (value == null || value.isBlank()) {
         return null;
@@ -65,6 +76,16 @@ private String normalizeUpiValue(String value) {
     // If raw UPI ID is sent, store it directly
     return trimmed;
 }
+
+private DeathCaseResponse toResponseWithAssignedCount(DeathCase deathCase) {
+    DeathCaseResponse response = mapper.map(deathCase, DeathCaseResponse.class);
+
+    long assignedCount = userRepository.countAssignedUsersByDeathCaseId(deathCase.getId());
+    response.setAssignedUserCount(assignedCount);
+
+    return response;
+}
+
     public DeathCaseResponse create(CreateDeathCaseRequest req,
                                      MultipartFile userImageFile,
                                      MultipartFile nominee1QrCodeFile,
@@ -117,26 +138,24 @@ private String normalizeUpiValue(String value) {
             DeathCase savedDeathCase = repository.save(deathCase);
             log.info("Death case created successfully with ID: {}", savedDeathCase.getId());
 
-            return mapper.map(savedDeathCase, DeathCaseResponse.class);
-        } catch (Exception e) {
+return toResponseWithAssignedCount(savedDeathCase);        } catch (Exception e) {
             log.error("Failed to create death case - DeceasedName: {}, Error: {}",
                       req.getDeceasedName(), e.getMessage(), e);
             throw new RuntimeException("Failed to create death case: " + e.getMessage(), e);
         }
     }
 
-    public List<DeathCaseResponse> getAll() {
-        return repository.findAll()
-                .stream()
-                .map(dc -> mapper.map(dc, DeathCaseResponse.class))
-                .toList();
-    }
+   public List<DeathCaseResponse> getAll() {
+    return repository.findAll()
+            .stream()
+            .map(this::toResponseWithAssignedCount)
+            .toList();
+}
 
     public DeathCaseResponse getById(Long id) {
         DeathCase dc = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Death case not found"));
-        return mapper.map(dc, DeathCaseResponse.class);
-    }
+return toResponseWithAssignedCount(dc);    }
 
     public DeathCaseResponse update(
             Long id,
@@ -187,7 +206,7 @@ dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
         dc.setStatus(req.getStatus());
         dc.setUpdatedBy(userId);
 
-        return mapper.map(repository.save(dc), DeathCaseResponse.class);
+        return toResponseWithAssignedCount(repository.save(dc));
     }
 
     public void delete(Long id) {
@@ -207,7 +226,7 @@ dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
         dc.setStatus(DeathCaseStatus.CLOSED);
         dc.setUpdatedBy(userId);
 
-        return mapper.map(repository.save(dc), DeathCaseResponse.class);
+        return toResponseWithAssignedCount(repository.save(dc));
     }
 
     /**
@@ -220,19 +239,19 @@ dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
         dc.setStatus(DeathCaseStatus.OPEN);
         dc.setUpdatedBy(userId);
 
-        return mapper.map(repository.save(dc), DeathCaseResponse.class);
+        return toResponseWithAssignedCount(repository.save(dc));
     }
 
     /**
      * Get only visible (OPEN) death cases for public/home page
      * Excludes CLOSED and HIDDEN cases
      */
-    public List<DeathCaseResponse> getVisibleCases() {
-        return repository.findByStatus(DeathCaseStatus.OPEN)
-                .stream()
-                .map(dc -> mapper.map(dc, DeathCaseResponse.class))
-                .toList();
-    }
+   public List<DeathCaseResponse> getVisibleCases() {
+    return repository.findByStatus(DeathCaseStatus.OPEN)
+            .stream()
+            .map(this::toResponseWithAssignedCount)
+            .toList();
+}
 
     private String storeFileWithName(MultipartFile file, String userId, String folderType, String customName) {
         if (file == null || file.isEmpty()) {
