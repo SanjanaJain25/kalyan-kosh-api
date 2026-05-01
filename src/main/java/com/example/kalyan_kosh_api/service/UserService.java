@@ -15,7 +15,7 @@ import com.example.kalyan_kosh_api.repository.DistrictRepository;
 import com.example.kalyan_kosh_api.repository.SambhagRepository;
 import com.example.kalyan_kosh_api.repository.StateRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
-
+import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -1040,7 +1040,10 @@ try {
         response.setNominee2Relation(user.getNominee2Relation());
         response.setRole(user.getRole());
         response.setCreatedAt(user.getCreatedAt());
-if (user.getAssignedDeathCase() != null) {
+if (
+        user.getAssignedDeathCase() != null
+        && user.getAssignedDeathCase().getStatus() == DeathCaseStatus.OPEN
+) {
     DeathCase deathCase = user.getAssignedDeathCase();
 
     response.setAssignedDeathCaseId(deathCase.getId());
@@ -1065,11 +1068,13 @@ if (user.getAssignedDeathCase() != null) {
         response.setLatestUtrNumber(latestReceipt.getUtrNumber());
         response.setUtrUploadedAt(latestReceipt.getUploadedAt());
 
-        // If UTR already uploaded, QR should not be shown
         response.setAllocatedQrCode(null);
     } else {
         response.setUtrUploaded(false);
         response.setAllocatedQrCode(allocatedQrCode);
+        response.setLatestReceiptId(null);
+        response.setLatestUtrNumber(null);
+        response.setUtrUploadedAt(null);
     }
 } else {
     response.setAssignedDeathCaseId(null);

@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
 
 public interface UserRepository extends JpaRepository<User, String>, JpaSpecificationExecutor<User> {
     Optional<User> findByMobileNumber(String mobile);
@@ -134,7 +135,9 @@ List<User> findUsersNotContributedSinceForExportScoped(
         @Param("scopeDistrictIds") List<String> scopeDistrictIds,
         @Param("scopeBlockIds") List<String> scopeBlockIds
 );
-
+@Modifying
+@Query("UPDATE User u SET u.deletedBy = NULL WHERE u.deletedBy.id = :userId")
+void clearDeletedByReference(@Param("userId") String userId);
 @Query("""
     SELECT u
     FROM User u
@@ -839,6 +842,328 @@ List<User> findPendingProfileUsersForExport(
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId
+);
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState st
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+          AND u.joiningDate IS NOT NULL
+          AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
+          AND (:toDate IS NULL OR u.joiningDate <= :toDate)
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+        ORDER BY u.joiningDate ASC, u.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+          AND u.joiningDate IS NOT NULL
+          AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
+          AND (:toDate IS NULL OR u.joiningDate <= :toDate)
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+    """
+)
+Page<User> findUsersForJoiningDateReport(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("toDate") LocalDate toDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("search") String search,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds,
+        Pageable pageable
+);
+
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState st
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+          AND u.retirementDate IS NOT NULL
+          AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
+          AND (:toDate IS NULL OR u.retirementDate <= :toDate)
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+        ORDER BY u.retirementDate ASC, u.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+          AND u.retirementDate IS NOT NULL
+          AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
+          AND (:toDate IS NULL OR u.retirementDate <= :toDate)
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+    """
+)
+Page<User> findUsersForRetirementDateReport(
+        @Param("fromDate") LocalDate fromDate,
+        @Param("toDate") LocalDate toDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("search") String search,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds,
+        Pageable pageable
+);
+
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState st
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+          AND (
+                u.lastLoginAt < :cutoff
+                OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
+          )
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+        ORDER BY
+          CASE WHEN u.lastLoginAt IS NULL THEN 0 ELSE 1 END ASC,
+          u.lastLoginAt ASC,
+          u.createdAt ASC
+    """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+          AND (
+                u.lastLoginAt < :cutoff
+                OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
+          )
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+    """
+)
+Page<User> findUsersNotLoggedInSinceReport(
+        @Param("cutoff") Instant cutoff,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("search") String search,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds,
+        Pageable pageable
+);
+
+@Query(
+    value = """
+        SELECT u
+        FROM User u
+        LEFT JOIN FETCH u.departmentState st
+        LEFT JOIN FETCH u.departmentSambhag sa
+        LEFT JOIN FETCH u.departmentDistrict d
+        LEFT JOIN FETCH u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+          AND NOT EXISTS (
+                SELECT 1
+                FROM Receipt r
+                WHERE r.user.id = u.id
+                  AND r.amount > 0
+                  AND r.paymentDate >= :cutoffDate
+          )
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+        ORDER BY u.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(u)
+        FROM User u
+        LEFT JOIN u.departmentSambhag sa
+        LEFT JOIN u.departmentDistrict d
+        LEFT JOIN u.departmentBlock b
+        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+          AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.ACTIVE
+          AND NOT EXISTS (
+                SELECT 1
+                FROM Receipt r
+                WHERE r.user.id = u.id
+                  AND r.amount > 0
+                  AND r.paymentDate >= :cutoffDate
+          )
+          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
+          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
+          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (
+                :search IS NULL
+                OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :search, '%')
+                OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+          )
+          AND (
+                :unrestricted = true
+                OR CAST(sa.id AS string) IN :scopeSambhagIds
+                OR CAST(d.id AS string) IN :scopeDistrictIds
+                OR CAST(b.id AS string) IN :scopeBlockIds
+          )
+    """
+)
+Page<User> findUsersNotContributedSinceReport(
+        @Param("cutoffDate") LocalDate cutoffDate,
+        @Param("sambhagId") String sambhagId,
+        @Param("districtId") String districtId,
+        @Param("blockId") String blockId,
+        @Param("search") String search,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
+        @Param("scopeBlockIds") List<String> scopeBlockIds,
+        Pageable pageable
 );
 @Query("""
     SELECT u

@@ -126,7 +126,15 @@ Page<ManagerQuery> searchTickets(
        "mq.createdAt < :cutoffTime " +
        "ORDER BY mq.createdAt ASC")
 List<ManagerQuery> findOverdueQueries(@Param("cutoffTime") Instant cutoffTime);
-
+@Query("""
+    SELECT mq
+    FROM ManagerQuery mq
+    WHERE mq.createdBy = :user
+       OR mq.assignedTo = :user
+       OR mq.relatedUser = :user
+       OR mq.resolvedBy = :user
+""")
+List<ManagerQuery> findAllRelatedToUser(@Param("user") User user);
     // Complex query for manager dashboard with multiple filters
     @Query("SELECT mq FROM ManagerQuery mq WHERE " +
            "(:createdBy IS NULL OR mq.createdBy = :createdBy) AND " +

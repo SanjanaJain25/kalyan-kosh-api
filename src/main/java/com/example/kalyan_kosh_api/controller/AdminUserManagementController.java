@@ -16,7 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.example.kalyan_kosh_api.dto.AdminResetPasswordRequest;
-
+import com.example.kalyan_kosh_api.dto.AdminPasswordResetRequest;
+import jakarta.validation.Valid;
 import java.util.Map;
 
 /**
@@ -146,13 +147,16 @@ public class AdminUserManagementController {
  * PUT /api/admin/users/{id}/password-reset
  */
 @PutMapping("/{id}/password-reset")
-public ResponseEntity<?> resetUserPassword(@PathVariable String id) {
+public ResponseEntity<?> resetUserPassword(
+        @PathVariable String id,
+        @Valid @RequestBody AdminPasswordResetRequest request
+) {
     try {
-        adminUserService.resetUserPassword(id);
+        adminUserService.resetUserPassword(id, request.getNewPassword());
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "message", "Password reset successfully to user's DOB (dd/MM/yyyy)",
+                "message", "Password reset successfully",
                 "userId", id
         ));
     } catch (IllegalArgumentException e) {

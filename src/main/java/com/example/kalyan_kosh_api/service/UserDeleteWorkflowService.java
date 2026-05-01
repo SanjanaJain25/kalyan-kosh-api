@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.time.Instant;
 import java.util.List;
+import com.example.kalyan_kosh_api.repository.*;
 
 @Service
 public class UserDeleteWorkflowService {
@@ -20,18 +21,36 @@ public class UserDeleteWorkflowService {
     private final DeleteRequestService deleteRequestService;
     private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
+private final ReceiptRepository receiptRepository;
+private final DeleteRequestRepository deleteRequestRepository;
+private final AuditLogRepository auditLogRepository;
+private final ManagerAssignmentRepository managerAssignmentRepository;
+private final ManagerQueryRepository managerQueryRepository;
+private final ManagerQueryMessageRepository managerQueryMessageRepository;
 
-    public UserDeleteWorkflowService(
-            UserRepository userRepository,
-            DeleteRequestService deleteRequestService,
-            AuditLogService auditLogService,
-            ObjectMapper objectMapper
-    ) {
-        this.userRepository = userRepository;
-        this.deleteRequestService = deleteRequestService;
-        this.auditLogService = auditLogService;
-        this.objectMapper = objectMapper;
-    }
+   public UserDeleteWorkflowService(
+        UserRepository userRepository,
+        DeleteRequestService deleteRequestService,
+        AuditLogService auditLogService,
+        ObjectMapper objectMapper,
+        ReceiptRepository receiptRepository,
+        DeleteRequestRepository deleteRequestRepository,
+        AuditLogRepository auditLogRepository,
+        ManagerAssignmentRepository managerAssignmentRepository,
+        ManagerQueryRepository managerQueryRepository,
+        ManagerQueryMessageRepository managerQueryMessageRepository
+) {
+    this.userRepository = userRepository;
+    this.deleteRequestService = deleteRequestService;
+    this.auditLogService = auditLogService;
+    this.objectMapper = objectMapper;
+    this.receiptRepository = receiptRepository;
+    this.deleteRequestRepository = deleteRequestRepository;
+    this.auditLogRepository = auditLogRepository;
+    this.managerAssignmentRepository = managerAssignmentRepository;
+    this.managerQueryRepository = managerQueryRepository;
+    this.managerQueryMessageRepository = managerQueryMessageRepository;
+}
 
     @Transactional
 public User softDeleteUser(
@@ -183,7 +202,10 @@ public void permanentlyDeleteUserFromTrash(
 
     String oldJson = toJsonQuietly(targetUser);
 
-    userRepository.delete(targetUser);
+   cleanupUserRelationsBeforeHardDelete(targetUser);
+
+userRepository.delete(targetUser);
+userRepository.flush();
 
     auditLogService.saveLog(
             DeleteEntityType.USER,
@@ -278,13 +300,24 @@ public int restoreAllDeletedUsers(User actingUser, HttpServletRequest httpReques
 
 @Transactional
 public int permanentlyDeleteAllUsersFromTrash(User actingUser, HttpServletRequest httpRequest) {
+    if (actingUser.getRole() != Role.ROLE_SUPERADMIN && actingUser.getRole() != Role.ROLE_ADMIN) {
+        throw new IllegalArgumentException("Only Admin or Super Admin can clear trash.");
+    }
+
     List<User> deletedUsers = userRepository.findDeletedUsers(UserStatus.DELETED);
     int count = deletedUsers.size();
 
     for (User user : deletedUsers) {
+        String userId = user.getId();
+
+        cleanupUserRelationsBeforeHardDelete(user);
+
+        userRepository.delete(user);
+        userRepository.flush();
+
         auditLogService.saveLog(
                 DeleteEntityType.USER,
-                user.getId(),
+                userId,
                 AuditActionType.HARD_DELETE,
                 null,
                 null,
@@ -294,7 +327,6 @@ public int permanentlyDeleteAllUsersFromTrash(User actingUser, HttpServletReques
         );
     }
 
-    userRepository.deleteAll(deletedUsers);
     return count;
 }
 @Transactional(readOnly = true)
@@ -325,11 +357,42 @@ public List<Map<String, Object>> getDeletedUsersForTrash() {
     }).toList();
 }
 
+
  @Transactional(readOnly = true)
 public List<User> getDeletedUsers() {
     return userRepository.findDeletedUsers(UserStatus.DELETED);
 }
 
+
+private void cleanupUserRelationsBeforeHardDelete(User user) {
+    String userId = user.getId();
+
+    // 1. Remove receipt records of this user
+    receiptRepository.deleteByUser(user);
+
+    // 2. Remove manager query messages sent by this user
+    managerQueryMessageRepository.deleteBySender(user);
+
+    // 3. Remove manager queries related to this user
+    List<ManagerQuery> relatedQueries = managerQueryRepository.findAllRelatedToUser(user);
+    if (relatedQueries != null && !relatedQueries.isEmpty()) {
+        managerQueryMessageRepository.deleteByQueryIn(relatedQueries);
+        managerQueryRepository.deleteAll(relatedQueries);
+    }
+
+    // 4. Remove manager assignments where this user is manager or assignedBy
+    managerAssignmentRepository.deleteByManager(user);
+    managerAssignmentRepository.deleteByAssignedBy(user);
+
+    // 5. Remove delete requests related to this user
+    deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER, userId);
+
+    // 6. Clear audit log reference. Keep audit history but remove FK dependency.
+    auditLogRepository.clearPerformedBy(userId);
+
+    // 7. Clear deleted_by reference from other users
+    userRepository.clearDeletedByReference(userId);
+}
     private String toJsonQuietly(Object value) {
         try {
             return objectMapper.writeValueAsString(value);

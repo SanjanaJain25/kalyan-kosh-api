@@ -203,7 +203,7 @@ public void permanentDeleteUser(String userId) {
 
     // Reset user password
 @Transactional
-public void resetUserPassword(String userId) {
+public void resetUserPassword(String userId, String newPassword) {
     User user = getUserById(userId);
     validateNotReservedSuperAdmin(user);
 
@@ -211,12 +211,17 @@ public void resetUserPassword(String userId) {
         throw new IllegalArgumentException("Cannot reset password for deleted user");
     }
 
-    if (user.getDateOfBirth() == null) {
-        throw new IllegalArgumentException("Date of birth is not available for this user");
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new IllegalArgumentException("New password is required");
     }
 
-String dobPassword = user.getDateOfBirth()
-        .format(DateTimeFormatter.ofPattern("ddMMyyyy"));    user.setPasswordHash(passwordEncoder.encode(dobPassword));
+    String cleanPassword = newPassword.trim();
+
+    if (cleanPassword.length() < 6) {
+        throw new IllegalArgumentException("Password must be at least 6 characters");
+    }
+
+    user.setPasswordHash(passwordEncoder.encode(cleanPassword));
     user.setUpdatedAt(Instant.now());
     userRepository.save(user);
 }
