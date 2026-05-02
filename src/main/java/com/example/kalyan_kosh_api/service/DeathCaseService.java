@@ -10,6 +10,8 @@ import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.service.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
+import org.springframework.transaction.annotation.Transactional;
+import com.example.kalyan_kosh_api.repository.ReceiptRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,18 +30,20 @@ private final AccountDetailsRepository accountDetailsRepository;
 private final ModelMapper mapper;
 private final FileStorageService fileStorageService;
 private final UserRepository userRepository;
-
+private final ReceiptRepository receiptRepository;
 public DeathCaseService(
         DeathCaseRepository repository,
         AccountDetailsRepository accountDetailsRepository,
         FileStorageService fileStorageService,
         UserRepository userRepository,
+        ReceiptRepository receiptRepository,
         ModelMapper mapper
 ) {
     this.repository = repository;
     this.accountDetailsRepository = accountDetailsRepository;
     this.fileStorageService = fileStorageService;
     this.userRepository = userRepository;
+    this.receiptRepository = receiptRepository;
     this.mapper = mapper;
 }
 private String normalizeUpiValue(String value) {
@@ -209,12 +213,23 @@ dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
         return toResponseWithAssignedCount(repository.save(dc));
     }
 
-    public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("Death case not found");
-        }
-        repository.deleteById(id);
-    }
+    @Transactional
+public void delete(Long id) {
+    DeathCase deathCase = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Death case not found"));
+
+    /*
+     * IMPORTANT:
+     * Do not directly delete death case while users or receipts are linked.
+     * First clear user pool assignment and delete related receipts.
+     */
+
+    userRepository.clearAssignedDeathCaseReference(id);
+    receiptRepository.deleteByDeathCase(deathCase);
+
+    repository.delete(deathCase);
+    repository.flush();
+}
 
 /**
      * Hide a death case - it won't appear on public/home page (sets to CLOSED)

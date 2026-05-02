@@ -1165,6 +1165,9 @@ Page<User> findUsersNotContributedSinceReport(
         @Param("scopeBlockIds") List<String> scopeBlockIds,
         Pageable pageable
 );
+@Modifying
+@Query("UPDATE User u SET u.assignedDeathCase = NULL WHERE u.assignedDeathCase.id = :deathCaseId")
+void clearAssignedDeathCaseReference(@Param("deathCaseId") Long deathCaseId);
 @Query("""
     SELECT u
     FROM User u

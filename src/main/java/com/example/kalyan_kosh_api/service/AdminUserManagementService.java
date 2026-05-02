@@ -19,6 +19,11 @@ import com.example.kalyan_kosh_api.repository.ManagerAssignmentRepository;
 import com.example.kalyan_kosh_api.repository.ManagerQueryRepository;
 import java.time.Instant;
 import java.util.List;
+import com.example.kalyan_kosh_api.repository.ManagerQueryMessageRepository;
+import com.example.kalyan_kosh_api.repository.DeleteRequestRepository;
+import com.example.kalyan_kosh_api.repository.AuditLogRepository;
+import com.example.kalyan_kosh_api.entity.DeleteEntityType;
+import com.example.kalyan_kosh_api.entity.ManagerQuery;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
 
@@ -31,18 +36,27 @@ private final UserRepository userRepository;
 private final ReceiptRepository receiptRepository;
 private final ManagerAssignmentRepository managerAssignmentRepository;
 private final ManagerQueryRepository managerQueryRepository;
-
+private final ManagerQueryMessageRepository managerQueryMessageRepository;
+private final DeleteRequestRepository deleteRequestRepository;
+private final AuditLogRepository auditLogRepository;
  public AdminUserManagementService(
         PasswordEncoder passwordEncoder,
         UserRepository userRepository,
         ReceiptRepository receiptRepository,
         ManagerAssignmentRepository managerAssignmentRepository,
-        ManagerQueryRepository managerQueryRepository) {
+        ManagerQueryRepository managerQueryRepository,
+        ManagerQueryMessageRepository managerQueryMessageRepository,
+        DeleteRequestRepository deleteRequestRepository,
+        AuditLogRepository auditLogRepository
+) {
     this.passwordEncoder = passwordEncoder;
     this.userRepository = userRepository;
     this.receiptRepository = receiptRepository;
     this.managerAssignmentRepository = managerAssignmentRepository;
     this.managerQueryRepository = managerQueryRepository;
+    this.managerQueryMessageRepository = managerQueryMessageRepository;
+    this.deleteRequestRepository = deleteRequestRepository;
+    this.auditLogRepository = auditLogRepository;
 }
 private boolean isReservedSuperAdmin(User user) {
     return user != null
@@ -169,19 +183,40 @@ public void permanentDeleteUser(String userId) {
         throw new IllegalArgumentException("User must be soft deleted before permanent delete");
     }
 
-    // Delete child records first
+    cleanupUserRelationsBeforeHardDelete(user);
+
+    userRepository.delete(user);
+    userRepository.flush();
+}
+
+private void cleanupUserRelationsBeforeHardDelete(User user) {
+    String userId = user.getId();
+
+    // 1. Delete receipts uploaded by this user
     receiptRepository.deleteByUser(user);
 
+    // 2. Delete query messages sent by this user
+    managerQueryMessageRepository.deleteBySender(user);
+
+    // 3. Delete manager queries related to this user
+    List<ManagerQuery> relatedQueries = managerQueryRepository.findAllRelatedToUser(user);
+    if (relatedQueries != null && !relatedQueries.isEmpty()) {
+        managerQueryMessageRepository.deleteByQueryIn(relatedQueries);
+        managerQueryRepository.deleteAll(relatedQueries);
+    }
+
+    // 4. Delete manager assignments
     managerAssignmentRepository.deleteByManager(user);
     managerAssignmentRepository.deleteByAssignedBy(user);
 
-    managerQueryRepository.deleteByCreatedBy(user);
-    managerQueryRepository.deleteByAssignedTo(user);
-    managerQueryRepository.deleteByRelatedUser(user);
-    managerQueryRepository.deleteByResolvedBy(user);
+    // 5. Delete delete-request references
+    deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER, userId);
 
-    // Finally delete user
-    userRepository.delete(user);
+    // 6. Clear audit log FK reference
+    auditLogRepository.clearPerformedBy(userId);
+
+    // 7. Clear deleted_by reference from other users
+    userRepository.clearDeletedByReference(userId);
 }
 
     /**

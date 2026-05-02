@@ -9,13 +9,14 @@ import java.util.Optional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import com.example.kalyan_kosh_api.entity.DeathCase;
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
 Optional<Receipt> findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(String userId, Long deathCaseId);
 void deleteByUser(User user);
-
+void deleteByDeathCase(DeathCase deathCase);
     @Query("""
         SELECT COUNT(DISTINCT r.user.id)
         FROM Receipt r
