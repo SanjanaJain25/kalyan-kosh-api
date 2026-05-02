@@ -210,7 +210,7 @@ private void cleanupUserRelationsBeforeHardDelete(User user) {
     managerAssignmentRepository.deleteByAssignedBy(user);
 
     // 5. Delete delete-request references
-    deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER, userId);
+    deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER.name(), userId);
 
     // 6. Clear audit log FK reference
     auditLogRepository.clearPerformedBy(userId);

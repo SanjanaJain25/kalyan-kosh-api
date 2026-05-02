@@ -305,15 +305,22 @@ public int permanentlyDeleteAllUsersFromTrash(User actingUser, HttpServletReques
     }
 
     List<User> deletedUsers = userRepository.findDeletedUsers(UserStatus.DELETED);
-    int count = deletedUsers.size();
+    int count = 0;
 
     for (User user : deletedUsers) {
         String userId = user.getId();
+
+        // Safety: do not allow logged-in admin to delete himself/herself from clear-all
+        if (actingUser.getId().equals(userId)) {
+            continue;
+        }
 
         cleanupUserRelationsBeforeHardDelete(user);
 
         userRepository.delete(user);
         userRepository.flush();
+
+        count++;
 
         auditLogService.saveLog(
                 DeleteEntityType.USER,
@@ -385,8 +392,7 @@ private void cleanupUserRelationsBeforeHardDelete(User user) {
     managerAssignmentRepository.deleteByAssignedBy(user);
 
     // 5. Remove delete requests related to this user
-    deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER, userId);
-
+deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER.name(), userId);
     // 6. Clear audit log reference. Keep audit history but remove FK dependency.
     auditLogRepository.clearPerformedBy(userId);
 

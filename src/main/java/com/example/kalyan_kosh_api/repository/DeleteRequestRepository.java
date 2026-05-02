@@ -19,19 +19,20 @@ public interface DeleteRequestRepository extends JpaRepository<DeleteRequest, Lo
     List<DeleteRequest> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(DeleteEntityType entityType, String entityId);
 
     Optional<DeleteRequest> findFirstByEntityTypeAndEntityIdOrderByCreatedAtDesc(DeleteEntityType entityType, String entityId);
-    @Modifying
-@Query("""
-    DELETE FROM DeleteRequest dr
+  
+  @Modifying
+@Query(value = """
+    DELETE FROM delete_requests
     WHERE 
-        (dr.entityType = :entityType AND dr.entityId = :userId)
-        OR dr.requestedBy.id = :userId
-        OR dr.approvedBy.id = :userId
-        OR dr.rejectedBy.id = :userId
-        OR dr.restoreRequestedBy.id = :userId
-        OR dr.restoreApprovedBy.id = :userId
-""")
-void deleteUserRelatedRequests(
-        @Param("entityType") DeleteEntityType entityType,
+        (entity_type = :entityType AND entity_id = :userId)
+        OR requested_by = :userId
+        OR approved_by = :userId
+        OR rejected_by = :userId
+        OR restore_requested_by = :userId
+        OR restore_approved_by = :userId
+""", nativeQuery = true)
+int deleteUserRelatedRequests(
+        @Param("entityType") String entityType,
         @Param("userId") String userId
 );
 }
