@@ -8,9 +8,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
-import java.util.List;
+
 import java.util.Map;
 import java.time.Instant;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.util.ArrayList;
 import java.util.List;
 import com.example.kalyan_kosh_api.repository.*;
 
@@ -51,6 +55,9 @@ private final ManagerQueryMessageRepository managerQueryMessageRepository;
     this.managerQueryRepository = managerQueryRepository;
     this.managerQueryMessageRepository = managerQueryMessageRepository;
 }
+
+@PersistenceContext
+private EntityManager entityManager;
 
     @Transactional
 public User softDeleteUser(
@@ -183,6 +190,7 @@ public DeleteRequest approveDeleteRequest(
 
     return request;
 }
+
 @Transactional
 public void permanentlyDeleteUserFromTrash(
         String userId,
@@ -200,24 +208,13 @@ public void permanentlyDeleteUserFromTrash(
         throw new IllegalArgumentException("Only deleted users in trash can be permanently deleted.");
     }
 
-    String oldJson = toJsonQuietly(targetUser);
+    if (actingUser.getId().equals(userId)) {
+        throw new IllegalArgumentException("You cannot permanently delete your own account.");
+    }
 
-   cleanupUserRelationsBeforeHardDelete(targetUser);
-
-userRepository.delete(targetUser);
-userRepository.flush();
-
-    auditLogService.saveLog(
-            DeleteEntityType.USER,
-            userId,
-            AuditActionType.HARD_DELETE,
-            oldJson,
-            null,
-            actingUser,
-            "User permanently deleted from trash",
-            getIpAddress(httpRequest)
-    );
+    hardDeleteUserNative(userId);
 }
+
    @Transactional
 public DeleteRequest rejectDeleteRequest(
         Long deleteRequestId,
@@ -305,33 +302,31 @@ public int permanentlyDeleteAllUsersFromTrash(User actingUser, HttpServletReques
     }
 
     List<User> deletedUsers = userRepository.findDeletedUsers(UserStatus.DELETED);
-    int count = 0;
+
+    List<String> userIdsToDelete = new ArrayList<>();
 
     for (User user : deletedUsers) {
-        String userId = user.getId();
-
-        // Safety: do not allow logged-in admin to delete himself/herself from clear-all
-        if (actingUser.getId().equals(userId)) {
+        if (user == null || user.getId() == null) {
             continue;
         }
 
-        cleanupUserRelationsBeforeHardDelete(user);
+        // Safety: do not delete currently logged-in admin/superadmin
+        if (actingUser.getId().equals(user.getId())) {
+            continue;
+        }
 
-        userRepository.delete(user);
-        userRepository.flush();
+        userIdsToDelete.add(user.getId());
+    }
 
+    if (userIdsToDelete.isEmpty()) {
+        return 0;
+    }
+
+    int count = 0;
+
+    for (String userId : userIdsToDelete) {
+        hardDeleteUserNative(userId);
         count++;
-
-        auditLogService.saveLog(
-                DeleteEntityType.USER,
-                userId,
-                AuditActionType.HARD_DELETE,
-                null,
-                null,
-                actingUser,
-                "User permanently deleted from clear all",
-                getIpAddress(httpRequest)
-        );
     }
 
     return count;
@@ -406,6 +401,92 @@ deleteRequestRepository.deleteUserRelatedRequests(DeleteEntityType.USER.name(), 
             return null;
         }
     }
+    private void hardDeleteUserNative(String userId) {
+    /*
+     * Robust production hard delete.
+     * Delete child/dependent records first, clear nullable references,
+     * then delete the user record.
+     */
+
+    // 1. Delete receipts uploaded by this user
+    executeNativeUpdate("""
+        DELETE FROM receipt
+        WHERE user_id = :userId
+    """, userId);
+
+    // 2. Delete manager query messages sent by this user
+    executeNativeUpdate("""
+        DELETE FROM manager_query_messages
+        WHERE sender_id = :userId
+    """, userId);
+
+    // 3. Delete messages of queries where this user is involved
+    executeNativeUpdate("""
+        DELETE FROM manager_query_messages
+        WHERE query_id IN (
+            SELECT id
+            FROM manager_queries
+            WHERE created_by = :userId
+               OR assigned_to = :userId
+               OR related_user_id = :userId
+               OR resolved_by = :userId
+        )
+    """, userId);
+
+    // 4. Delete manager queries where this user is involved
+    executeNativeUpdate("""
+        DELETE FROM manager_queries
+        WHERE created_by = :userId
+           OR assigned_to = :userId
+           OR related_user_id = :userId
+           OR resolved_by = :userId
+    """, userId);
+
+    // 5. Delete manager assignments where this user is manager or assigned by
+    executeNativeUpdate("""
+        DELETE FROM manager_assignments
+        WHERE manager_id = :userId
+           OR assigned_by = :userId
+    """, userId);
+
+    // 6. Delete delete approval/request records linked with this user
+    executeNativeUpdate("""
+        DELETE FROM delete_requests
+        WHERE entity_id = :userId
+           OR requested_by = :userId
+           OR approved_by = :userId
+           OR rejected_by = :userId
+           OR restore_requested_by = :userId
+           OR restore_approved_by = :userId
+    """, userId);
+
+    // 7. Keep audit logs, but remove FK reference to this user
+    executeNativeUpdate("""
+        UPDATE audit_logs
+        SET performed_by = NULL
+        WHERE performed_by = :userId
+    """, userId);
+
+    // 8. Clear deleted_by reference from other users
+    executeNativeUpdate("""
+        UPDATE users
+        SET deleted_by = NULL
+        WHERE deleted_by = :userId
+    """, userId);
+
+    // 9. Finally delete the user only if still in trash
+    executeNativeUpdate("""
+        DELETE FROM users
+        WHERE id = :userId
+          AND status = 'DELETED'
+    """, userId);
+}
+private int executeNativeUpdate(String sql, String userId) {
+    return entityManager
+            .createNativeQuery(sql)
+            .setParameter("userId", userId)
+            .executeUpdate();
+}
 
     private String getIpAddress(HttpServletRequest request) {
         if (request == null) return null;
