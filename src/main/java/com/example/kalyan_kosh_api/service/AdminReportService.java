@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AdminReportService {
@@ -32,6 +33,12 @@ public class AdminReportService {
         this.managerScopeService = managerScopeService;
     }
 
+private UUID parseOptionalUuid(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return UUID.fromString(value.trim());
+}
     public Page<AdminReportUserRowResponse> getUsersByJoiningDate(
             User currentUser,
             LocalDate fromDate,
@@ -47,9 +54,9 @@ public class AdminReportService {
         Page<User> users = userRepository.findUsersForJoiningDateReport(
                 fromDate,
                 toDate,
-                blankToNull(sambhagId),
-                blankToNull(districtId),
-                blankToNull(blockId),
+parseOptionalUuid(sambhagId),
+parseOptionalUuid(districtId),
+parseOptionalUuid(blockId),
                 blankToNull(search),
                 scope.isUnrestricted(),
                 safeScopeList(scope.getSambhagIds()),
@@ -76,9 +83,9 @@ public class AdminReportService {
         Page<User> users = userRepository.findUsersForRetirementDateReport(
                 fromDate,
                 toDate,
-                blankToNull(sambhagId),
-                blankToNull(districtId),
-                blankToNull(blockId),
+parseOptionalUuid(sambhagId),
+parseOptionalUuid(districtId),
+parseOptionalUuid(blockId),
                 blankToNull(search),
                 scope.isUnrestricted(),
                 safeScopeList(scope.getSambhagIds()),
@@ -104,9 +111,9 @@ public class AdminReportService {
 
         Page<User> users = userRepository.findUsersNotLoggedInSinceReport(
                 cutoff,
-                blankToNull(sambhagId),
-                blankToNull(districtId),
-                blankToNull(blockId),
+parseOptionalUuid(sambhagId),
+parseOptionalUuid(districtId),
+parseOptionalUuid(blockId),
                 blankToNull(search),
                 scope.isUnrestricted(),
                 safeScopeList(scope.getSambhagIds()),
@@ -132,9 +139,9 @@ public class AdminReportService {
 
         Page<User> users = userRepository.findUsersNotContributedSinceReport(
                 cutoffDate,
-                blankToNull(sambhagId),
-                blankToNull(districtId),
-                blankToNull(blockId),
+parseOptionalUuid(sambhagId),
+parseOptionalUuid(districtId),
+parseOptionalUuid(blockId),
                 blankToNull(search),
                 scope.isUnrestricted(),
                 safeScopeList(scope.getSambhagIds()),
@@ -205,10 +212,10 @@ public class AdminReportService {
         return value.trim();
     }
 
-    private List<String> safeScopeList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return Collections.singletonList("__NO_SCOPE__");
-        }
-        return values;
+  private List<UUID> safeScopeList(List<UUID> values) {
+    if (values == null || values.isEmpty()) {
+        return Collections.singletonList(new UUID(0L, 0L));
     }
+    return values;
+}
 }

@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import com.example.kalyan_kosh_api.entity.DeathCase;
+import java.util.UUID;
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
@@ -57,16 +58,16 @@ void deleteByDeathCase(DeathCase deathCase);
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
       AND (:mobile IS NULL OR u.mobile_number LIKE CONCAT('%', :mobile, '%'))
       AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
-      AND (:sambhagId IS NULL OR CAST(u.department_sambhag_id AS CHAR) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(u.department_district_id AS CHAR) = :districtId)
-      AND (:blockId IS NULL OR CAST(u.department_block_id AS CHAR) = :blockId)
+     AND (:sambhagId IS NULL OR u.department_sambhag_id = :sambhagId)
+AND (:districtId IS NULL OR u.department_district_id = :districtId)
+AND (:blockId IS NULL OR u.department_block_id = :blockId)
       AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
-      AND (
-            :unrestricted = true
-            OR CAST(u.department_sambhag_id AS CHAR) IN (:scopeSambhagIds)
-            OR CAST(u.department_district_id AS CHAR) IN (:scopeDistrictIds)
-            OR CAST(u.department_block_id AS CHAR) IN (:scopeBlockIds)
-      )
+AND (
+      :unrestricted = true
+      OR u.department_sambhag_id IN (:scopeSambhagIds)
+      OR u.department_district_id IN (:scopeDistrictIds)
+      OR u.department_block_id IN (:scopeBlockIds)
+)
     GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
              s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
@@ -77,14 +78,14 @@ List<Object[]> searchDonorsForExportScopedNative(
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("beneficiary") String beneficiary,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Query(value = """
     SELECT u.id, u.department_unique_id, u.name, u.surname, u.department,
@@ -99,27 +100,27 @@ List<Object[]> searchDonorsForExportScopedNative(
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
     WHERE r.amount > 0
-      AND (:sambhagId IS NULL OR CAST(u.department_sambhag_id AS CHAR) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(u.department_district_id AS CHAR) = :districtId)
-      AND (:blockId IS NULL OR CAST(u.department_block_id AS CHAR) = :blockId)
-      AND (
-            :unrestricted = true
-            OR CAST(u.department_sambhag_id AS CHAR) IN (:scopeSambhagIds)
-            OR CAST(u.department_district_id AS CHAR) IN (:scopeDistrictIds)
-            OR CAST(u.department_block_id AS CHAR) IN (:scopeBlockIds)
-      )
+AND (:sambhagId IS NULL OR u.department_sambhag_id = :sambhagId)
+AND (:districtId IS NULL OR u.department_district_id = :districtId)
+AND (:blockId IS NULL OR u.department_block_id = :blockId)
+AND (
+      :unrestricted = true
+      OR u.department_sambhag_id IN (:scopeSambhagIds)
+      OR u.department_district_id IN (:scopeDistrictIds)
+      OR u.department_block_id IN (:scopeBlockIds)
+)
     GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
              s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
     """, nativeQuery = true)
 List<Object[]> searchAllDonorsForExportScopedNative(
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 
 

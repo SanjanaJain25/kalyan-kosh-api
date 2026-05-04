@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Modifying;
+import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, String>, JpaSpecificationExecutor<User> {
     Optional<User> findByMobileNumber(String mobile);
@@ -77,26 +78,27 @@ Page<User> findExportUsersPaged(
             u.lastLoginAt < :cutoff
             OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
       )
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+    AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
+AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.lastLoginAt ASC NULLS FIRST, u.createdAt ASC
 """)
 List<User> findUsersNotLoggedInSinceForExportScoped(
         @Param("cutoff") Instant cutoff,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
+
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Query("""
     SELECT u
@@ -114,26 +116,27 @@ List<User> findUsersNotLoggedInSinceForExportScoped(
               AND r.amount > 0
               AND r.paymentDate >= :cutoffDate
       )
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
+AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.createdAt DESC
 """)
 List<User> findUsersNotContributedSinceForExportScoped(
         @Param("cutoffDate") LocalDate cutoffDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+       @Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
+
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Modifying
 @Query("UPDATE User u SET u.deletedBy = NULL WHERE u.deletedBy.id = :userId")
@@ -150,27 +153,28 @@ void clearDeletedByReference(@Param("userId") String userId);
       AND u.joiningDate IS NOT NULL
       AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
       AND (:toDate IS NULL OR u.joiningDate <= :toDate)
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+      AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
+AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.joiningDate ASC, u.createdAt DESC
 """)
 List<User> findUsersForJoiningDateExportScoped(
         @Param("fromDate") LocalDate fromDate,
         @Param("toDate") LocalDate toDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
+
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 
 @Query("""
@@ -185,27 +189,28 @@ List<User> findUsersForJoiningDateExportScoped(
       AND u.retirementDate IS NOT NULL
       AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
       AND (:toDate IS NULL OR u.retirementDate <= :toDate)
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+      AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
+AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.retirementDate ASC, u.createdAt DESC
 """)
 List<User> findUsersForRetirementDateExportScoped(
         @Param("fromDate") LocalDate fromDate,
         @Param("toDate") LocalDate toDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
+
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 
 @Query("""
@@ -226,9 +231,9 @@ long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
     WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -241,25 +246,25 @@ long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
             WHERE r.user.id = u.id
               AND r.amount > 0
       )
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+     AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.createdAt DESC
 """)
 List<User> findPendingProfileUsersForExportScoped(
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Query("""
     SELECT u
@@ -270,9 +275,9 @@ List<User> findPendingProfileUsersForExportScoped(
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
     WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -286,12 +291,12 @@ List<User> findPendingProfileUsersForExportScoped(
               AND YEAR(r.paymentDate) = :year
               AND r.amount > 0
       )
-      AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+     AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.createdAt DESC
 """)
 List<User> searchNonDonorsForExportScoped(
@@ -300,13 +305,13 @@ List<User> searchNonDonorsForExportScoped(
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Query("""
     SELECT u
@@ -317,9 +322,9 @@ List<User> searchNonDonorsForExportScoped(
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
     WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-      AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-      AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-      AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
       AND NOT EXISTS (
           SELECT 1
           FROM Receipt r
@@ -327,21 +332,21 @@ List<User> searchNonDonorsForExportScoped(
             AND r.amount > 0
       )
       AND (
-            :unrestricted = true
-            OR CAST(sa.id AS string) IN :scopeSambhagIds
-            OR CAST(d.id AS string) IN :scopeDistrictIds
-            OR CAST(b.id AS string) IN :scopeBlockIds
-      )
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     ORDER BY u.createdAt DESC
 """)
 List<User> searchAllNonDonorsForExportScoped(
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
     // ✅ Paginated query - fetch users with locations
 @Query(value = "SELECT u FROM User u " +
@@ -887,9 +892,9 @@ List<User> findPendingProfileUsersForExport(
           AND u.joiningDate IS NOT NULL
           AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
           AND (:toDate IS NULL OR u.joiningDate <= :toDate)
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -899,25 +904,26 @@ List<User> findPendingProfileUsersForExport(
                 OR LOWER(COALESCE(u.departmentUniqueId, '')) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
           )
-          AND (
-                :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
-          )
+         AND (
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
+
     """
 )
 Page<User> findUsersForJoiningDateReport(
         @Param("fromDate") LocalDate fromDate,
         @Param("toDate") LocalDate toDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("search") String search,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds,
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds,
         Pageable pageable
 );
 
@@ -965,9 +971,9 @@ Page<User> findUsersForJoiningDateReport(
           AND u.retirementDate IS NOT NULL
           AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
           AND (:toDate IS NULL OR u.retirementDate <= :toDate)
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -978,24 +984,24 @@ Page<User> findUsersForJoiningDateReport(
                 OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
           )
           AND (
-                :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
-          )
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     """
 )
 Page<User> findUsersForRetirementDateReport(
         @Param("fromDate") LocalDate fromDate,
         @Param("toDate") LocalDate toDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("search") String search,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds,
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds,
         Pageable pageable
 );
 
@@ -1048,9 +1054,9 @@ Page<User> findUsersForRetirementDateReport(
                 u.lastLoginAt < :cutoff
                 OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
           )
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1061,23 +1067,24 @@ Page<User> findUsersForRetirementDateReport(
                 OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
           )
           AND (
-                :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
-          )
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
+
     """
 )
 Page<User> findUsersNotLoggedInSinceReport(
         @Param("cutoff") Instant cutoff,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("search") String search,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds,
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds,
         Pageable pageable
 );
 
@@ -1133,9 +1140,9 @@ Page<User> findUsersNotLoggedInSinceReport(
                   AND r.amount > 0
                   AND r.paymentDate >= :cutoffDate
           )
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+AND (:districtId IS NULL OR d.id = :districtId)
+AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1146,23 +1153,23 @@ Page<User> findUsersNotLoggedInSinceReport(
                 OR LOWER(COALESCE(u.schoolOfficeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
           )
           AND (
-                :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
-          )
+      :unrestricted = true
+      OR sa.id IN :scopeSambhagIds
+      OR d.id IN :scopeDistrictIds
+      OR b.id IN :scopeBlockIds
+)
     """
 )
 Page<User> findUsersNotContributedSinceReport(
         @Param("cutoffDate") LocalDate cutoffDate,
-        @Param("sambhagId") String sambhagId,
-        @Param("districtId") String districtId,
-        @Param("blockId") String blockId,
+@Param("sambhagId") UUID sambhagId,
+@Param("districtId") UUID districtId,
+@Param("blockId") UUID blockId,
         @Param("search") String search,
         @Param("unrestricted") boolean unrestricted,
-        @Param("scopeSambhagIds") List<String> scopeSambhagIds,
-        @Param("scopeDistrictIds") List<String> scopeDistrictIds,
-        @Param("scopeBlockIds") List<String> scopeBlockIds,
+@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+@Param("scopeBlockIds") List<UUID> scopeBlockIds,
         Pageable pageable
 );
 @Modifying

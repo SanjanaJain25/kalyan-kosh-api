@@ -53,8 +53,7 @@ public ExportService(
     this.emailService = emailService;
 }
 
-public List<AdminUserResponse> getUsersForExportByMonthYear(int month, int year) {
-    List<User> users = userRepository.findAllByCreatedMonthAndYear(month, year);
+public List<AdminUserResponse> getUsersForExportByMonthYear(int month, int year, boolean includeMobile) {    List<User> users = userRepository.findAllByCreatedMonthAndYear(month, year);
 
     return users.stream().map(user -> AdminUserResponse.builder()
             .id(user.getId())
@@ -62,8 +61,7 @@ public List<AdminUserResponse> getUsersForExportByMonthYear(int month, int year)
             .surname(user.getSurname())
             .fatherName(user.getFatherName())
             .email(user.getEmail())
-           .mobileNumber(systemSettingService.isExportMobileNumberEnabled() ? user.getMobileNumber() : null)
-            .dateOfBirth(user.getDateOfBirth())
+.mobileNumber(includeMobile ? user.getMobileNumber() : null)            .dateOfBirth(user.getDateOfBirth())
             .departmentState(user.getDepartmentState() != null ? user.getDepartmentState().getName() : null)
             .departmentSambhag(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : null)
             .departmentDistrict(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : null)
@@ -128,8 +126,7 @@ public byte[] exportCsvWithBom(String csv) {
     return result;
 }
 
-public void exportAllUsersCsvStream(OutputStream outputStream) throws IOException {
-    int page = 0;
+public void exportAllUsersCsvStream(OutputStream outputStream, boolean includeMobile) throws IOException {    int page = 0;
     int size = 2000;
     boolean hasMore = true;
 
@@ -182,8 +179,7 @@ public void exportAllUsersCsvStream(OutputStream outputStream) throws IOExceptio
                 writer.write(",");
                 writer.write(csv(user.getEmail()));
                 writer.write(",");
-                writer.write(csv(systemSettingService.isExportMobileNumberEnabled() ? user.getMobileNumber() : ""));
-                writer.write(",");
+writer.write(csv(includeMobile ? user.getMobileNumber() : ""));                writer.write(",");
                 writer.write(csv(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : ""));
                 writer.write(",");
                 writer.write(csv(user.getDepartmentState() != null ? user.getDepartmentState().getName() : ""));

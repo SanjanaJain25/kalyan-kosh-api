@@ -132,11 +132,20 @@ public class SecurityConfig {
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/search-by-beneficiary").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/search").permitAll()
-                       .requestMatchers(HttpMethod.GET, "/api/users/export").permitAll()
-.requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/export").permitAll()
-.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/export").permitAll()
-.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/export").permitAll()
-.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/export").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/users/export")
+.hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
+
+.requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/export")
+.hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
+
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/export")
+.hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
+
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/export")
+.hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
+
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/export")
+.hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
                        .requestMatchers(HttpMethod.GET, "/api/public/export/sahyog/by-beneficiary").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/public/export/asahyog/by-beneficiary").permitAll()
               .requestMatchers("/api/delete-approval/**").authenticated()

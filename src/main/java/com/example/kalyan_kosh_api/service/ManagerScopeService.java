@@ -95,55 +95,51 @@ public boolean isManager(User user) {
 }
 
 public ManagerAreaScope buildAreaScope(User currentUser) {
+    UUID noScopeUuid = new UUID(0L, 0L);
+
     if (isAdminOrSuperAdmin(currentUser)) {
         return ManagerAreaScope.builder()
                 .unrestricted(true)
-                .sambhagIds(List.of("__ALL__"))
-                .districtIds(List.of("__ALL__"))
-                .blockIds(List.of("__ALL__"))
+                .sambhagIds(List.of(noScopeUuid))
+                .districtIds(List.of(noScopeUuid))
+                .blockIds(List.of(noScopeUuid))
                 .build();
     }
 
     if (!isManager(currentUser)) {
         return ManagerAreaScope.builder()
                 .unrestricted(false)
-                .sambhagIds(List.of("__NO_SAMBHAG__"))
-                .districtIds(List.of("__NO_DISTRICT__"))
-                .blockIds(List.of("__NO_BLOCK__"))
+                .sambhagIds(List.of(noScopeUuid))
+                .districtIds(List.of(noScopeUuid))
+                .blockIds(List.of(noScopeUuid))
                 .build();
     }
 
-    List<ManagerAssignment> assignments =
-            managerAssignmentRepository.findByManagerAndIsActiveTrue(currentUser);
-
-    List<String> sambhagIds = assignments.stream()
-            .filter(a -> a.getSambhag() != null)
-            .map(a -> a.getSambhag().getId().toString())
+    List<UUID> sambhagIds = getAccessibleSambhagIds(currentUser)
+            .stream()
             .distinct()
             .toList();
 
-    List<String> districtIds = assignments.stream()
-            .filter(a -> a.getDistrict() != null)
-            .map(a -> a.getDistrict().getId().toString())
+    List<UUID> districtIds = getAccessibleDistrictIds(currentUser)
+            .stream()
             .distinct()
             .toList();
 
-    List<String> blockIds = assignments.stream()
-            .filter(a -> a.getBlock() != null)
-            .map(a -> a.getBlock().getId().toString())
+    List<UUID> blockIds = getAccessibleBlockIds(currentUser)
+            .stream()
             .distinct()
             .toList();
 
     if (sambhagIds.isEmpty()) {
-        sambhagIds = List.of("__NO_SAMBHAG__");
+        sambhagIds = List.of(noScopeUuid);
     }
 
     if (districtIds.isEmpty()) {
-        districtIds = List.of("__NO_DISTRICT__");
+        districtIds = List.of(noScopeUuid);
     }
 
     if (blockIds.isEmpty()) {
-        blockIds = List.of("__NO_BLOCK__");
+        blockIds = List.of(noScopeUuid);
     }
 
     return ManagerAreaScope.builder()

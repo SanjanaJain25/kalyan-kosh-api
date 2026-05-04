@@ -40,6 +40,7 @@ import java.time.ZoneId;
 import com.example.kalyan_kosh_api.dto.AdminCreateUserRequest;
 import com.example.kalyan_kosh_api.dto.AdminUserMatchResponse;
 import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -81,6 +82,12 @@ private final SystemSettingService systemSettingService;
     if (value == null) return null;
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
+}
+private UUID parseOptionalUuid(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return UUID.fromString(value.trim());
 }
 
 private LocalDate parseDate(String value, String fieldName) {
@@ -476,13 +483,13 @@ public List<UserResponse> getPendingProfileUsersForExport(
         String userId,
         ManagerAreaScope scope) {
 
-    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
-    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
-    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
-    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
-    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
-    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+UUID cleanSambhagId = parseOptionalUuid(sambhagId);
+UUID cleanDistrictId = parseOptionalUuid(districtId);
+UUID cleanBlockId = parseOptionalUuid(blockId);
 
+String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
     List<User> users = userRepo.findPendingProfileUsersForExportScoped(
             cleanSambhagId,
             cleanDistrictId,

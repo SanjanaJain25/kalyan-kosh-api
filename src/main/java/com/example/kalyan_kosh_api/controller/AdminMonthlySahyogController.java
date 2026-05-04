@@ -18,6 +18,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.repository.UserRepository;
+import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
 
 @RestController
 @RequestMapping("/api/admin/monthly-sahyog")
@@ -26,14 +29,32 @@ public class AdminMonthlySahyogController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminMonthlySahyogController.class);
 private final SystemSettingService systemSettingService;
-    private final MonthlySahyogService service;
+private final MonthlySahyogService service;
+private final UserRepository userRepository;
+private final ExportMobilePermissionService exportMobilePermissionService;
 
-   public AdminMonthlySahyogController(MonthlySahyogService service,
-                                    SystemSettingService systemSettingService) {
+  public AdminMonthlySahyogController(
+        MonthlySahyogService service,
+        SystemSettingService systemSettingService,
+        UserRepository userRepository,
+        ExportMobilePermissionService exportMobilePermissionService
+) {
     this.service = service;
     this.systemSettingService = systemSettingService;
+    this.userRepository = userRepository;
+    this.exportMobilePermissionService = exportMobilePermissionService;
 }
 
+private User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getName() == null) {
+        throw new IllegalArgumentException("Unauthenticated user");
+    }
+
+    return userRepository.findById(authentication.getName())
+            .orElseThrow(() -> new IllegalArgumentException("Current user not found"));
+}
 private Role getCurrentUserRole() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -207,9 +228,8 @@ public void exportNoUtrEver(
         @RequestParam(required = false) String district,
         @RequestParam(required = false) String block,
         HttpServletResponse response) throws Exception {
-Role currentRole = getCurrentUserRole();
-boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
-    String timestamp = java.time.LocalDateTime.now()
+User currentUser = getCurrentUser();
+boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);    String timestamp = java.time.LocalDateTime.now()
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
    response.setContentType("text/csv; charset=UTF-8");

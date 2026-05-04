@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
 
 @RestController
 @RequestMapping("/api/admin/export")
@@ -38,24 +39,31 @@ private final MonthlySahyogService monthlySahyogService;
 private final UserService userService;
 private final UserRepository userRepository;
 private final ManagerScopeService managerScopeService;
-private final SystemSettingService systemSettingService;
+private final ExportMobilePermissionService exportMobilePermissionService;
 public ExportController(AdminReceiptService receiptService,
                         ExportService exportService,
                         MonthlySahyogService monthlySahyogService,
                         UserService userService,
-                        SystemSettingService systemSettingService,
+                        ExportMobilePermissionService exportMobilePermissionService,
                         UserRepository userRepository,
                         ManagerScopeService managerScopeService) {
     this.receiptService = receiptService;
     this.exportService = exportService;
     this.monthlySahyogService = monthlySahyogService;
     this.userService = userService;
-    this.systemSettingService = systemSettingService;
+    this.exportMobilePermissionService = exportMobilePermissionService;
     this.userRepository = userRepository;
     this.managerScopeService = managerScopeService;
 }
 private String blankToNull(String value) {
     return value == null || value.trim().isEmpty() ? null : value.trim();
+}
+
+private UUID parseOptionalUuid(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return UUID.fromString(value.trim());
 }
 private LocalDate parseOptionalDate(String value) {
     if (value == null || value.trim().isEmpty()) {
@@ -121,19 +129,19 @@ public ResponseEntity<byte[]> exportUsersByJoiningDate(
     LocalDate from = parseOptionalDate(fromDate);
     LocalDate to = parseOptionalDate(toDate);
 
-    List<User> data = userRepository.findUsersForJoiningDateExportScoped(
-            from,
-            to,
-            blankToNull(sambhagId),
-            blankToNull(districtId),
-            blankToNull(blockId),
-            scope.isUnrestricted(),
-            scope.getSambhagIds(),
-            scope.getDistrictIds(),
-            scope.getBlockIds()
-    );
+   List<User> data = userRepository.findUsersForJoiningDateExportScoped(
+        from,
+        to,
+        parseOptionalUuid(sambhagId),
+        parseOptionalUuid(districtId),
+        parseOptionalUuid(blockId),
+        scope.isUnrestricted(),
+        scope.getSambhagIds(),
+        scope.getDistrictIds(),
+        scope.getBlockIds()
+);
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportUserDateReportCsv(
@@ -167,16 +175,16 @@ public ResponseEntity<byte[]> exportUsersByRetirementDate(
     List<User> data = userRepository.findUsersForRetirementDateExportScoped(
             from,
             to,
-            blankToNull(sambhagId),
-            blankToNull(districtId),
-            blankToNull(blockId),
+               parseOptionalUuid(sambhagId),
+        parseOptionalUuid(districtId),
+        parseOptionalUuid(blockId),
             scope.isUnrestricted(),
             scope.getSambhagIds(),
             scope.getDistrictIds(),
             scope.getBlockIds()
     );
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportUserDateReportCsv(
@@ -206,16 +214,16 @@ public ResponseEntity<byte[]> exportNoLoginThreeMonths(
 
     List<User> data = userRepository.findUsersNotLoggedInSinceForExportScoped(
             cutoff,
-            blankToNull(sambhagId),
-            blankToNull(districtId),
-            blankToNull(blockId),
+               parseOptionalUuid(sambhagId),
+        parseOptionalUuid(districtId),
+        parseOptionalUuid(blockId),
             scope.isUnrestricted(),
             scope.getSambhagIds(),
             scope.getDistrictIds(),
             scope.getBlockIds()
     );
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportRetentionUsersCsv(
@@ -245,16 +253,16 @@ public ResponseEntity<byte[]> exportNoSahyogTwoMonths(
 
     List<User> data = userRepository.findUsersNotContributedSinceForExportScoped(
             cutoffDate,
-            blankToNull(sambhagId),
-            blankToNull(districtId),
-            blankToNull(blockId),
+              parseOptionalUuid(sambhagId),
+        parseOptionalUuid(districtId),
+        parseOptionalUuid(blockId),
             scope.isUnrestricted(),
             scope.getSambhagIds(),
             scope.getDistrictIds(),
             scope.getBlockIds()
     );
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportRetentionUsersCsv(
@@ -305,7 +313,7 @@ public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
     );
 
 User currentUser = getCurrentUser();
-boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 byte[] csvBytes = exportService.exportCsvWithBom(
         exportService.exportNonDonorsCsv(data, includeMobile)
 );
@@ -344,7 +352,7 @@ public ResponseEntity<byte[]> exportAsahyog(
             scope
     );
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportNonDonorsCsv(data, includeMobile)
@@ -402,7 +410,7 @@ public ResponseEntity<byte[]> exportAllAsahyog(
             scope
     );
 
-    boolean includeMobile = systemSettingService.canExportMobileNumber(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportNonDonorsCsv(data, includeMobile)
@@ -438,7 +446,7 @@ public ResponseEntity<byte[]> exportPendingProfiles(
             scope
     );
 
-    boolean includeMobile = shouldAlwaysShowPendingProfileMobile(currentUser.getRole());
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
 
     byte[] csvBytes = exportService.exportCsvWithBom(
             exportService.exportPendingProfilesCsv(data, includeMobile)
@@ -469,13 +477,7 @@ public ResponseEntity<byte[]> exportPendingProfiles(
             .orElseThrow(() -> new IllegalArgumentException("Current user not found"));
 }
 
-private boolean shouldAlwaysShowPendingProfileMobile(Role role) {
-    return role == Role.ROLE_SUPERADMIN
-            || role == Role.ROLE_ADMIN
-            || role == Role.ROLE_SAMBHAG_MANAGER
-            || role == Role.ROLE_DISTRICT_MANAGER
-            || role == Role.ROLE_BLOCK_MANAGER;
-}
+
 
 private void validateRequestedAreaAccess(User currentUser,
                                          String sambhagId,

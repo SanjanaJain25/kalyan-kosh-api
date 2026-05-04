@@ -19,17 +19,40 @@ import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.service.SystemSettingService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.repository.UserRepository;
+import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
 private final SystemSettingService systemSettingService;
-    private final UserService userService;
+private final UserService userService;
+private final UserRepository userRepository;
+private final ExportMobilePermissionService exportMobilePermissionService;
 
-  public UserController(UserService userService, SystemSettingService systemSettingService) {
+  public UserController(
+        UserService userService,
+        SystemSettingService systemSettingService,
+        UserRepository userRepository,
+        ExportMobilePermissionService exportMobilePermissionService
+) {
     this.userService = userService;
     this.systemSettingService = systemSettingService;
+    this.userRepository = userRepository;
+    this.exportMobilePermissionService = exportMobilePermissionService;
+}
+
+private User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getName() == null) {
+        throw new IllegalArgumentException("Unauthenticated user");
+    }
+
+    return userRepository.findById(authentication.getName())
+            .orElseThrow(() -> new IllegalArgumentException("Current user not found"));
 }
 
 private Role getCurrentUserRole() {
@@ -105,8 +128,8 @@ public void exportUsers(
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
         HttpServletResponse response) throws Exception {
-Role currentRole = getCurrentUserRole();
-boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
+User currentUser = getCurrentUser();
+boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
     String timestamp = java.time.LocalDateTime.now()
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
@@ -187,8 +210,8 @@ public void exportPendingProfiles(
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
         HttpServletResponse response) throws Exception {
-Role currentRole = getCurrentUserRole();
-boolean includeMobile = systemSettingService.canExportMobileNumber(currentRole);
+User currentUser = getCurrentUser();
+boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
     String timestamp = java.time.LocalDateTime.now()
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 

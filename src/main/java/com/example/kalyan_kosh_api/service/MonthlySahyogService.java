@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class MonthlySahyogService {
@@ -69,6 +70,12 @@ public class MonthlySahyogService {
     }
     private String csvSafe(String value) {
     return value != null ? value.replace(",", " ").replace("\n", " ").replace("\r", " ") : "";
+}
+private UUID parseUuidOrNull(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return UUID.fromString(value.trim());
 }
 public List<DonorResponse> getDonorsForExportByBeneficiary(
         Long beneficiaryId,
@@ -593,9 +600,9 @@ public List<DonorResponse> getDonorsForExport(
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
-    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
-    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
-    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
+UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+UUID cleanDistrictId = parseUuidOrNull(districtId);
+UUID cleanBlockId = parseUuidOrNull(blockId);
     String cleanBeneficiary = (beneficiary != null && !beneficiary.trim().isEmpty()) ? beneficiary.trim() : null;
 
     List<Object[]> donorRows = receiptRepo.searchDonorsForExportScopedNative(
@@ -645,10 +652,9 @@ public List<UserResponse> getNonDonorsForExport(
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
-    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
-    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
-    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
-
+UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+UUID cleanDistrictId = parseUuidOrNull(districtId);
+UUID cleanBlockId = parseUuidOrNull(blockId);
     List<User> users = userRepo.searchNonDonorsForExportScoped(
             month,
             year,
@@ -674,10 +680,9 @@ public List<DonorResponse> getAllDonorsForExport(
         String blockId,
         ManagerAreaScope scope) {
 
-    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
-    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
-    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
-
+UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+UUID cleanDistrictId = parseUuidOrNull(districtId);
+UUID cleanBlockId = parseUuidOrNull(blockId);
     List<Object[]> donorRows = receiptRepo.searchAllDonorsForExportScopedNative(
             cleanSambhagId,
             cleanDistrictId,
@@ -709,10 +714,9 @@ public List<UserResponse> getAllNonDonorsForExport(
         String blockId,
         ManagerAreaScope scope) {
 
-    String cleanSambhagId = (sambhagId != null && !sambhagId.trim().isEmpty()) ? sambhagId.trim() : null;
-    String cleanDistrictId = (districtId != null && !districtId.trim().isEmpty()) ? districtId.trim() : null;
-    String cleanBlockId = (blockId != null && !blockId.trim().isEmpty()) ? blockId.trim() : null;
-
+UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+UUID cleanDistrictId = parseUuidOrNull(districtId);
+UUID cleanBlockId = parseUuidOrNull(blockId);
     List<User> users = userRepo.searchAllNonDonorsForExportScoped(
             cleanSambhagId,
             cleanDistrictId,

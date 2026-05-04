@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,7 +16,7 @@ public class ManagerAreaScope {
 
     private boolean unrestricted;
 
-    private List<String> sambhagIds;
-    private List<String> districtIds;
-    private List<String> blockIds;
+    private List<UUID> sambhagIds;
+    private List<UUID> districtIds;
+    private List<UUID> blockIds;
 }

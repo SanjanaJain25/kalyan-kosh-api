@@ -19,6 +19,11 @@ import com.example.kalyan_kosh_api.dto.AdminResetPasswordRequest;
 import com.example.kalyan_kosh_api.dto.AdminPasswordResetRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
+import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.repository.UserRepository;
+import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Admin User Management Controller
@@ -35,18 +40,37 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class AdminUserManagementController {
 
-    private final AdminUserManagementService adminUserService;
-    private final ExportService exportService;
-    private final UserService userService;
+private final AdminUserManagementService adminUserService;
+private final ExportService exportService;
+private final UserService userService;
+private final UserRepository userRepository;
+private final ExportMobilePermissionService exportMobilePermissionService;
 
-    public AdminUserManagementController(AdminUserManagementService adminUserService, 
-                                       ExportService exportService,
-                                       UserService userService) {
-        this.adminUserService = adminUserService;
-        this.exportService = exportService;
-        this.userService = userService;
+    public AdminUserManagementController(
+        AdminUserManagementService adminUserService,
+        ExportService exportService,
+        UserService userService,
+        UserRepository userRepository,
+        ExportMobilePermissionService exportMobilePermissionService
+) {
+    this.adminUserService = adminUserService;
+    this.exportService = exportService;
+    this.userService = userService;
+    this.userRepository = userRepository;
+    this.exportMobilePermissionService = exportMobilePermissionService;
+}
+
+
+private User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getName() == null) {
+        throw new IllegalArgumentException("Unauthenticated user");
     }
 
+    return userRepository.findById(authentication.getName())
+            .orElseThrow(() -> new IllegalArgumentException("Current user not found"));
+}
     /**
      * Get all users with pagination and filters
      * 
@@ -288,13 +312,17 @@ public ResponseEntity<?> permanentDeleteUser(@PathVariable String id) {
     //         outputStream.flush();
     //     }
     // }
-    @GetMapping("/export")
+@GetMapping("/export")
 public void exportUsers(
         @RequestParam int month,
         @RequestParam int year,
-        HttpServletResponse response) throws Exception {
+        HttpServletResponse response
+) throws Exception {
 
-    var users = exportService.getUsersForExportByMonthYear(month, year);
+    User currentUser = getCurrentUser();
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
+
+    var users = exportService.getUsersForExportByMonthYear(month, year, includeMobile);
     byte[] excelData = exportService.exportUsersExcel(users);
 
     response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -308,16 +336,19 @@ public void exportUsers(
         outputStream.flush();
     }
 }
+
 @GetMapping("/export-all")
 public void exportAllUsers(HttpServletResponse response) throws Exception {
     response.setContentType("text/csv; charset=UTF-8");
     response.setCharacterEncoding("UTF-8");
     response.setHeader("Content-Disposition", "attachment; filename=all_users_export.csv");
 
+    User currentUser = getCurrentUser();
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
+
     try (var outputStream = response.getOutputStream()) {
-        // UTF-8 BOM so Excel opens Hindi/UTF-8 correctly
         outputStream.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
-        exportService.exportAllUsersCsvStream(outputStream);
+        exportService.exportAllUsersCsvStream(outputStream, includeMobile);
         outputStream.flush();
     }
 }
