@@ -33,20 +33,37 @@ public class DeathCaseController {
         this.service = service;
         this.exportService = exportService;
     }
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DeathCaseResponse> create(
-            @Valid @RequestPart("data") CreateDeathCaseRequest req,
-            @RequestPart(value = "userImage", required = false) MultipartFile userImage,
-            @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
-            @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
-            @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
-            Authentication authentication) {
 
-        return ResponseEntity.ok(
-                service.create(req, userImage, nominee1QrCode, nominee2QrCode, certificate1, authentication.getName())
-        );
-    }
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<DeathCaseResponse> create(
+        @Valid @RequestPart("data") CreateDeathCaseRequest req,
+        @RequestPart(value = "userImage", required = false) MultipartFile userImage,
+
+        // Old single QR fields - kept for old frontend compatibility
+        @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
+        @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
+
+        // New multiple QR fields
+        @RequestPart(value = "nominee1QrCodes", required = false) List<MultipartFile> nominee1QrCodes,
+        @RequestPart(value = "nominee2QrCodes", required = false) List<MultipartFile> nominee2QrCodes,
+
+        @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            service.create(
+                    req,
+                    userImage,
+                    nominee1QrCode,
+                    nominee2QrCode,
+                    nominee1QrCodes,
+                    nominee2QrCodes,
+                    certificate1,
+                    authentication.getName()
+            )
+    );
+}
 
 @PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER')")
     @GetMapping
@@ -58,21 +75,39 @@ public class DeathCaseController {
     public ResponseEntity<DeathCaseResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
-@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DeathCaseResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestPart("data") UpdateDeathCaseRequest req,
-            @RequestPart(value = "userImage", required = false) MultipartFile userImage,
-            @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
-            @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
-            @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
-            Authentication authentication) {
 
-        return ResponseEntity.ok(
-                service.update(id, req, userImage, nominee1QrCode, nominee2QrCode, certificate1, authentication.getName())
-        );
-    }
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+@PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<DeathCaseResponse> update(
+        @PathVariable Long id,
+        @Valid @RequestPart("data") UpdateDeathCaseRequest req,
+        @RequestPart(value = "userImage", required = false) MultipartFile userImage,
+
+        // Old single QR fields - kept for old frontend compatibility
+        @RequestPart(value = "nominee1QrCode", required = false) MultipartFile nominee1QrCode,
+        @RequestPart(value = "nominee2QrCode", required = false) MultipartFile nominee2QrCode,
+
+        // New multiple QR fields
+        @RequestPart(value = "nominee1QrCodes", required = false) List<MultipartFile> nominee1QrCodes,
+        @RequestPart(value = "nominee2QrCodes", required = false) List<MultipartFile> nominee2QrCodes,
+
+        @RequestPart(value = "certificate1", required = false) MultipartFile certificate1,
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            service.update(
+                    id,
+                    req,
+                    userImage,
+                    nominee1QrCode,
+                    nominee2QrCode,
+                    nominee1QrCodes,
+                    nominee2QrCodes,
+                    certificate1,
+                    authentication.getName()
+            )
+    );
+}
 @PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

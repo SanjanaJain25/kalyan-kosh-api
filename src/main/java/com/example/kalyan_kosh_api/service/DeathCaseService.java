@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import java.util.List;
 import com.example.kalyan_kosh_api.repository.AccountDetailsRepository;
+import java.util.ArrayList;
 
 @Service
 public class DeathCaseService {
@@ -80,6 +81,39 @@ private String normalizeUpiValue(String value) {
     // If raw UPI ID is sent, store it directly
     return trimmed;
 }
+private List<String> storeMultipleFilesWithName(
+        List<MultipartFile> files,
+        String userId,
+        String folderType,
+        String customNamePrefix
+) {
+    List<String> storedPaths = new ArrayList<>();
+
+    if (files == null || files.isEmpty()) {
+        return storedPaths;
+    }
+
+    int index = 1;
+
+    for (MultipartFile file : files) {
+        if (file != null && !file.isEmpty()) {
+            String storedPath = storeFileWithName(
+                    file,
+                    userId,
+                    folderType,
+                    customNamePrefix + "_qr_" + index
+            );
+
+            if (storedPath != null) {
+                storedPaths.add(storedPath);
+            }
+
+            index++;
+        }
+    }
+
+    return storedPaths;
+}
 
 private DeathCaseResponse toResponseWithAssignedCount(DeathCase deathCase) {
     DeathCaseResponse response = mapper.map(deathCase, DeathCaseResponse.class);
@@ -90,64 +124,119 @@ private DeathCaseResponse toResponseWithAssignedCount(DeathCase deathCase) {
     return response;
 }
 
-    public DeathCaseResponse create(CreateDeathCaseRequest req,
-                                     MultipartFile userImageFile,
-                                     MultipartFile nominee1QrCodeFile,
-                                     MultipartFile nominee2QrCodeFile,
-                                     MultipartFile certificate1File,
-                                     String userId) {
+   public DeathCaseResponse create(CreateDeathCaseRequest req,
+                                 MultipartFile userImageFile,
+                                 MultipartFile nominee1QrCodeFile,
+                                 MultipartFile nominee2QrCodeFile,
+                                 List<MultipartFile> nominee1QrCodeFiles,
+                                 List<MultipartFile> nominee2QrCodeFiles,
+                                 MultipartFile certificate1File,
+                                 String userId) {
 
-        log.info("Creating death case - DeceasedName: {}, EmployeeCode: {}, UserId: {}",
-                 req.getDeceasedName(), req.getEmployeeCode(), userId);
+    log.info("Creating death case - DeceasedName: {}, EmployeeCode: {}, UserId: {}",
+            req.getDeceasedName(), req.getEmployeeCode(), userId);
 
-        try {
-            // Store files with meaningful names (organized by userId)
-            String userImagePath = storeFileWithName(userImageFile, userId, "death-cases",
-                    sanitizeName(req.getDeceasedName()) + "_user");
-            String nominee1QrCodePath = storeFileWithName(nominee1QrCodeFile, userId, "death-cases",
-                    sanitizeName(req.getNominee1Name()) + "_qr");
-            String nominee2QrCodePath = storeFileWithName(nominee2QrCodeFile, userId, "death-cases",
-                    sanitizeName(req.getNominee2Name()) + "_qr");
-            String certificate1Path = storeFileWithName(certificate1File, userId, "death-cases",
-                    sanitizeName(req.getDeceasedName()) + "_cert1");
+    try {
+        // Store files with meaningful names
+        String userImagePath = storeFileWithName(
+                userImageFile,
+                userId,
+                "death-cases",
+                sanitizeName(req.getDeceasedName()) + "_user"
+        );
 
-            log.info("Files stored - UserImage: {}, Nominee1QR: {}, Nominee2QR: {}, Cert1: {}",
-                     userImagePath, nominee1QrCodePath, nominee2QrCodePath, certificate1Path);
+        // Old single QR support
+        String nominee1QrCodePath = storeFileWithName(
+                nominee1QrCodeFile,
+                userId,
+                "death-cases",
+                sanitizeName(req.getNominee1Name()) + "_qr"
+        );
 
-            DeathCase deathCase = DeathCase.builder()
-                    .deceasedName(req.getDeceasedName())
-                    .employeeCode(req.getEmployeeCode())
-                    .department(req.getDepartment())
-                    .district(req.getDistrict())
-                    .description(req.getDescription())
-                    .userImage(userImagePath)
-                    // Nominee Details
-                    .nominee1Name(req.getNominee1Name())
-                    .nominee1QrCode(nominee1QrCodePath)
-                    .nominee2Name(req.getNominee2Name())
-                    .nominee2QrCode(nominee2QrCodePath)
-                    .nominee1UpiLink(normalizeUpiValue(req.getNominee1UpiLink()))
-.nominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()))
-                    // Certificate Details
-                    .certificate1(certificate1Path)
-                    // Account Details
-                    .account1(mapToAccountDetails(req.getAccount1()))
-                    .account2(mapToAccountDetails(req.getAccount2()))
-                    .account3(mapToAccountDetails(req.getAccount3()))
-                    .caseDate(req.getCaseDate())
-                    .status(DeathCaseStatus.OPEN)
-                    .createdBy(userId)
-                    .build();
+        String nominee2QrCodePath = storeFileWithName(
+                nominee2QrCodeFile,
+                userId,
+                "death-cases",
+                sanitizeName(req.getNominee2Name()) + "_qr"
+        );
 
-            DeathCase savedDeathCase = repository.save(deathCase);
-            log.info("Death case created successfully with ID: {}", savedDeathCase.getId());
+        // New multiple QR support
+        List<String> nominee1QrCodePaths = storeMultipleFilesWithName(
+                nominee1QrCodeFiles,
+                userId,
+                "death-cases",
+                sanitizeName(req.getNominee1Name())
+        );
 
-return toResponseWithAssignedCount(savedDeathCase);        } catch (Exception e) {
-            log.error("Failed to create death case - DeceasedName: {}, Error: {}",
-                      req.getDeceasedName(), e.getMessage(), e);
-            throw new RuntimeException("Failed to create death case: " + e.getMessage(), e);
+        List<String> nominee2QrCodePaths = storeMultipleFilesWithName(
+                nominee2QrCodeFiles,
+                userId,
+                "death-cases",
+                sanitizeName(req.getNominee2Name())
+        );
+
+        // Add old single QR into new list also, for compatibility
+        if (nominee1QrCodePath != null && !nominee1QrCodePaths.contains(nominee1QrCodePath)) {
+            nominee1QrCodePaths.add(0, nominee1QrCodePath);
         }
+
+        if (nominee2QrCodePath != null && !nominee2QrCodePaths.contains(nominee2QrCodePath)) {
+            nominee2QrCodePaths.add(0, nominee2QrCodePath);
+        }
+
+        String certificate1Path = storeFileWithName(
+                certificate1File,
+                userId,
+                "death-cases",
+                sanitizeName(req.getDeceasedName()) + "_cert1"
+        );
+
+        log.info("Files stored - UserImage: {}, Nominee1QR: {}, Nominee2QR: {}, Cert1: {}",
+                userImagePath, nominee1QrCodePaths, nominee2QrCodePaths, certificate1Path);
+
+        DeathCase deathCase = DeathCase.builder()
+                .deceasedName(req.getDeceasedName())
+                .employeeCode(req.getEmployeeCode())
+                .department(req.getDepartment())
+                .district(req.getDistrict())
+                .description(req.getDescription())
+                .userImage(userImagePath)
+
+                // Nominee Details
+                .nominee1Name(req.getNominee1Name())
+                .nominee1QrCode(nominee1QrCodePath)
+                .nominee1QrCodes(nominee1QrCodePaths)
+                .nominee1UpiLink(normalizeUpiValue(req.getNominee1UpiLink()))
+
+                .nominee2Name(req.getNominee2Name())
+                .nominee2QrCode(nominee2QrCodePath)
+                .nominee2QrCodes(nominee2QrCodePaths)
+                .nominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()))
+
+                // Certificate Details
+                .certificate1(certificate1Path)
+
+                // Account Details
+                .account1(mapToAccountDetails(req.getAccount1()))
+                .account2(mapToAccountDetails(req.getAccount2()))
+                .account3(mapToAccountDetails(req.getAccount3()))
+
+                .caseDate(req.getCaseDate())
+                .status(DeathCaseStatus.OPEN)
+                .createdBy(userId)
+                .build();
+
+        DeathCase savedDeathCase = repository.save(deathCase);
+        log.info("Death case created successfully with ID: {}", savedDeathCase.getId());
+
+        return toResponseWithAssignedCount(savedDeathCase);
+
+    } catch (Exception e) {
+        log.error("Failed to create death case - DeceasedName: {}, Error: {}",
+                req.getDeceasedName(), e.getMessage(), e);
+        throw new RuntimeException("Failed to create death case: " + e.getMessage(), e);
     }
+}
 
    public List<DeathCaseResponse> getAll() {
     return repository.findAll()
@@ -162,13 +251,15 @@ return toResponseWithAssignedCount(savedDeathCase);        } catch (Exception e)
 return toResponseWithAssignedCount(dc);    }
 
     public DeathCaseResponse update(
-            Long id,
-            UpdateDeathCaseRequest req,
-            MultipartFile userImageFile,
-            MultipartFile nominee1QrCodeFile,
-            MultipartFile nominee2QrCodeFile,
-            MultipartFile certificate1File,
-            String userId) {
+        Long id,
+        UpdateDeathCaseRequest req,
+        MultipartFile userImageFile,
+        MultipartFile nominee1QrCodeFile,
+        MultipartFile nominee2QrCodeFile,
+        List<MultipartFile> nominee1QrCodeFiles,
+        List<MultipartFile> nominee2QrCodeFiles,
+        MultipartFile certificate1File,
+        String userId) {
 
         DeathCase dc = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Death case not found"));
@@ -189,14 +280,71 @@ dc.setNominee2UpiLink(normalizeUpiValue(req.getNominee2UpiLink()));
             dc.setUserImage(storeFileWithName(userImageFile, userId, "death-cases",
                     sanitizeName(req.getDeceasedName()) + "_user"));
         }
-        if (nominee1QrCodeFile != null && !nominee1QrCodeFile.isEmpty()) {
-            dc.setNominee1QrCode(storeFileWithName(nominee1QrCodeFile, userId, "death-cases",
-                    sanitizeName(req.getNominee1Name()) + "_qr"));
-        }
-        if (nominee2QrCodeFile != null && !nominee2QrCodeFile.isEmpty()) {
-            dc.setNominee2QrCode(storeFileWithName(nominee2QrCodeFile, userId, "death-cases",
-                    sanitizeName(req.getNominee2Name()) + "_qr"));
-        }
+       if (nominee1QrCodeFile != null && !nominee1QrCodeFile.isEmpty()) {
+    String storedSingleQr = storeFileWithName(
+            nominee1QrCodeFile,
+            userId,
+            "death-cases",
+            sanitizeName(req.getNominee1Name()) + "_qr"
+    );
+
+    dc.setNominee1QrCode(storedSingleQr);
+
+    if (dc.getNominee1QrCodes() == null) {
+        dc.setNominee1QrCodes(new ArrayList<>());
+    }
+
+    dc.getNominee1QrCodes().clear();
+    dc.getNominee1QrCodes().add(storedSingleQr);
+}
+
+if (nominee2QrCodeFile != null && !nominee2QrCodeFile.isEmpty()) {
+    String storedSingleQr = storeFileWithName(
+            nominee2QrCodeFile,
+            userId,
+            "death-cases",
+            sanitizeName(req.getNominee2Name()) + "_qr"
+    );
+
+    dc.setNominee2QrCode(storedSingleQr);
+
+    if (dc.getNominee2QrCodes() == null) {
+        dc.setNominee2QrCodes(new ArrayList<>());
+    }
+
+    dc.getNominee2QrCodes().clear();
+    dc.getNominee2QrCodes().add(storedSingleQr);
+}
+
+if (nominee1QrCodeFiles != null && !nominee1QrCodeFiles.isEmpty()) {
+    List<String> storedQrCodes = storeMultipleFilesWithName(
+            nominee1QrCodeFiles,
+            userId,
+            "death-cases",
+            sanitizeName(req.getNominee1Name())
+    );
+
+    dc.setNominee1QrCodes(storedQrCodes);
+
+    if (!storedQrCodes.isEmpty()) {
+        dc.setNominee1QrCode(storedQrCodes.get(0));
+    }
+}
+
+if (nominee2QrCodeFiles != null && !nominee2QrCodeFiles.isEmpty()) {
+    List<String> storedQrCodes = storeMultipleFilesWithName(
+            nominee2QrCodeFiles,
+            userId,
+            "death-cases",
+            sanitizeName(req.getNominee2Name())
+    );
+
+    dc.setNominee2QrCodes(storedQrCodes);
+
+    if (!storedQrCodes.isEmpty()) {
+        dc.setNominee2QrCode(storedQrCodes.get(0));
+    }
+}
         if (certificate1File != null && !certificate1File.isEmpty()) {
             dc.setCertificate1(storeFileWithName(certificate1File, userId, "death-cases",
                     sanitizeName(req.getDeceasedName()) + "_cert1"));

@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class DeathCaseResponse {
@@ -19,13 +20,16 @@ public class DeathCaseResponse {
     private String userImage;
 
     // Nominee 1 Details
-    private String nominee1Name;
-    private String nominee1QrCode;
+private String nominee1Name;
+private String nominee1QrCode;
+private List<String> nominee1QrCodes;
 private String nominee1UpiLink;
+
+// Nominee 2 Details
+private String nominee2Name;
+private String nominee2QrCode;
+private List<String> nominee2QrCodes;
 private String nominee2UpiLink;
-    // Nominee 2 Details
-    private String nominee2Name;
-    private String nominee2QrCode;
 
     // Death Case Certificates
     private String certificate1;

@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -28,14 +30,37 @@ public class DeathCase {
 
     private String userImage; // Stores file path of user image
 
-    // Nominee 1 Details
-    private String nominee1Name;
-    private String nominee1QrCode; // Stores file path of QR code image
+// Nominee 1 Details
+private String nominee1Name;
+private String nominee1QrCode; // Old single QR field, keep for backward compatibility
+
+@ElementCollection(fetch = FetchType.EAGER)
+@CollectionTable(
+        name = "death_case_nominee1_qr_codes",
+        joinColumns = @JoinColumn(name = "death_case_id")
+)
+@OrderColumn(name = "qr_order")
+@Column(name = "qr_code", length = 1000)
+@Builder.Default
+private List<String> nominee1QrCodes = new ArrayList<>();
+
 @Column(length = 1000)
 private String nominee1UpiLink;
-    // Nominee 2 Details
-    private String nominee2Name;
-    private String nominee2QrCode; // Stores file path of QR code image
+
+// Nominee 2 Details
+private String nominee2Name;
+private String nominee2QrCode; // Old single QR field, keep for backward compatibility
+
+@ElementCollection(fetch = FetchType.EAGER)
+@CollectionTable(
+        name = "death_case_nominee2_qr_codes",
+        joinColumns = @JoinColumn(name = "death_case_id")
+)
+@OrderColumn(name = "qr_order")
+@Column(name = "qr_code", length = 1000)
+@Builder.Default
+private List<String> nominee2QrCodes = new ArrayList<>();
+
 @Column(length = 1000)
 private String nominee2UpiLink;
     // Death Case Certificates
