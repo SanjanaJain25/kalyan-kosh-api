@@ -41,6 +41,9 @@ import com.example.kalyan_kosh_api.dto.AdminCreateUserRequest;
 import com.example.kalyan_kosh_api.dto.AdminUserMatchResponse;
 import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 
 @Service
 public class UserService {
@@ -55,29 +58,31 @@ public class UserService {
     private final EmailService emailService;
 private final ReceiptRepository receiptRepo;
 private final SystemSettingService systemSettingService;
+private final DeathCaseRepository deathCaseRepository;
 
-    public UserService(UserRepository userRepo,
-                       BlockRepository blockRepo,
-                       DistrictRepository districtRepo,
-                       SambhagRepository sambhagRepo,
-                       StateRepository stateRepo,
-                       PasswordEncoder passwordEncoder,
-                       IdGeneratorService idGeneratorService,
-                       EmailService emailService,
-                       ReceiptRepository receiptRepo,
-                        SystemSettingService systemSettingService) {
-        this.userRepo = userRepo;
-        this.blockRepo = blockRepo;
-        this.districtRepo = districtRepo;
-        this.sambhagRepo = sambhagRepo;
-        this.stateRepo = stateRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.idGeneratorService = idGeneratorService;
-        this.emailService = emailService;
-           this.receiptRepo = receiptRepo;
-            this.systemSettingService = systemSettingService;
-    }
-
+public UserService(UserRepository userRepo,
+                   BlockRepository blockRepo,
+                   DistrictRepository districtRepo,
+                   SambhagRepository sambhagRepo,
+                   StateRepository stateRepo,
+                   PasswordEncoder passwordEncoder,
+                   IdGeneratorService idGeneratorService,
+                   EmailService emailService,
+                   ReceiptRepository receiptRepo,
+                   SystemSettingService systemSettingService,
+                   DeathCaseRepository deathCaseRepository) {
+    this.userRepo = userRepo;
+    this.blockRepo = blockRepo;
+    this.districtRepo = districtRepo;
+    this.sambhagRepo = sambhagRepo;
+    this.stateRepo = stateRepo;
+    this.passwordEncoder = passwordEncoder;
+    this.idGeneratorService = idGeneratorService;
+    this.emailService = emailService;
+    this.receiptRepo = receiptRepo;
+    this.systemSettingService = systemSettingService;
+    this.deathCaseRepository = deathCaseRepository;
+}
     private String normalizeString(String value) {
     if (value == null) return null;
     String trimmed = value.trim();
@@ -117,6 +122,7 @@ public User findById(String userId) {
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 }
 
+@Transactional(readOnly = true)
     public UserResponse getUserById(String id) {
         User user = userRepo.findByIdWithLocations(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -124,6 +130,7 @@ public User findById(String userId) {
         return toUserResponse(user);
     }
 
+@Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepo.findAllWithLocations();
 
@@ -1056,10 +1063,7 @@ if (
     response.setAssignedDeathCaseId(deathCase.getId());
     response.setAssignedDeathCaseName(deathCase.getDeceasedName());
 
-    String allocatedQrCode = deathCase.getNominee1QrCode();
-    if (allocatedQrCode == null || allocatedQrCode.isBlank()) {
-        allocatedQrCode = deathCase.getNominee2QrCode();
-    }
+    String allocatedQrCode = getAllocatedQrCodeForUser(user, deathCase);
 
     Optional<Receipt> latestReceiptOpt =
             receiptRepo.findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(
@@ -1100,6 +1104,7 @@ if (
      * Paginated method to get users - 20 users per page, sorted by insertion order (createdAt ASC)
      * Optimized for large datasets (60000+ users)
      */
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> getAllUsersPaginated(int page, int size) {
 Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> userPage = userRepo
@@ -1126,6 +1131,7 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
      * Filters: Sambhag, District, Block, Name (searches in name & surname), Mobile, UserId
      * 20 users per page, sorted by insertion order (createdAt DESC - newest first)
      */
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> getAllUsersFiltered(
             String sambhagId,
             String districtId,
@@ -1160,4 +1166,81 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
                 userPage.isFirst()
         );
     }
+
+   private String getAllocatedQrCodeForUser(User user, DeathCase deathCase) {
+    if (user == null || deathCase == null || deathCase.getId() == null) {
+        return null;
+    }
+
+    List<String> qrCodes = new ArrayList<>();
+
+    /*
+     * MAIN SOURCE:
+     * Read directly from DB QR tables.
+     * This avoids any JPA lazy/eager loading issue from assignedDeathCase.
+     */
+    List<String> nominee1QrCodesFromDb =
+            deathCaseRepository.findNominee1QrCodesByDeathCaseId(deathCase.getId());
+
+    List<String> nominee2QrCodesFromDb =
+            deathCaseRepository.findNominee2QrCodesByDeathCaseId(deathCase.getId());
+
+    if (nominee1QrCodesFromDb != null) {
+        nominee1QrCodesFromDb.stream()
+                .filter(qr -> qr != null && !qr.isBlank())
+                .forEach(qrCodes::add);
+    }
+
+    if (nominee2QrCodesFromDb != null) {
+        nominee2QrCodesFromDb.stream()
+                .filter(qr -> qr != null && !qr.isBlank())
+                .forEach(qrCodes::add);
+    }
+
+    /*
+     * FALLBACK SOURCE:
+     * Entity list mapping, in case data is already loaded through JPA.
+     */
+    if (deathCase.getNominee1QrCodes() != null) {
+        deathCase.getNominee1QrCodes().stream()
+                .filter(qr -> qr != null && !qr.isBlank())
+                .forEach(qrCodes::add);
+    }
+
+    if (deathCase.getNominee2QrCodes() != null) {
+        deathCase.getNominee2QrCodes().stream()
+                .filter(qr -> qr != null && !qr.isBlank())
+                .forEach(qrCodes::add);
+    }
+
+    /*
+     * OLD SINGLE QR FALLBACK:
+     * For backward compatibility with old records.
+     */
+    if (deathCase.getNominee1QrCode() != null && !deathCase.getNominee1QrCode().isBlank()) {
+        qrCodes.add(deathCase.getNominee1QrCode());
+    }
+
+    if (deathCase.getNominee2QrCode() != null && !deathCase.getNominee2QrCode().isBlank()) {
+        qrCodes.add(deathCase.getNominee2QrCode());
+    }
+
+    qrCodes = qrCodes.stream()
+            .filter(qr -> qr != null && !qr.isBlank())
+            .distinct()
+            .toList();
+
+    if (qrCodes.isEmpty()) {
+        return null;
+    }
+
+    /*
+     * Stable allocation:
+     * Same user + same death case will always receive same QR.
+     */
+    String key = user.getId() + "-" + deathCase.getId();
+    int index = Math.floorMod(key.hashCode(), qrCodes.size());
+
+    return qrCodes.get(index);
+}
 }

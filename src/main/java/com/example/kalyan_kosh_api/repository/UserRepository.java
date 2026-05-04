@@ -218,7 +218,10 @@ List<User> findUsersForRetirementDateExportScoped(
     FROM User u
     WHERE u.assignedDeathCase.id = :deathCaseId
       AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-      AND u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+      AND (
+            u.status IS NULL
+            OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+      )
 """)
 long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
 
