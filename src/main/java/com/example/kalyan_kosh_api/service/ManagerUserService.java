@@ -501,8 +501,9 @@ private Specification<User> buildStatsSpecification(
             .pincode(user.getPincode())
             .joiningDate(user.getJoiningDate())
             .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
-            .build();
+.updatedAt(user.getUpdatedAt())
+.lastLoginAt(user.getLastLoginAt())
+.build();
     }
     
     /**

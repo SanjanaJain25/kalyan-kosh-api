@@ -49,7 +49,8 @@ private String nominee2Relation;
     private Role role;
     private UserStatus status;
     private Instant createdAt;
-    private Instant updatedAt;
+private Instant updatedAt;
+private Instant lastLoginAt;
     
     // Additional fields for admin
     private String homeAddress;

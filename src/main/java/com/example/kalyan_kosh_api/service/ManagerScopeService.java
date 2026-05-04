@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import com.example.kalyan_kosh_api.entity.District;
+import com.example.kalyan_kosh_api.entity.Block;
 /**
  * Service for managing Manager Scope and Access Control
  * Determines what locations and users a manager can access
@@ -26,7 +27,11 @@ public class ManagerScopeService {
     
     @Autowired
     private UserRepository userRepository;
-    
+    @Autowired
+private DistrictRepository districtRepository;
+
+@Autowired
+private BlockRepository blockRepository;
     /**
      * Get complete scope information for a manager
      */
@@ -210,26 +215,85 @@ public boolean hasAccessToBlock(User manager, UUID blockId) {
         return false;
     });
 }
-    /**
-     * Get all sambhag IDs that manager has access to
-     */
-    public List<UUID> getAccessibleSambhagIds(User manager) {
-        return managerAssignmentRepository.findSambhagIdsByManager(manager);
+   public List<UUID> getAccessibleSambhagIds(User manager) {
+    return managerAssignmentRepository.findByManagerAndIsActiveTrue(manager)
+            .stream()
+            .filter(a -> a.getSambhag() != null)
+            .map(a -> a.getSambhag().getId())
+            .distinct()
+            .collect(Collectors.toList());
+}
+
+public List<UUID> getAccessibleDistrictIds(User manager) {
+    List<ManagerAssignment> assignments =
+            managerAssignmentRepository.findByManagerAndIsActiveTrue(manager);
+
+    List<UUID> districtIds = new ArrayList<>();
+
+    for (ManagerAssignment assignment : assignments) {
+        if (assignment.getDistrict() != null) {
+            districtIds.add(assignment.getDistrict().getId());
+        }
+
+        if (assignment.getSambhag() != null) {
+            List<District> districts =
+                    districtRepository.findBySambhagId(assignment.getSambhag().getId());
+
+            districtIds.addAll(
+                    districts.stream()
+                            .map(District::getId)
+                            .collect(Collectors.toList())
+            );
+        }
     }
-    
-    /**
-     * Get all district IDs that manager has access to
-     */
-    public List<UUID> getAccessibleDistrictIds(User manager) {
-        return managerAssignmentRepository.findDistrictIdsByManager(manager);
+
+    return districtIds.stream()
+            .distinct()
+            .collect(Collectors.toList());
+}
+
+public List<UUID> getAccessibleBlockIds(User manager) {
+    List<ManagerAssignment> assignments =
+            managerAssignmentRepository.findByManagerAndIsActiveTrue(manager);
+
+    List<UUID> blockIds = new ArrayList<>();
+
+    for (ManagerAssignment assignment : assignments) {
+        if (assignment.getBlock() != null) {
+            blockIds.add(assignment.getBlock().getId());
+        }
+
+        if (assignment.getDistrict() != null) {
+            List<Block> blocks =
+                    blockRepository.findByDistrictId(assignment.getDistrict().getId());
+
+            blockIds.addAll(
+                    blocks.stream()
+                            .map(Block::getId)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        if (assignment.getSambhag() != null) {
+            List<District> districts =
+                    districtRepository.findBySambhagId(assignment.getSambhag().getId());
+
+            for (District district : districts) {
+                List<Block> blocks = blockRepository.findByDistrictId(district.getId());
+
+                blockIds.addAll(
+                        blocks.stream()
+                                .map(Block::getId)
+                                .collect(Collectors.toList())
+                );
+            }
+        }
     }
-    
-    /**
-     * Get all block IDs that manager has access to
-     */
-    public List<UUID> getAccessibleBlockIds(User manager) {
-        return managerAssignmentRepository.findBlockIdsByManager(manager);
-    }
+
+    return blockIds.stream()
+            .distinct()
+            .collect(Collectors.toList());
+}
     
     /**
      * Check if user can access specific user based on location hierarchy

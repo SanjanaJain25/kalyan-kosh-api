@@ -372,7 +372,7 @@ response.setNominee2Relation(user.getNominee2Relation());
         response.setStatus(user.getStatus() != null ? user.getStatus() : UserStatus.ACTIVE);
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
-        
+        response.setLastLoginAt(user.getLastLoginAt());
         // Additional fields
         response.setHomeAddress(user.getHomeAddress());
         response.setPincode(user.getPincode());
