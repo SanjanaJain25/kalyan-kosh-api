@@ -35,4 +35,7 @@ public class JwtUtil {
 
     public Jws<Claims> validate(String token) { return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token); }
     public String extractUsername(String token) { return validate(token).getBody().getSubject(); }
+public Date extractIssuedAt(String token) {
+    return validate(token).getBody().getIssuedAt();
+}
 }

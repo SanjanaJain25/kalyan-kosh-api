@@ -21,18 +21,25 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
+import com.example.kalyan_kosh_api.service.SystemSettingService;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final CustomUserDetailsService uds;
-    private final JwtUtil jwtUtil;
+   private final CustomUserDetailsService uds;
+private final JwtUtil jwtUtil;
+private final SystemSettingService systemSettingService;
 
-    public SecurityConfig(CustomUserDetailsService uds, JwtUtil jwtUtil) {
-        this.uds = uds;
-        this.jwtUtil = jwtUtil;
-    }
+   public SecurityConfig(
+        CustomUserDetailsService uds,
+        JwtUtil jwtUtil,
+        SystemSettingService systemSettingService
+) {
+    this.uds = uds;
+    this.jwtUtil = jwtUtil;
+    this.systemSettingService = systemSettingService;
+}
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,10 +54,10 @@ public class SecurityConfig {
         return provider;
     }
 
-    @Bean
-    public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtUtil, uds);
-    }
+   @Bean
+public JwtAuthFilter jwtAuthFilter() {
+    return new JwtAuthFilter(jwtUtil, uds, systemSettingService);
+}
 
     @Bean
     public AuthenticationManager authenticationManager(

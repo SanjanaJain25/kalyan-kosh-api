@@ -28,7 +28,7 @@ public void initializeDefaultSettings() {
     getOrCreateSetting("self_donation_qr_url", "");
     getOrCreateSetting("district_manager_export_mobile_enabled", "false");
     getOrCreateSetting("block_manager_export_mobile_enabled", "false");
-
+getOrCreateSetting("global_force_logout_after", "");
     // Profile field lock settings
     getOrCreateSetting("profile_lock_full_name", "false");
     getOrCreateSetting("profile_lock_date_of_birth", "false");
@@ -281,5 +281,26 @@ public java.util.Map<String, String> getHomeDisplayContentSettings() {
 public void updateHomeDisplayContentSettings(java.util.Map<String, String> req) {
     updateHomeNoticeHtml(req.get("homeNoticeHtml"));
     updateStatisticsContentHtml(req.get("statisticsContentHtml"));
+}
+
+public void forceLogoutAllUsers() {
+    SystemSetting setting = getOrCreateSetting("global_force_logout_after", "");
+    setting.setSettingValue(Instant.now().toString());
+    setting.setUpdatedAt(Instant.now());
+    repo.save(setting);
+}
+
+public Instant getGlobalForceLogoutAfter() {
+    String value = getOrCreateSetting("global_force_logout_after", "").getSettingValue();
+
+    if (value == null || value.isBlank()) {
+        return null;
+    }
+
+    try {
+        return Instant.parse(value);
+    } catch (Exception ex) {
+        return null;
+    }
 }
 }
