@@ -147,7 +147,8 @@ public JwtAuthFilter jwtAuthFilter() {
 
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/no-utr-ever/export")
 .hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
-
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/beneficiaries-open").permitAll()
+.requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/non-donors/beneficiaries-open").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/admin/monthly-sahyog/donors/export")
 .hasAnyRole("SUPERADMIN", "ADMIN", "SAMBHAG_MANAGER", "DISTRICT_MANAGER", "BLOCK_MANAGER")
 

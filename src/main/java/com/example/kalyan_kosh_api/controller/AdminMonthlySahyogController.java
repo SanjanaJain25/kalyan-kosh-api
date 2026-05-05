@@ -197,7 +197,25 @@ public ResponseEntity<?> getAllBeneficiaries() {
                 .body(createErrorResponse("FETCH_ERROR", "Failed to fetch beneficiaries: " + e.getMessage()));
     }
 }
+@GetMapping("/donors/beneficiaries-open")
+public ResponseEntity<?> getOpenBeneficiariesForDonors() {
+    try {
+        return ResponseEntity.ok(service.getOpenBeneficiaryOptions());
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("FETCH_ERROR", "Failed to fetch open beneficiaries: " + e.getMessage()));
+    }
+}
 
+@GetMapping("/non-donors/beneficiaries-open")
+public ResponseEntity<?> getOpenBeneficiariesForNonDonors() {
+    try {
+        return ResponseEntity.ok(service.getOpenBeneficiaryOptions());
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("FETCH_ERROR", "Failed to fetch open beneficiaries: " + e.getMessage()));
+    }
+}
 @GetMapping("/non-donors/beneficiaries-all")
 public ResponseEntity<?> getAllBeneficiariesForNonDonors() {
     try {
@@ -265,6 +283,7 @@ public ResponseEntity<?> searchNoUtrEverUsers(
 @GetMapping("/donors/search-by-beneficiary")
 public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false, defaultValue = "false") boolean openOnly,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -275,7 +294,7 @@ public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(defaultValue = "20") int size) {
     try {
         PageResponse<DonorResponse> result = service.searchDonorsByBeneficiary(
-                beneficiaryId, name, mobile, userId, sambhag, district, block, page, size
+                beneficiaryId,openOnly, name, mobile, userId, sambhag, district, block, page, size
         );
         return ResponseEntity.ok(result);
     } catch (Exception e) {
@@ -287,6 +306,7 @@ public ResponseEntity<?> searchDonorsByBeneficiary(
 @GetMapping("/non-donors/search-by-beneficiary")
 public ResponseEntity<?> searchNonDonorsByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false, defaultValue = "false") boolean openOnly,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -297,7 +317,7 @@ public ResponseEntity<?> searchNonDonorsByBeneficiary(
         @RequestParam(defaultValue = "20") int size) {
     try {
         PageResponse<UserResponse> result = service.searchNonDonorsByBeneficiary(
-                beneficiaryId, name, mobile, userId, sambhag, district, block, page, size
+                beneficiaryId,openOnly, name, mobile, userId, sambhag, district, block, page, size
         );
         return ResponseEntity.ok(result);
     } catch (Exception e) {

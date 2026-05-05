@@ -260,13 +260,19 @@ List<String> findDistinctBeneficiariesByDateRange(
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
     WHERE r.amount > 0
-      AND (
-            :beneficiaryId IS NULL
-            OR (
-                u.assigned_death_case_id = :beneficiaryId
-                AND r.death_case_id = :beneficiaryId
-            )
-          )
+     AND (
+      (:beneficiaryId IS NULL AND :openOnly = false)
+      OR (
+          :beneficiaryId IS NOT NULL
+          AND u.assigned_death_case_id = :beneficiaryId
+          AND r.death_case_id = :beneficiaryId
+      )
+      OR (
+          :beneficiaryId IS NULL
+          AND :openOnly = true
+          AND dc.status = 'OPEN'
+      )
+    )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -288,21 +294,28 @@ List<String> findDistinctBeneficiariesByDateRange(
              dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
     """,
-    countQuery = """
-    SELECT COUNT(DISTINCT u.id)
-    FROM receipt r
-    JOIN users u ON r.user_id = u.id
-    LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
-    LEFT JOIN district d ON u.department_district_id = d.id
-    LEFT JOIN block b ON u.department_block_id = b.id
-    WHERE r.amount > 0
-      AND (
-            :beneficiaryId IS NULL
-            OR (
-                u.assigned_death_case_id = :beneficiaryId
-                AND r.death_case_id = :beneficiaryId
-            )
-          )
+   countQuery = """
+SELECT COUNT(DISTINCT u.id)
+FROM receipt r
+JOIN users u ON r.user_id = u.id
+LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
+LEFT JOIN district d ON u.department_district_id = d.id
+LEFT JOIN block b ON u.department_block_id = b.id
+LEFT JOIN death_case dc ON r.death_case_id = dc.id
+WHERE r.amount > 0
+     AND (
+      (:beneficiaryId IS NULL AND :openOnly = false)
+      OR (
+          :beneficiaryId IS NOT NULL
+          AND u.assigned_death_case_id = :beneficiaryId
+          AND r.death_case_id = :beneficiaryId
+      )
+      OR (
+          :beneficiaryId IS NULL
+          AND :openOnly = true
+          AND dc.status = 'OPEN'
+      )
+    )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -315,6 +328,7 @@ List<String> findDistinctBeneficiariesByDateRange(
     nativeQuery = true)
 org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(
         @Param("beneficiaryId") Long beneficiaryId,
+         @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
@@ -382,13 +396,19 @@ List<Object[]> searchDonorsForExportNative(
     LEFT JOIN block b ON u.department_block_id = b.id
     LEFT JOIN death_case dc ON r.death_case_id = dc.id
     WHERE r.amount > 0
-      AND (
-            :beneficiaryId IS NULL
-            OR (
-                u.assigned_death_case_id = :beneficiaryId
-                AND r.death_case_id = :beneficiaryId
-            )
-          )
+     AND (
+      (:beneficiaryId IS NULL AND :openOnly = false)
+      OR (
+          :beneficiaryId IS NOT NULL
+          AND u.assigned_death_case_id = :beneficiaryId
+          AND r.death_case_id = :beneficiaryId
+      )
+      OR (
+          :beneficiaryId IS NULL
+          AND :openOnly = true
+          AND dc.status = 'OPEN'
+      )
+    )
       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -412,6 +432,7 @@ List<Object[]> searchDonorsForExportNative(
     """, nativeQuery = true)
 List<Object[]> searchDonorsByBeneficiaryForExportNative(
         @Param("beneficiaryId") Long beneficiaryId,
+         @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,

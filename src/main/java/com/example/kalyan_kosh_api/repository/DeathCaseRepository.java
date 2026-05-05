@@ -66,4 +66,13 @@ List<String> findDistinctBeneficiaryNames();
     ORDER BY dc.deceasedName
 """)
 List<BeneficiaryOptionDto> findAllBeneficiaryOptions();
+@Query("""
+    SELECT new com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto(dc.id, dc.deceasedName)
+    FROM DeathCase dc
+    WHERE dc.status = com.example.kalyan_kosh_api.entity.DeathCaseStatus.OPEN
+      AND dc.deceasedName IS NOT NULL
+      AND TRIM(dc.deceasedName) <> ''
+    ORDER BY dc.createdAt DESC
+""")
+List<BeneficiaryOptionDto> findOpenBeneficiaryOptions();
 }

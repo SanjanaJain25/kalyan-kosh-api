@@ -35,10 +35,9 @@ public class AdminCreateUserRequest {
     private String nominee2Relation;
 
     private String password;
-
-    // New fields for admin manual create
-    private String registrationDateOverride;   // yyyy-MM-dd
-    private Boolean createIfMatchFound;        // if true, allow creation even if a match is found
-    private String matchedExistingUserId;      // optional, for future explicit handling
-    private String supportEntryReference;      // optional remarks/reference
+// New fields for admin manual create
+private String desiredUserId;              // Optional. Example: PMUMS203001
+private String registrationDateOverride;   // yyyy-MM-dd
+private Boolean createIfMatchFound;        // if true, allow creation even if a match is found
+private String matchedExistingUserId;      // optional, for future explicit handling
 }

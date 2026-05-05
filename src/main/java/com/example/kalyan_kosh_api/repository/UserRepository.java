@@ -224,6 +224,13 @@ List<User> findUsersForRetirementDateExportScoped(
       )
 """)
 long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
+@Query("""
+    SELECT u
+    FROM User u
+    WHERE LOWER(TRIM(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))))
+          = LOWER(TRIM(:fullName))
+""")
+Optional<User> findByFullNameIgnoreCase(@Param("fullName") String fullName);
 
 @Query("""
     SELECT u
@@ -670,23 +677,43 @@ List<User> findAllUsersForExport(
           AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-                (:beneficiaryId IS NULL AND NOT EXISTS (
-                    SELECT 1
-                    FROM Receipt r
-                    WHERE r.user.id = u.id
-                      AND r.amount > 0
-                ))
+                (
+                  :beneficiaryId IS NULL
+                  AND :openOnly = false
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.amount > 0
+                  )
+                )
                 OR
-                (:beneficiaryId IS NOT NULL
-                    AND adc.id = :beneficiaryId
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM Receipt r
-                        WHERE r.user.id = u.id
-                          AND r.deathCase IS NOT NULL
-                          AND r.deathCase.id = :beneficiaryId
-                          AND r.amount > 0
-                    )
+                (
+                  :beneficiaryId IS NULL
+                  AND :openOnly = true
+                  AND adc IS NOT NULL
+                  AND adc.status = com.example.kalyan_kosh_api.entity.DeathCaseStatus.OPEN
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.deathCase IS NOT NULL
+                        AND r.deathCase.id = adc.id
+                        AND r.amount > 0
+                  )
+                )
+                OR
+                (
+                  :beneficiaryId IS NOT NULL
+                  AND adc.id = :beneficiaryId
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.deathCase IS NOT NULL
+                        AND r.deathCase.id = :beneficiaryId
+                        AND r.amount > 0
+                  )
                 )
           )
         """,
@@ -709,29 +736,50 @@ List<User> findAllUsersForExport(
           AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
           AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
           AND (
-                (:beneficiaryId IS NULL AND NOT EXISTS (
-                    SELECT 1
-                    FROM Receipt r
-                    WHERE r.user.id = u.id
-                      AND r.amount > 0
-                ))
+                (
+                  :beneficiaryId IS NULL
+                  AND :openOnly = false
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.amount > 0
+                  )
+                )
                 OR
-                (:beneficiaryId IS NOT NULL
-                    AND adc.id = :beneficiaryId
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM Receipt r
-                        WHERE r.user.id = u.id
-                          AND r.deathCase IS NOT NULL
-                          AND r.deathCase.id = :beneficiaryId
-                          AND r.amount > 0
-                    )
+                (
+                  :beneficiaryId IS NULL
+                  AND :openOnly = true
+                  AND adc IS NOT NULL
+                  AND adc.status = com.example.kalyan_kosh_api.entity.DeathCaseStatus.OPEN
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.deathCase IS NOT NULL
+                        AND r.deathCase.id = adc.id
+                        AND r.amount > 0
+                  )
+                )
+                OR
+                (
+                  :beneficiaryId IS NOT NULL
+                  AND adc.id = :beneficiaryId
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM Receipt r
+                      WHERE r.user.id = u.id
+                        AND r.deathCase IS NOT NULL
+                        AND r.deathCase.id = :beneficiaryId
+                        AND r.amount > 0
+                  )
                 )
           )
         """
 )
 Page<User> searchNonDonorsByBeneficiaryPaginated(
         @Param("beneficiaryId") Long beneficiaryId,
+        @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
@@ -1197,28 +1245,49 @@ void clearAssignedDeathCaseReference(@Param("deathCaseId") Long deathCaseId);
       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
       AND (
-            (:beneficiaryId IS NULL AND NOT EXISTS (
-                SELECT 1
-                FROM Receipt r
-                WHERE r.user.id = u.id
-                  AND r.amount > 0
-            ))
-            OR
-            (:beneficiaryId IS NOT NULL
-                AND adc.id = :beneficiaryId
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM Receipt r
-                    WHERE r.user.id = u.id
-                      AND r.deathCase IS NOT NULL
-                      AND r.deathCase.id = :beneficiaryId
-                      AND r.amount > 0
-                )
-            )
+      (
+        :beneficiaryId IS NULL
+        AND :openOnly = false
+        AND NOT EXISTS (
+            SELECT 1
+            FROM Receipt r
+            WHERE r.user.id = u.id
+              AND r.amount > 0
+        )
       )
+      OR
+      (
+        :beneficiaryId IS NULL
+        AND :openOnly = true
+        AND adc IS NOT NULL
+        AND adc.status = com.example.kalyan_kosh_api.entity.DeathCaseStatus.OPEN
+        AND NOT EXISTS (
+            SELECT 1
+            FROM Receipt r
+            WHERE r.user.id = u.id
+              AND r.deathCase IS NOT NULL
+              AND r.deathCase.id = adc.id
+              AND r.amount > 0
+        )
+      )
+      OR
+      (
+        :beneficiaryId IS NOT NULL
+        AND adc.id = :beneficiaryId
+        AND NOT EXISTS (
+            SELECT 1
+            FROM Receipt r
+            WHERE r.user.id = u.id
+              AND r.deathCase IS NOT NULL
+              AND r.deathCase.id = :beneficiaryId
+              AND r.amount > 0
+        )
+      )
+)
     """)
 List<User> searchNonDonorsByBeneficiaryForExport(
         @Param("beneficiaryId") Long beneficiaryId,
+        @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,

@@ -88,6 +88,28 @@ public UserService(UserRepository userRepo,
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
 }
+private boolean hasValue(String value) {
+    return value != null && !value.trim().isEmpty();
+}
+
+private boolean canUpdateLockedStringField(boolean isLocked, String currentValue, boolean bypassLocks) {
+    // Admin bypasses locks
+    if (bypassLocks) return true;
+
+    // If setting is not locked, user can update
+    if (!isLocked) return true;
+
+    // If locked but current value is blank/null, user can fill it once
+    return !hasValue(currentValue);
+}
+
+private boolean canUpdateLockedDateField(boolean isLocked, LocalDate currentValue, boolean bypassLocks) {
+    if (bypassLocks) return true;
+    if (!isLocked) return true;
+
+    // If locked but current date is null, user can fill it
+    return currentValue == null;
+}
 private UUID parseOptionalUuid(String value) {
     if (value == null || value.trim().isEmpty()) {
         return null;
@@ -144,8 +166,13 @@ public User findById(String userId) {
     return "=\"" + cleaned + "\"";
 }
 
- @Transactional
+@Transactional
 public UserResponse updateUser(String id, UpdateUserRequest req) {
+    return updateUser(id, req, false);
+}
+
+@Transactional
+public UserResponse updateUser(String id, UpdateUserRequest req, boolean bypassProfileLocks) {
     User user = userRepo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
@@ -158,20 +185,23 @@ boolean lockMobileNumber = systemSettingService.isProfileLockMobileNumberEnabled
 boolean lockEmail = systemSettingService.isProfileLockEmailEnabled();
 boolean lockDepartmentUniqueId = systemSettingService.isProfileLockDepartmentUniqueIdEnabled();
 
-if (!lockFullName) {
+if (canUpdateLockedStringField(lockFullName, user.getName(), bypassProfileLocks)) {
     if (req.getName() != null) user.setName(normalizeString(req.getName()));
+}
+
+if (canUpdateLockedStringField(lockFullName, user.getSurname(), bypassProfileLocks)) {
     if (req.getSurname() != null) user.setSurname(normalizeString(req.getSurname()));
 }
 
 if (req.getFatherName() != null) user.setFatherName(normalizeString(req.getFatherName()));
 
-if (!lockEmail) {
+if (canUpdateLockedStringField(lockEmail, user.getEmail(), bypassProfileLocks)) {
     if (req.getEmail() != null) user.setEmail(normalizeString(req.getEmail()));
 }
 
 if (req.getCountryCode() != null) user.setCountryCode(normalizeString(req.getCountryCode()));
 
-if (!lockMobileNumber) {
+if (canUpdateLockedStringField(lockMobileNumber, user.getMobileNumber(), bypassProfileLocks)) {
     if (req.getMobileNumber() != null) user.setMobileNumber(normalizeString(req.getMobileNumber()));
 }
 
@@ -185,7 +215,7 @@ if (req.getDepartment() != null) user.setDepartment(normalizeString(req.getDepar
 // -------------------------
 // Date fields
 // -------------------------
-if (!lockDateOfBirth) {
+if (canUpdateLockedDateField(lockDateOfBirth, user.getDateOfBirth(), bypassProfileLocks)) {
     if (req.getDateOfBirth() != null) {
         user.setDateOfBirth(parseDate(req.getDateOfBirth(), "dateOfBirth"));
     }
@@ -201,7 +231,7 @@ if (req.getRetirementDate() != null) {
 // -------------------------
 // Department Unique ID
 // -------------------------
-if (!lockDepartmentUniqueId) {
+if (canUpdateLockedStringField(lockDepartmentUniqueId, user.getDepartmentUniqueId(), bypassProfileLocks)) {
     if (req.getDepartmentUniqueId() != null) {
         user.setDepartmentUniqueId(normalizeString(req.getDepartmentUniqueId()));
     }
@@ -516,10 +546,48 @@ String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim(
 }
 
 public AdminUserMatchResponse checkExistingUserForManualCreate(AdminCreateUserRequest req) {
-    String departmentUniqueId = normalizeString(req.getDepartmentUniqueId());
-    String mobileNumber = normalizeString(req.getMobileNumber());
-    String email = normalizeString(req.getEmail());
+String desiredUserId = normalizeString(req.getDesiredUserId());
+String departmentUniqueId = normalizeString(req.getDepartmentUniqueId());
+String mobileNumber = normalizeString(req.getMobileNumber());
+String email = normalizeString(req.getEmail());
+String name = normalizeString(req.getName());
+String surname = normalizeString(req.getSurname());
 
+if (desiredUserId != null) {
+    desiredUserId = desiredUserId.toUpperCase().replaceAll("\\s+", "");
+
+    // Frontend normally sends PMUMS203001.
+    // This keeps backend safe even if only 203001 is sent.
+    if (!desiredUserId.startsWith("PMUMS")) {
+        desiredUserId = "PMUMS" + desiredUserId;
+    }
+
+    Optional<User> byUserId = userRepo.findById(desiredUserId);
+
+    if (byUserId.isPresent()) {
+        User u = byUserId.get();
+
+        return new AdminUserMatchResponse(
+                true,
+                "User ID already exists: " + desiredUserId,
+                "USER_ID",
+                u.getId(),
+                u.getName(),
+                u.getSurname(),
+                u.getMobileNumber(),
+                u.getEmail(),
+                u.getDepartmentUniqueId(),
+                u.getStatus() != null ? u.getStatus().name() : null,
+                u.getCreatedAt()
+        );
+    }
+}
+String fullName = null;
+if (name != null && surname != null) {
+    fullName = name + " " + surname;
+} else if (name != null) {
+    fullName = name;
+}
     if (departmentUniqueId != null) {
         Optional<User> byDepartmentUniqueId = userRepo.findByDepartmentUniqueId(departmentUniqueId);
         if (byDepartmentUniqueId.isPresent()) {
@@ -579,6 +647,26 @@ public AdminUserMatchResponse checkExistingUserForManualCreate(AdminCreateUserRe
             );
         }
     }
+
+    if (fullName != null) {
+    Optional<User> byFullName = userRepo.findByFullNameIgnoreCase(fullName);
+    if (byFullName.isPresent()) {
+        User u = byFullName.get();
+        return new AdminUserMatchResponse(
+                true,
+                "An existing user was found with the same name.",
+                "NAME",
+                u.getId(),
+                u.getName(),
+                u.getSurname(),
+                u.getMobileNumber(),
+                u.getEmail(),
+                u.getDepartmentUniqueId(),
+                u.getStatus() != null ? u.getStatus().name() : null,
+                u.getCreatedAt()
+        );
+    }
+}
 
     return new AdminUserMatchResponse(
             false,
@@ -659,7 +747,19 @@ public UserResponse adminCreateUser(AdminCreateUserRequest req) {
 
     String rawPassword = normalizeString(req.getPassword());
     String registrationDateOverride = normalizeString(req.getRegistrationDateOverride());
+String desiredUserId = normalizeString(req.getDesiredUserId());
 
+if (desiredUserId != null) {
+    desiredUserId = desiredUserId.toUpperCase().replaceAll("\\s+", "");
+
+    if (!desiredUserId.matches("^PMUMS[A-Z0-9]{1,30}$")) {
+        throw new IllegalArgumentException("User ID must start with PMUMS and contain only letters/numbers.");
+    }
+
+    if (userRepo.existsById(desiredUserId)) {
+        throw new IllegalArgumentException("User ID already exists: " + desiredUserId);
+    }
+}
     // --------------------------------------------------
     // Required field validations
     // --------------------------------------------------
@@ -801,8 +901,11 @@ public UserResponse adminCreateUser(AdminCreateUserRequest req) {
     u.setPasswordHash(passwordEncoder.encode(rawPassword));
     u.setRole(Role.ROLE_USER);
 
-    String userId = idGeneratorService.generateNextUserId();
-    u.setId(userId);
+   String userId = desiredUserId != null
+        ? desiredUserId
+        : idGeneratorService.generateNextUserId();
+
+u.setId(userId);
 
     u.setCreatedAt(createdAt);
     u.setUpdatedAt(now);

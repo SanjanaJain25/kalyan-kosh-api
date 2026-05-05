@@ -125,8 +125,7 @@ private User getCurrentUser() {
             @PathVariable String id,
             @RequestBody UpdateUserRequest req) {
         try {
-            UserResponse updatedUser = userService.updateUser(id, req);
-            return ResponseEntity.ok(updatedUser);
+UserResponse updatedUser = userService.updateUser(id, req, true);            return ResponseEntity.ok(updatedUser);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", true,

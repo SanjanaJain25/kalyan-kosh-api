@@ -79,6 +79,7 @@ private UUID parseUuidOrNull(String value) {
 }
 public List<DonorResponse> getDonorsForExportByBeneficiary(
         Long beneficiaryId,
+         boolean openOnly,
         String name,
         String mobile,
         String userId,
@@ -95,6 +96,7 @@ public List<DonorResponse> getDonorsForExportByBeneficiary(
 
     List<Object[]> donorRows = receiptRepo.searchDonorsByBeneficiaryForExportNative(
             beneficiaryId,
+            openOnly,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -180,6 +182,7 @@ for (User user : users) {
 }
 public List<UserResponse> getNonDonorsForExportByBeneficiary(
         Long beneficiaryId,
+         boolean openOnly,
         String name,
         String mobile,
         String userId,
@@ -196,6 +199,7 @@ public List<UserResponse> getNonDonorsForExportByBeneficiary(
 
     List<User> users = userRepo.searchNonDonorsByBeneficiaryForExport(
             beneficiaryId,
+            openOnly,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -301,6 +305,7 @@ public List<UserResponse> getAllNonDonorsForExport() {
 
 public PageResponse<DonorResponse> searchDonorsByBeneficiary(
         Long beneficiaryId,
+         boolean openOnly,
         String name,
         String mobile,
         String userId,
@@ -321,6 +326,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
 
     Page<Object[]> donorPage = receiptRepo.searchDonorsByBeneficiaryNative(
             beneficiaryId,
+            openOnly,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -357,6 +363,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
 }
 public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
         Long beneficiaryId,
+         boolean openOnly,
         String name,
         String mobile,
         String userId,
@@ -377,6 +384,7 @@ public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
 
     Page<User> userPage = userRepo.searchNonDonorsByBeneficiaryPaginated(
             beneficiaryId,
+            openOnly,
             cleanName,
             cleanMobile,
             cleanUserId,
@@ -708,6 +716,8 @@ UUID cleanBlockId = parseUuidOrNull(blockId);
                     .build())
             .toList();
 }
+
+
 public List<UserResponse> getAllNonDonorsForExport(
         String sambhagId,
         String districtId,
@@ -997,5 +1007,8 @@ public PageResponse<DonorResponse> searchDonors(
 
     public List<com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto> getAllBeneficiaryOptions() {
     return deathCaseRepo.findAllBeneficiaryOptions();
+}
+public List<com.example.kalyan_kosh_api.dto.BeneficiaryOptionDto> getOpenBeneficiaryOptions() {
+    return deathCaseRepo.findOpenBeneficiaryOptions();
 }
 }

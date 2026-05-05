@@ -280,6 +280,7 @@ public ResponseEntity<byte[]> exportNoSahyogTwoMonths(
 @GetMapping("/sahyog/by-beneficiary")
 public ResponseEntity<byte[]> exportSahyogByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false, defaultValue = "false") boolean openOnly,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -288,7 +289,7 @@ public ResponseEntity<byte[]> exportSahyogByBeneficiary(
         @RequestParam(required = false) String block
 ) {
     var data = monthlySahyogService.getDonorsForExportByBeneficiary(
-            beneficiaryId, name, mobile, userId, sambhag, district, block
+            beneficiaryId, openOnly, name, mobile, userId, sambhag, district, block
     );
 
     byte[] csvBytes = exportService.exportCsvWithBom(exportService.exportDonorsCsv(data));
@@ -301,6 +302,7 @@ public ResponseEntity<byte[]> exportSahyogByBeneficiary(
 @GetMapping("/asahyog/by-beneficiary")
 public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
+        @RequestParam(required = false, defaultValue = "false") boolean openOnly,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -309,7 +311,7 @@ public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
         @RequestParam(required = false) String block
 ) {
     var data = monthlySahyogService.getNonDonorsForExportByBeneficiary(
-            beneficiaryId, name, mobile, userId, sambhag, district, block
+            beneficiaryId, openOnly, name, mobile, userId, sambhag, district, block
     );
 
 User currentUser = getCurrentUser();

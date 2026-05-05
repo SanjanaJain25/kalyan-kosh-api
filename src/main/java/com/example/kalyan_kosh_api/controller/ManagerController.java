@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.example.kalyan_kosh_api.dto.AdminPasswordResetRequest;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -34,7 +35,8 @@ public class ManagerController {
     
     @Autowired
     private ManagerScopeService managerScopeService;
-
+@Autowired
+private AdminUserManagementService adminUserManagementService;
     // ============ MANAGER ASSIGNMENT ENDPOINTS ============
     
     /**
@@ -274,6 +276,7 @@ public class ManagerController {
         }
     }
     
+    
     /**
      * Update user role
      */
@@ -292,6 +295,47 @@ public class ManagerController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+ * Manager Password Reset
+ * PUT /api/manager/users/{userId}/password-reset
+ */
+@PutMapping("/users/{userId}/password-reset")
+@PreAuthorize("hasRole('SUPERADMIN') or hasRole('ADMIN') or hasRole('SAMBHAG_MANAGER') or hasRole('DISTRICT_MANAGER')")
+public ResponseEntity<?> resetUserPasswordByManager(
+        @PathVariable String userId,
+        @Valid @RequestBody AdminPasswordResetRequest request,
+        Authentication authentication
+) {
+    try {
+        User manager = getCurrentUser(authentication);
+
+        if (!managerUserService.canAccessUser(manager, userId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "You do not have access to reset this user's password"
+            ));
+        }
+
+        adminUserManagementService.resetUserPassword(userId, request.getNewPassword());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password reset successfully",
+                "userId", userId
+        ));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to reset password: " + e.getMessage()
+        ));
+    }
+}
     
     // ============ LEGACY REPORTS ENDPOINT ============
     
