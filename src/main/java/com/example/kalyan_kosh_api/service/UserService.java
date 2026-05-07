@@ -42,7 +42,6 @@ import com.example.kalyan_kosh_api.dto.AdminUserMatchResponse;
 import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.util.UUID;
 import java.util.ArrayList;
-import java.util.List;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 
 @Service
@@ -648,13 +647,17 @@ if (name != null && surname != null) {
         }
     }
 
-    if (fullName != null) {
-    Optional<User> byFullName = userRepo.findByFullNameIgnoreCase(fullName);
-    if (byFullName.isPresent()) {
-        User u = byFullName.get();
+   if (fullName != null) {
+    List<User> byFullName = userRepo.findByFullNameIgnoreCase(fullName);
+
+    if (!byFullName.isEmpty()) {
+        User u = byFullName.get(0);
+
         return new AdminUserMatchResponse(
                 true,
-                "An existing user was found with the same name.",
+                byFullName.size() > 1
+                        ? "Multiple existing users were found with the same name. Please verify mobile number or department ID."
+                        : "An existing user was found with the same name.",
                 "NAME",
                 u.getId(),
                 u.getName(),

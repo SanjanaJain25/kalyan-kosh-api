@@ -229,9 +229,9 @@ long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
     FROM User u
     WHERE LOWER(TRIM(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))))
           = LOWER(TRIM(:fullName))
+    ORDER BY u.createdAt DESC
 """)
-Optional<User> findByFullNameIgnoreCase(@Param("fullName") String fullName);
-
+List<User> findByFullNameIgnoreCase(@Param("fullName") String fullName);
 @Query("""
     SELECT u
     FROM User u
