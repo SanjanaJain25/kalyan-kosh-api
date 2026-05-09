@@ -91,6 +91,18 @@ public void verifyCurrentUserPassword(String userId, String rawPassword) {
         if (userRepo.findByEmail(req.getEmail()).isPresent()) {
             throw new IllegalArgumentException("User with this email already exists");
         }
+           if (req.getMobileNumber() != null && !req.getMobileNumber().isBlank()) {
+        if (userRepo.findByMobileNumber(req.getMobileNumber()).isPresent()) {
+            throw new IllegalArgumentException("User with this mobile number already exists");
+        }
+    }
+
+    // ✅ ADD THIS — Check department unique ID uniqueness
+    if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().isBlank()) {
+        if (userRepo.findByDepartmentUniqueId(req.getDepartmentUniqueId().trim()).isPresent()) {
+            throw new IllegalArgumentException("User with this Department ID already exists");
+        }
+    }
 
         User u = new User();
 

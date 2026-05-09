@@ -120,7 +120,7 @@ public JwtAuthFilter jwtAuthFilter() {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/email-otp/send").permitAll()
                         .requestMatchers("/api/auth/otp/verify").permitAll()
-
+.requestMatchers("/api/auth/check-unique").permitAll()
                         // Public endpoint - Admin Utils (for development/fixing data)
                         .requestMatchers("/api/admin/utils/**").permitAll()
 

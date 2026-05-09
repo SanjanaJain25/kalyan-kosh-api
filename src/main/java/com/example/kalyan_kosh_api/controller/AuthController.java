@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import java.util.Map;
 import java.util.HashMap;
+import com.example.kalyan_kosh_api.repository.UserRepository;
 import java.util.Map;
 
 @RestController
@@ -25,10 +26,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
+private final UserRepository userRepo;
+    public AuthController(AuthService authService, UserRepository userRepo) {
+    this.authService = authService;
+    this.userRepo = userRepo;
+}
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -92,6 +94,24 @@ public ResponseEntity<?> reAuthenticate(
             "success", true,
             "message", "Re-authentication successful"
     ));
+}
+@GetMapping("/check-unique")
+public ResponseEntity<?> checkUnique(
+        @RequestParam String field,
+        @RequestParam String value) {
+    
+    if (value == null || value.isBlank()) {
+        return ResponseEntity.ok(Map.of("available", true));
+    }
+
+    boolean taken = switch (field) {
+        case "email"        -> userRepo.findByEmail(value.trim()).isPresent();
+        case "mobile"       -> userRepo.findByMobileNumber(value.trim()).isPresent();
+        case "departmentId" -> userRepo.findByDepartmentUniqueId(value.trim()).isPresent();
+        default             -> false;
+    };
+
+    return ResponseEntity.ok(Map.of("available", !taken));
 }
 @PostMapping("/register")
 public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {

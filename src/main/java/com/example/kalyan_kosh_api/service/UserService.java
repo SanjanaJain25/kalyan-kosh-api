@@ -993,6 +993,27 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
         if (userRepo.findByEmail(req.getEmail()).isPresent()) {
             throw new IllegalArgumentException("User with this email already exists");
         }
+      
+       if (req.getMobileNumber() != null && !req.getMobileNumber().isBlank()) {
+        try {
+            if (userRepo.findByMobileNumber(req.getMobileNumber()).isPresent()) {
+                throw new IllegalArgumentException("यह मोबाइल नंबर पहले से पंजीकृत है। कृपया दूसरा नंबर उपयोग करें।");
+            }
+        } catch (org.springframework.dao.IncorrectResultSizeDataAccessException e) {
+            throw new IllegalArgumentException("यह मोबाइल नंबर पहले से पंजीकृत है। कृपया दूसरा नंबर उपयोग करें।");
+        }
+    }
+
+    // ✅ Department ID check — handles duplicate DB records safely
+    if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().isBlank()) {
+        try {
+            if (userRepo.findByDepartmentUniqueId(req.getDepartmentUniqueId().trim()).isPresent()) {
+                throw new IllegalArgumentException("यह विभाग ID पहले से पंजीकृत है। कृपया सही ID दर्ज करें।");
+            }
+        } catch (org.springframework.dao.IncorrectResultSizeDataAccessException e) {
+            throw new IllegalArgumentException("यह विभाग ID पहले से पंजीकृत है। कृपया सही ID दर्ज करें।");
+        }
+    }
 
         User u = new User();
 
