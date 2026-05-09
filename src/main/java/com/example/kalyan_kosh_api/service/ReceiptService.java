@@ -16,6 +16,7 @@ import com.example.kalyan_kosh_api.dto.AdminManualSahyogMoveRequest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.time.ZoneId;
 
 @Service
 public class ReceiptService {
@@ -83,7 +84,7 @@ public ReceiptResponse manualMoveAsahyogToSahyog(
                             : "MANUAL-" + targetUser.getId() + "-" + System.currentTimeMillis()
             )
             .status(ReceiptStatus.VERIFIED)
-            .uploadedAt(Instant.now())
+          .uploadedAt(req.getPaymentDate().atStartOfDay(ZoneId.systemDefault()).toInstant())
             .build();
 
     Receipt saved = receiptRepo.save(receipt);
