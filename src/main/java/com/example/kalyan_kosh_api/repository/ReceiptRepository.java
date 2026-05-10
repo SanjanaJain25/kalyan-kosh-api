@@ -264,7 +264,6 @@ List<String> findDistinctBeneficiariesByDateRange(
       (:beneficiaryId IS NULL AND :openOnly = false)
       OR (
           :beneficiaryId IS NOT NULL
-          AND u.assigned_death_case_id = :beneficiaryId
           AND r.death_case_id = :beneficiaryId
       )
       OR (
@@ -295,7 +294,7 @@ List<String> findDistinctBeneficiariesByDateRange(
     ORDER BY MAX(r.uploaded_at) DESC
     """,
    countQuery = """
-SELECT COUNT(DISTINCT u.id)
+SELECT COUNT(DISTINCT CONCAT(r.user_id, '-', r.death_case_id))
 FROM receipt r
 JOIN users u ON r.user_id = u.id
 LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
@@ -307,7 +306,6 @@ WHERE r.amount > 0
       (:beneficiaryId IS NULL AND :openOnly = false)
       OR (
           :beneficiaryId IS NOT NULL
-          AND u.assigned_death_case_id = :beneficiaryId
           AND r.death_case_id = :beneficiaryId
       )
       OR (
@@ -328,7 +326,7 @@ WHERE r.amount > 0
     nativeQuery = true)
 org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(
         @Param("beneficiaryId") Long beneficiaryId,
-         @Param("openOnly") boolean openOnly,
+        @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
@@ -400,7 +398,6 @@ List<Object[]> searchDonorsForExportNative(
       (:beneficiaryId IS NULL AND :openOnly = false)
       OR (
           :beneficiaryId IS NOT NULL
-          AND u.assigned_death_case_id = :beneficiaryId
           AND r.death_case_id = :beneficiaryId
       )
       OR (
@@ -432,7 +429,7 @@ List<Object[]> searchDonorsForExportNative(
     """, nativeQuery = true)
 List<Object[]> searchDonorsByBeneficiaryForExportNative(
         @Param("beneficiaryId") Long beneficiaryId,
-         @Param("openOnly") boolean openOnly,
+        @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
