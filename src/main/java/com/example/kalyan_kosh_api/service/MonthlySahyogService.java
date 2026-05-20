@@ -339,7 +339,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
     );
 List<DonorResponse> donors = donorPage.getContent().stream()
         .map(row -> DonorResponse.builder()
-                .registrationNumber((String) row[1])
+                .registrationNumber((String) row[0])
                 .name(row[2] + (row[3] != null ? " " + row[3] : ""))
                 .department((String) row[4])
                 .state((String) row[5])
@@ -401,7 +401,7 @@ public DonorResponse updateSahyogReceipt(Long receiptId, UpdateSahyogReceiptRequ
     return DonorResponse.builder()
             .receiptId(saved.getId())
             .deathCaseId(saved.getDeathCase() != null ? saved.getDeathCase().getId() : null)
-            .registrationNumber(saved.getUser().getDepartmentUniqueId())
+            .registrationNumber(saved.getUser().getId())
             .name(saved.getUser().getName() + (saved.getUser().getSurname() != null ? " " + saved.getUser().getSurname() : ""))
             .department(saved.getUser().getDepartment())
             .beneficiary(saved.getDeathCase() != null ? saved.getDeathCase().getDeceasedName() : null)
