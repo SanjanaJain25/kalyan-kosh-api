@@ -18,6 +18,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import com.example.kalyan_kosh_api.dto.UpdateSahyogReceiptRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
@@ -185,6 +187,44 @@ public ResponseEntity<?> searchDonors(
     } catch (Exception e) {
         log.error("❌ Error searching donors: {}", e.getMessage(), e);
         return ResponseEntity.internalServerError().body(createErrorResponse("SEARCH_ERROR", "Failed to search donors: " + e.getMessage()));
+    }
+}
+
+@PutMapping("/receipts/{receiptId}")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+public ResponseEntity<?> updateSahyogReceipt(
+        @PathVariable Long receiptId,
+        @RequestBody UpdateSahyogReceiptRequest request) {
+    try {
+        DonorResponse response = service.updateSahyogReceipt(receiptId, request);
+        return ResponseEntity.ok(response);
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest()
+                .body(createErrorResponse("INVALID_REQUEST", e.getMessage()));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("UPDATE_ERROR", "Failed to update receipt: " + e.getMessage()));
+    }
+}
+
+@DeleteMapping("/receipts/{receiptId}")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+public ResponseEntity<?> deleteSahyogReceipt(@PathVariable Long receiptId) {
+    try {
+        service.deleteSahyogReceipt(receiptId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Receipt removed from Sahyog list successfully");
+        response.put("receiptId", receiptId);
+
+        return ResponseEntity.ok(response);
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest()
+                .body(createErrorResponse("INVALID_REQUEST", e.getMessage()));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(createErrorResponse("DELETE_ERROR", "Failed to delete receipt: " + e.getMessage()));
     }
 }
 

@@ -16,8 +16,10 @@ import com.example.kalyan_kosh_api.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.example.kalyan_kosh_api.dto.UpdateSahyogReceiptRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import com.example.kalyan_kosh_api.entity.DeathCase;
 import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.io.PrintWriter;
 import java.time.Instant;
@@ -335,21 +337,26 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
             cleanBlock,
             pageable
     );
-
-    List<DonorResponse> donors = donorPage.getContent().stream()
-            .map(row -> DonorResponse.builder()
-                    .registrationNumber((String) row[0])
-                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
-                    .department((String) row[4])
-                    .state((String) row[5])
-                    .sambhag((String) row[6])
-                    .district((String) row[7])
-                    .block((String) row[8])
-                    .schoolName((String) row[9])
-                    .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
-                    .build())
-            .toList();
+List<DonorResponse> donors = donorPage.getContent().stream()
+        .map(row -> DonorResponse.builder()
+                .registrationNumber((String) row[1])
+                .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                .department((String) row[4])
+                .state((String) row[5])
+                .sambhag((String) row[6])
+                .district((String) row[7])
+                .block((String) row[8])
+                .schoolName((String) row[9])
+                .deathCaseId(row[10] != null ? ((Number) row[10]).longValue() : null)
+                .beneficiary((String) row[11])
+                .receiptUploadDate(row[12] != null ? ((java.sql.Timestamp) row[12]).toInstant() : null)
+                .receiptId(row[13] != null ? ((Number) row[13]).longValue() : null)
+                .amount(row[14] != null ? ((Number) row[14]).doubleValue() : null)
+                .paymentDate(row[15] != null ? ((java.sql.Date) row[15]).toLocalDate() : null)
+                .referenceName((String) row[16])
+                .utrNumber((String) row[17])
+                .build())
+        .toList();
 
     return new PageResponse<>(
             donors,
@@ -361,6 +368,66 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
             donorPage.isFirst()
     );
 }
+public DonorResponse updateSahyogReceipt(Long receiptId, UpdateSahyogReceiptRequest request) {
+
+    Receipt receipt = receiptRepo.findById(receiptId)
+            .orElseThrow(() -> new IllegalArgumentException("Receipt not found"));
+
+    if (request.getAmount() != null) {
+        receipt.setAmount(request.getAmount());
+    }
+
+    if (request.getPaymentDate() != null) {
+        receipt.setPaymentDate(request.getPaymentDate());
+    }
+
+    if (request.getReferenceName() != null) {
+        receipt.setReferenceName(request.getReferenceName());
+    }
+
+    if (request.getUtrNumber() != null) {
+        receipt.setUtrNumber(request.getUtrNumber());
+    }
+
+    if (request.getDeathCaseId() != null) {
+        DeathCase deathCase = deathCaseRepo.findById(request.getDeathCaseId())
+                .orElseThrow(() -> new IllegalArgumentException("Death case not found"));
+
+        receipt.setDeathCase(deathCase);
+    }
+
+    Receipt saved = receiptRepo.save(receipt);
+
+    return DonorResponse.builder()
+            .receiptId(saved.getId())
+            .deathCaseId(saved.getDeathCase() != null ? saved.getDeathCase().getId() : null)
+            .registrationNumber(saved.getUser().getDepartmentUniqueId())
+            .name(saved.getUser().getName() + (saved.getUser().getSurname() != null ? " " + saved.getUser().getSurname() : ""))
+            .department(saved.getUser().getDepartment())
+            .beneficiary(saved.getDeathCase() != null ? saved.getDeathCase().getDeceasedName() : null)
+            .receiptUploadDate(saved.getUploadedAt())
+            .amount(saved.getAmount())
+            .paymentDate(saved.getPaymentDate())
+            .referenceName(saved.getReferenceName())
+            .utrNumber(saved.getUtrNumber())
+            .build();
+}
+
+public void deleteSahyogReceipt(Long receiptId) {
+
+    Receipt receipt = receiptRepo.findById(receiptId)
+            .orElseThrow(() -> new IllegalArgumentException("Receipt not found"));
+
+    /*
+     * Recommended safer delete:
+     * Since Sahyog list only shows records where amount > 0,
+     * setting amount to 0 will remove it from Sahyog list
+     * without permanently deleting payment history.
+     */
+    receipt.setAmount(0);
+    receiptRepo.save(receipt);
+}
+
 public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
         Long beneficiaryId,
          boolean openOnly,

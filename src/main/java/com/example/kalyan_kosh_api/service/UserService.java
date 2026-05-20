@@ -1189,7 +1189,19 @@ if (
 
     response.setAssignedDeathCaseId(deathCase.getId());
     response.setAssignedDeathCaseName(deathCase.getDeceasedName());
+response.setNominee1QrCodes(getNomineeQrCodesForResponse(
+        deathCase.getId(),
+        true,
+        deathCase.getNominee1QrCodes(),
+        deathCase.getNominee1QrCode()
+));
 
+response.setNominee2QrCodes(getNomineeQrCodesForResponse(
+        deathCase.getId(),
+        false,
+        deathCase.getNominee2QrCodes(),
+        deathCase.getNominee2QrCode()
+));
     String allocatedQrCode = getAllocatedQrCodeForUser(user, deathCase);
 
     Optional<Receipt> latestReceiptOpt =
@@ -1218,6 +1230,8 @@ if (
     response.setAssignedDeathCaseId(null);
     response.setAssignedDeathCaseName(null);
     response.setAllocatedQrCode(null);
+    response.setNominee1QrCodes(null);
+response.setNominee2QrCodes(null);
     response.setUtrUploaded(false);
     response.setLatestReceiptId(null);
     response.setLatestUtrNumber(null);
@@ -1226,6 +1240,41 @@ if (
         return response;
     }
 
+private List<String> getNomineeQrCodesForResponse(
+        Long deathCaseId,
+        boolean nominee1,
+        List<String> entityQrCodes,
+        String oldSingleQrCode) {
+
+    List<String> qrCodes = new ArrayList<>();
+
+    if (deathCaseId != null) {
+        List<String> dbQrCodes = nominee1
+                ? deathCaseRepository.findNominee1QrCodesByDeathCaseId(deathCaseId)
+                : deathCaseRepository.findNominee2QrCodesByDeathCaseId(deathCaseId);
+
+        if (dbQrCodes != null) {
+            dbQrCodes.stream()
+                    .filter(qr -> qr != null && !qr.isBlank())
+                    .forEach(qrCodes::add);
+        }
+    }
+
+    if (entityQrCodes != null) {
+        entityQrCodes.stream()
+                .filter(qr -> qr != null && !qr.isBlank())
+                .forEach(qrCodes::add);
+    }
+
+    if (oldSingleQrCode != null && !oldSingleQrCode.isBlank()) {
+        qrCodes.add(oldSingleQrCode);
+    }
+
+    return qrCodes.stream()
+            .filter(qr -> qr != null && !qr.isBlank())
+            .distinct()
+            .toList();
+}
 
     /**
      * Paginated method to get users - 20 users per page, sorted by insertion order (createdAt ASC)
@@ -1259,41 +1308,55 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
      * 20 users per page, sorted by insertion order (createdAt DESC - newest first)
      */
     @Transactional(readOnly = true)
-    public PageResponse<UserResponse> getAllUsersFiltered(
-            String sambhagId,
-            String districtId,
-            String blockId,
-            String name,
-            String mobile,
-            String userId,
-            int page,
-            int size) {
+public PageResponse<UserResponse> getAllUsersFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
 
-Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        // Clean up empty strings to null for proper query handling
-        String cleanName = (name != null && name.trim().isEmpty()) ? null : name;
-        String cleanMobile = (mobile != null && mobile.trim().isEmpty()) ? null : mobile;
-        String cleanUserId = (userId != null && userId.trim().isEmpty()) ? null : userId;
+    Pageable pageable = PageRequest.of(
+            page,
+            size,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+    );
 
-        Page<User> userPage = userRepo.findAllWithFilters(
-                sambhagId, districtId, blockId, cleanName, cleanMobile, cleanUserId, pageable);
+    UUID cleanSambhagId = parseOptionalUuid(sambhagId);
+    UUID cleanDistrictId = parseOptionalUuid(districtId);
+    UUID cleanBlockId = parseOptionalUuid(blockId);
 
-        List<UserResponse> userResponses = userPage.getContent().stream()
-                .map(this::toUserResponse)
-                .collect(Collectors.toList());
+    String cleanName = normalizeString(name);
+    String cleanMobile = normalizeString(mobile);
+    String cleanUserId = normalizeString(userId);
 
+    Page<User> userPage = userRepo.findAllWithFilters(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            pageable
+    );
 
-        return new PageResponse<>(
-                userResponses,
-                userPage.getNumber(),
-                userPage.getSize(),
-                userPage.getTotalElements(),
-                userPage.getTotalPages(),
-                userPage.isLast(),
-                userPage.isFirst()
-        );
-    }
+    List<UserResponse> userResponses = userPage.getContent()
+            .stream()
+            .map(this::toUserResponse)
+            .collect(Collectors.toList());
 
+    return new PageResponse<>(
+            userResponses,
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages(),
+            userPage.isLast(),
+            userPage.isFirst()
+    );
+}
    private String getAllocatedQrCodeForUser(User user, DeathCase deathCase) {
     if (user == null || deathCase == null || deathCase.getId() == null) {
         return null;

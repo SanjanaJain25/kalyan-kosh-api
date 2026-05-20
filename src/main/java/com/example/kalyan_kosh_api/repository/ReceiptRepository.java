@@ -250,8 +250,14 @@ List<String> findDistinctBeneficiariesByDateRange(
            d.name AS district_name,
            b.name AS block_name,
            u.school_office_name,
-           dc.deceased_name AS beneficiary,
-           MAX(r.uploaded_at) AS receipt_date
+           dc.id AS death_case_id,
+dc.deceased_name AS beneficiary,
+MAX(r.uploaded_at) AS receipt_date,
+MAX(r.id) AS receipt_id,
+MAX(r.amount) AS amount,
+MAX(r.payment_date) AS payment_date,
+MAX(r.reference_name) AS reference_name,
+MAX(r.utr_number) AS utr_number
     FROM receipt r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN state s ON u.department_state_id = s.id
@@ -290,38 +296,9 @@ List<String> findDistinctBeneficiariesByDateRange(
              d.name,
              b.name,
              u.school_office_name,
-             dc.deceased_name
+             dc.id,
+dc.deceased_name
     ORDER BY MAX(r.uploaded_at) DESC
-    """,
-   countQuery = """
-SELECT COUNT(DISTINCT CONCAT(r.user_id, '-', r.death_case_id))
-FROM receipt r
-JOIN users u ON r.user_id = u.id
-LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
-LEFT JOIN district d ON u.department_district_id = d.id
-LEFT JOIN block b ON u.department_block_id = b.id
-LEFT JOIN death_case dc ON r.death_case_id = dc.id
-WHERE r.amount > 0
-     AND (
-      (:beneficiaryId IS NULL AND :openOnly = false)
-      OR (
-          :beneficiaryId IS NOT NULL
-          AND r.death_case_id = :beneficiaryId
-      )
-      OR (
-          :beneficiaryId IS NULL
-          AND :openOnly = true
-          AND dc.status = 'OPEN'
-      )
-    )
-      AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
-           OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
-           OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
-      AND (:mobile IS NULL OR u.mobile_number LIKE CONCAT('%', :mobile, '%'))
-      AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
-      AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
-      AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
-      AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
     """,
     nativeQuery = true)
 org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(

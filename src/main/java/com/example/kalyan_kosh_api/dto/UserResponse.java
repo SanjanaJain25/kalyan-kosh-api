@@ -3,6 +3,7 @@ package com.example.kalyan_kosh_api.dto;
 import com.example.kalyan_kosh_api.entity.Role;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * DTO for User response - contains user details without sensitive information
@@ -39,6 +40,8 @@ private String mobileNumber;
 private Long assignedDeathCaseId;
 private String assignedDeathCaseName;
 private String allocatedQrCode;
+private List<String> nominee1QrCodes;
+private List<String> nominee2QrCodes;
 private Boolean utrUploaded;
 private Long latestReceiptId;
 private String latestUtrNumber;
@@ -155,6 +158,21 @@ public String getAllocatedQrCode() {
 
 public void setAllocatedQrCode(String allocatedQrCode) {
     this.allocatedQrCode = allocatedQrCode;
+}
+public List<String> getNominee1QrCodes() {
+    return nominee1QrCodes;
+}
+
+public void setNominee1QrCodes(List<String> nominee1QrCodes) {
+    this.nominee1QrCodes = nominee1QrCodes;
+}
+
+public List<String> getNominee2QrCodes() {
+    return nominee2QrCodes;
+}
+
+public void setNominee2QrCodes(List<String> nominee2QrCodes) {
+    this.nominee2QrCodes = nominee2QrCodes;
 }
 
 public Boolean getUtrUploaded() {
