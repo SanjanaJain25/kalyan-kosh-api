@@ -106,7 +106,7 @@ public JwtAuthFilter jwtAuthFilter() {
 .requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/filter").permitAll()
                         // Public endpoint - Get all users
                         .requestMatchers(HttpMethod.GET, "/api/users", "/api/users/").permitAll()
-
+.requestMatchers(HttpMethod.GET, "/api/live-export/pending-profiles.csv").permitAll()
                         // Public endpoint - Get users with pagination
                         .requestMatchers(HttpMethod.GET, "/api/users/paginated").permitAll()
 

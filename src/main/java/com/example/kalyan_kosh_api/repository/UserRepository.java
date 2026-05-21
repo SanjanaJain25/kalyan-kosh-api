@@ -241,40 +241,42 @@ List<User> findByFullNameIgnoreCase(@Param("fullName") String fullName);
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
     WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
-AND (:sambhagId IS NULL OR sa.id = :sambhagId)
-AND (:districtId IS NULL OR d.id = :districtId)
-AND (:blockId IS NULL OR b.id = :blockId)
+      AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+      AND (:districtId IS NULL OR d.id = :districtId)
+      AND (:blockId IS NULL OR b.id = :blockId)
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
       AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
       AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
-      AND NOT EXISTS (
-            SELECT 1
-            FROM Receipt r
-            WHERE r.user.id = u.id
-              AND r.amount > 0
+      AND (
+            u.department IS NULL OR TRIM(u.department) = ''
+            OR u.departmentState IS NULL
+            OR u.departmentSambhag IS NULL
+            OR u.departmentDistrict IS NULL
+            OR u.departmentBlock IS NULL
+            OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''
       )
-     AND (
-      :unrestricted = true
-      OR sa.id IN :scopeSambhagIds
-      OR d.id IN :scopeDistrictIds
-      OR b.id IN :scopeBlockIds
-)
+      AND (
+            :unrestricted = true
+            OR sa.id IN :scopeSambhagIds
+            OR d.id IN :scopeDistrictIds
+            OR b.id IN :scopeBlockIds
+      )
     ORDER BY u.createdAt DESC
 """)
 List<User> findPendingProfileUsersForExportScoped(
-@Param("sambhagId") UUID sambhagId,
-@Param("districtId") UUID districtId,
-@Param("blockId") UUID blockId,
+        @Param("sambhagId") UUID sambhagId,
+        @Param("districtId") UUID districtId,
+        @Param("blockId") UUID blockId,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
         @Param("unrestricted") boolean unrestricted,
-@Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
-@Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
-@Param("scopeBlockIds") List<UUID> scopeBlockIds
+        @Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+        @Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
 @Query("""
     SELECT u
@@ -418,6 +420,26 @@ Page<User> findAllWithFilters(
         @Param("userId") String userId,
         Pageable pageable
 );
+
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+      AND (
+            u.department IS NULL OR TRIM(u.department) = ''
+            OR u.departmentState IS NULL
+            OR u.departmentSambhag IS NULL
+            OR u.departmentDistrict IS NULL
+            OR u.departmentBlock IS NULL
+            OR u.schoolOfficeName IS NULL OR TRIM(u.schoolOfficeName) = ''
+      )
+    ORDER BY u.createdAt DESC
+""")
+List<User> findLivePendingProfileUsers();
 @Query(
     value = "SELECT u FROM User u " +
             "LEFT JOIN FETCH u.departmentState s " +

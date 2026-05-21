@@ -26,6 +26,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/admin/export")
@@ -58,6 +62,8 @@ public ExportController(AdminReceiptService receiptService,
 private String blankToNull(String value) {
     return value == null || value.trim().isEmpty() ? null : value.trim();
 }
+@Value("${reports.live.pending-profile-key}")
+private String pendingProfileLiveReportKey;
 
 private UUID parseOptionalUuid(String value) {
     if (value == null || value.trim().isEmpty()) {
@@ -299,6 +305,8 @@ public ResponseEntity<byte[]> exportSahyogByBeneficiary(
             .header("Content-Type", "text/csv; charset=UTF-8")
             .body(csvBytes);
 }
+
+
 @GetMapping("/asahyog/by-beneficiary")
 public ResponseEntity<byte[]> exportAsahyogByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
@@ -422,6 +430,65 @@ public ResponseEntity<byte[]> exportAllAsahyog(
             .header("Content-Disposition", "attachment; filename=asahyog_all.csv")
             .header("Content-Type", "text/csv; charset=UTF-8")
             .body(csvBytes);
+}
+@GetMapping("/pending-profiles/live-link")
+public ResponseEntity<?> getPendingProfilesLiveLink(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId
+) {
+    User currentUser = getCurrentUser();
+
+    validateRequestedAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    /*
+     * IMPORTANT:
+     * If admin/superadmin creates link, no area scope is needed.
+     * If manager creates link and frontend did not pass area filters,
+     * then add manager scope into live URL so live CSV does not become unrestricted.
+     */
+    if (!scope.isUnrestricted()) {
+        if ((sambhagId == null || sambhagId.isBlank())
+                && scope.getSambhagIds() != null
+                && scope.getSambhagIds().size() == 1) {
+            sambhagId = scope.getSambhagIds().get(0).toString();
+        }
+
+        if ((districtId == null || districtId.isBlank())
+                && scope.getDistrictIds() != null
+                && scope.getDistrictIds().size() == 1) {
+            districtId = scope.getDistrictIds().get(0).toString();
+        }
+
+        if ((blockId == null || blockId.isBlank())
+                && scope.getBlockIds() != null
+                && scope.getBlockIds().size() == 1) {
+            blockId = scope.getBlockIds().get(0).toString();
+        }
+    }
+
+    String liveUrl = ServletUriComponentsBuilder
+            .fromCurrentContextPath()
+            .path("/api/live-export/pending-profiles.csv")
+            .queryParam("key", pendingProfileLiveReportKey)
+            .queryParamIfPresent("sambhagId", java.util.Optional.ofNullable(blankToNull(sambhagId)))
+            .queryParamIfPresent("districtId", java.util.Optional.ofNullable(blankToNull(districtId)))
+            .queryParamIfPresent("blockId", java.util.Optional.ofNullable(blankToNull(blockId)))
+            .queryParamIfPresent("name", java.util.Optional.ofNullable(blankToNull(name)))
+            .queryParamIfPresent("mobile", java.util.Optional.ofNullable(blankToNull(mobile)))
+            .queryParamIfPresent("userId", java.util.Optional.ofNullable(blankToNull(userId)))
+            .toUriString();
+
+    return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Live pending profile report link generated successfully.",
+            "liveUrl", liveUrl
+    ));
 }
 
 @GetMapping("/pending-profiles")
