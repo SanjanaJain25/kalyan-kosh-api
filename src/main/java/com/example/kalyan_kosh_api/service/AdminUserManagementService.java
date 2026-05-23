@@ -260,6 +260,34 @@ public void resetUserPassword(String userId, String newPassword) {
     user.setUpdatedAt(Instant.now());
     userRepository.save(user);
 }
+
+@Transactional
+public void resetManagerDashboardPassword(String userId, String newPassword) {
+    User user = getUserById(userId);
+    validateNotReservedSuperAdmin(user);
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Cannot reset Manager Dashboard password for deleted user");
+    }
+
+    if (user.getRole() == Role.ROLE_USER) {
+        throw new IllegalArgumentException("Manager Dashboard password can be set only for manager/admin roles");
+    }
+
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        throw new IllegalArgumentException("New Manager Dashboard password is required");
+    }
+
+    String cleanPassword = newPassword.trim();
+
+    if (cleanPassword.length() < 6) {
+        throw new IllegalArgumentException("Password must be at least 6 characters");
+    }
+
+    user.setManagerDashboardPasswordHash(passwordEncoder.encode(cleanPassword));
+    user.setUpdatedAt(Instant.now());
+    userRepository.save(user);
+}
     /**
      * Get user by ID
      */

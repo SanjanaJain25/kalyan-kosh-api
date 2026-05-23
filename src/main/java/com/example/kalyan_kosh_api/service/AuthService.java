@@ -85,6 +85,33 @@ public void verifyCurrentUserPassword(String userId, String rawPassword) {
         throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
     }
 }
+
+@Transactional(readOnly = true)
+public void verifyCurrentUserManagerDashboardPassword(String userId, String rawPassword) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
+    }
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
+    }
+
+    if (user.getRole() == Role.ROLE_USER) {
+        throw new IllegalArgumentException("You are not allowed to access Manager Dashboard.");
+    }
+
+    if (user.getManagerDashboardPasswordHash() == null || user.getManagerDashboardPasswordHash().isBlank()) {
+        throw new IllegalArgumentException("Manager Dashboard password is not set. Please contact admin.");
+    }
+
+    if (!passwordEncoder.matches(rawPassword, user.getManagerDashboardPasswordHash())) {
+        throw new IllegalArgumentException("Invalid Manager Dashboard password");
+    }
+}
+
     @Transactional
     public User registerAfterOtp(RegisterRequest req) {
         // Check if user with this email already exists

@@ -60,10 +60,13 @@ public class User {
     private String nominee2Name;
     private String nominee2Relation;
 
-    //Account Verification
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private String passwordHash; // store hashed (not returned in API)
+//Account Verification
+@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+private String passwordHash; // Normal login password hash
 
+@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+@Column(name = "manager_dashboard_password_hash")
+private String managerDashboardPasswordHash; // Separate Manager Dashboard password hash
     @Enumerated(EnumType.STRING)
     private Role role = Role.ROLE_USER;
 

@@ -39,4 +39,24 @@ public class SecurityReAuthController {
                 "message", "Re-authentication successful"
         ));
     }
+
+    @PostMapping("/manager-dashboard/reauth")
+public ResponseEntity<?> reAuthenticateManagerDashboard(
+        @Valid @RequestBody ReAuthRequest request,
+        Authentication authentication
+) {
+    if (authentication == null || authentication.getName() == null) {
+        throw new IllegalArgumentException("Unauthenticated user");
+    }
+
+    authService.verifyCurrentUserManagerDashboardPassword(
+            authentication.getName(),
+            request.getPassword()
+    );
+
+    return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Manager Dashboard authentication successful"
+    ));
+}
 }

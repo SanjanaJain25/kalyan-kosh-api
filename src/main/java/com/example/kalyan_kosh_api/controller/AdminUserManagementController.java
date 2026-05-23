@@ -194,6 +194,33 @@ public ResponseEntity<?> resetUserPassword(
         ));
     }
 }
+
+@PutMapping("/{id}/manager-dashboard-password-reset")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+public ResponseEntity<?> resetManagerDashboardPassword(
+        @PathVariable String id,
+        @Valid @RequestBody AdminPasswordResetRequest request
+) {
+    try {
+        adminUserService.resetManagerDashboardPassword(id, request.getNewPassword());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Manager Dashboard password reset successfully",
+                "userId", id
+        ));
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to reset Manager Dashboard password: " + e.getMessage()
+        ));
+    }
+}
     /**
      * Delete a user (soft delete)
      */
