@@ -5,11 +5,14 @@ import com.example.kalyan_kosh_api.repository.SystemSettingRepository;
 import org.springframework.stereotype.Service;
 import com.example.kalyan_kosh_api.entity.Role;
 import java.time.Instant;
+import com.example.kalyan_kosh_api.repository.UserRepository;
+import com.example.kalyan_kosh_api.entity.UserStatus;
 
 @Service
 public class SystemSettingService {
 
-    private final SystemSettingRepository repo;
+   private final SystemSettingRepository repo;
+private final UserRepository userRepository;
 
     private SystemSetting getOrCreateSetting(String key, String defaultValue) {
     return repo.findBySettingKey(key).orElseGet(() -> {
@@ -29,6 +32,7 @@ public void initializeDefaultSettings() {
     getOrCreateSetting("district_manager_export_mobile_enabled", "false");
     getOrCreateSetting("block_manager_export_mobile_enabled", "false");
 getOrCreateSetting("global_force_logout_after", "");
+getOrCreateSetting("emergency_help_count", "10000000");
     // Profile field lock settings
     getOrCreateSetting("profile_lock_full_name", "false");
     getOrCreateSetting("profile_lock_date_of_birth", "false");
@@ -62,9 +66,10 @@ getOrCreateSetting("statistics_content_html",
         "<b>WhatsApp helpline 6262565803</b>");
 }
 
-    public SystemSettingService(SystemSettingRepository repo) {
-        this.repo = repo;
-    }
+   public SystemSettingService(SystemSettingRepository repo, UserRepository userRepository) {
+    this.repo = repo;
+    this.userRepository = userRepository;
+}
 
     public boolean isMobileOtpEnabled() {
         return repo.findBySettingKey("mobile_otp_enabled")
@@ -302,5 +307,37 @@ public Instant getGlobalForceLogoutAfter() {
     } catch (Exception ex) {
         return null;
     }
+}
+public long getRegisteredTeachersCount() {
+    return userRepository.countByRoleAndStatusNot(Role.ROLE_USER, UserStatus.DELETED);
+}
+
+public String getEmergencyHelpCount() {
+    return getOrCreateSetting("emergency_help_count", "10000000").getSettingValue();
+}
+
+public void updateEmergencyHelpCount(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        throw new IllegalArgumentException("Emergency help count is required");
+    }
+
+    String cleanValue = value.trim();
+
+    if (!cleanValue.matches("\\d+")) {
+        throw new IllegalArgumentException("Emergency help count must contain only numbers");
+    }
+
+    SystemSetting setting = getOrCreateSetting("emergency_help_count", "10000000");
+    setting.setSettingValue(cleanValue);
+    setting.setUpdatedAt(Instant.now());
+
+    repo.save(setting);
+}
+
+public java.util.Map<String, Object> getHomeStatsSettings() {
+    java.util.Map<String, Object> settings = new java.util.HashMap<>();
+    settings.put("registeredTeachersCount", getRegisteredTeachersCount());
+    settings.put("emergencyHelpCount", getEmergencyHelpCount());
+    return settings;
 }
 }

@@ -1399,4 +1399,5 @@ Page<User> searchNonDonorsPaginated(
         Pageable pageable
 );
 long countByStatus(UserStatus status);
+long countByRoleAndStatusNot(Role role, UserStatus status);
 }

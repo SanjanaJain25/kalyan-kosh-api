@@ -171,4 +171,18 @@ public Map<String, Object> updateHomeDisplayContentSettings(@RequestBody Map<Str
             "settings", settingService.getHomeDisplayContentSettings()
     );
 }
+@GetMapping("/home-stats")
+public Map<String, Object> getHomeStatsSettings() {
+    return settingService.getHomeStatsSettings();
+}
+
+@PutMapping("/home-stats")
+public Map<String, Object> updateHomeStatsSettings(@RequestBody Map<String, String> req) {
+    settingService.updateEmergencyHelpCount(req.get("emergencyHelpCount"));
+
+    return Map.of(
+            "success", true,
+            "settings", settingService.getHomeStatsSettings()
+    );
+}
 }

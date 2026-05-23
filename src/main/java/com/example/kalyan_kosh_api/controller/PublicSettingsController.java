@@ -28,4 +28,8 @@ public Map<String, String> getHomeDisplayContent() {
                 "qrUrl", settingService.getSelfDonationQrUrl()
         );
     }
+    @GetMapping("/home-stats")
+public Map<String, Object> getHomeStats() {
+    return settingService.getHomeStatsSettings();
+}
 }
