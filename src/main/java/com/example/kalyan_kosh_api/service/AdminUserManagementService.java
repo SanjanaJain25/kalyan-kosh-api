@@ -363,34 +363,36 @@ public BulkPasswordResetResponse bulkResetPasswordsFromExcel(
         userMap.put(user.getId(), user);
     }
 
-    List<String> notFoundRegistrationNumbers = new ArrayList<>();
-    List<User> usersToUpdate = new ArrayList<>();
+  List<String> notFoundRegistrationNumbers = new ArrayList<>();
+List<User> usersToUpdate = new ArrayList<>();
 
-    for (String registrationNo : registrationNumbers) {
-        User user = userMap.get(registrationNo);
+String encodedDefaultPassword = passwordEncoder.encode(cleanPassword);
+Instant now = Instant.now();
 
-        if (user == null) {
-            notFoundRegistrationNumbers.add(registrationNo);
-            continue;
-        }
+for (String registrationNo : registrationNumbers) {
+    User user = userMap.get(registrationNo);
 
-        if (isReservedSuperAdmin(user)) {
-            notFoundRegistrationNumbers.add(registrationNo + " - SUPERADMIN_SKIPPED");
-            continue;
-        }
-
-        if (user.getStatus() == UserStatus.DELETED) {
-            notFoundRegistrationNumbers.add(registrationNo + " - DELETED_USER_SKIPPED");
-            continue;
-        }
-
-        user.setPasswordHash(passwordEncoder.encode(cleanPassword));
-        user.setUpdatedAt(Instant.now());
-        usersToUpdate.add(user);
+    if (user == null) {
+        notFoundRegistrationNumbers.add(registrationNo);
+        continue;
     }
 
-    userRepository.saveAll(usersToUpdate);
+    if (isReservedSuperAdmin(user)) {
+        notFoundRegistrationNumbers.add(registrationNo + " - SUPERADMIN_SKIPPED");
+        continue;
+    }
 
+    if (user.getStatus() == UserStatus.DELETED) {
+        notFoundRegistrationNumbers.add(registrationNo + " - DELETED_USER_SKIPPED");
+        continue;
+    }
+
+    user.setPasswordHash(encodedDefaultPassword);
+    user.setUpdatedAt(now);
+    usersToUpdate.add(user);
+}
+
+userRepository.saveAll(usersToUpdate);
     return new BulkPasswordResetResponse(
             registrationNumbers.size(),
             usersToUpdate.size(),
