@@ -24,7 +24,8 @@ import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import com.example.kalyan_kosh_api.dto.BulkPasswordResetResponse;
+import org.springframework.web.multipart.MultipartFile;
 /**
  * Admin User Management Controller
  * Handles all admin operations for user management including:
@@ -138,6 +139,35 @@ UserResponse updatedUser = userService.updateUser(id, req, true);            ret
             ));
         }
     }
+    @PostMapping(value = "/bulk-password-reset", consumes = "multipart/form-data")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+public ResponseEntity<?> bulkPasswordReset(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam(defaultValue = "Shub@123") String defaultPassword
+) {
+    try {
+        BulkPasswordResetResponse response =
+                adminUserService.bulkResetPasswordsFromExcel(file, defaultPassword);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Bulk password reset completed successfully",
+                "data", response
+        ));
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to reset passwords: " + e.getMessage()
+        ));
+    }
+}
 
     /**
      * Block a user

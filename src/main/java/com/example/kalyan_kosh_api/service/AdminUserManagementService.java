@@ -26,6 +26,21 @@ import com.example.kalyan_kosh_api.entity.DeleteEntityType;
 import com.example.kalyan_kosh_api.entity.ManagerQuery;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
+import com.example.kalyan_kosh_api.dto.BulkPasswordResetResponse;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AdminUserManagementService {
@@ -259,6 +274,129 @@ public void resetUserPassword(String userId, String newPassword) {
     user.setPasswordHash(passwordEncoder.encode(cleanPassword));
     user.setUpdatedAt(Instant.now());
     userRepository.save(user);
+}
+@Transactional
+public BulkPasswordResetResponse bulkResetPasswordsFromExcel(
+        MultipartFile file,
+        String defaultPassword
+) {
+    if (file == null || file.isEmpty()) {
+        throw new IllegalArgumentException("Excel file is required");
+    }
+
+    if (defaultPassword == null || defaultPassword.trim().isEmpty()) {
+        throw new IllegalArgumentException("Default password is required");
+    }
+
+    String cleanPassword = defaultPassword.trim();
+
+    if (cleanPassword.length() < 6) {
+        throw new IllegalArgumentException("Password must be at least 6 characters");
+    }
+
+    Set<String> registrationNumbers = new LinkedHashSet<>();
+
+    try (InputStream inputStream = file.getInputStream();
+         Workbook workbook = WorkbookFactory.create(inputStream)) {
+
+        DataFormatter formatter = new DataFormatter();
+
+        for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
+            Sheet sheet = workbook.getSheetAt(sheetIndex);
+
+            if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) {
+                continue;
+            }
+
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) {
+                continue;
+            }
+
+            int registrationColumnIndex = -1;
+
+            for (Cell cell : headerRow) {
+                String header = formatter.formatCellValue(cell).trim();
+
+                if ("Registration No.".equalsIgnoreCase(header)
+                        || "Registration No".equalsIgnoreCase(header)
+                        || "Registration Number".equalsIgnoreCase(header)
+                        || "RegistrationNumber".equalsIgnoreCase(header)
+                        || "Reg No".equalsIgnoreCase(header)
+                        || "Reg. No.".equalsIgnoreCase(header)) {
+                    registrationColumnIndex = cell.getColumnIndex();
+                    break;
+                }
+            }
+
+            if (registrationColumnIndex == -1) {
+                continue;
+            }
+
+            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+                Row row = sheet.getRow(rowIndex);
+                if (row == null) {
+                    continue;
+                }
+
+                Cell cell = row.getCell(registrationColumnIndex);
+                String registrationNo = formatter.formatCellValue(cell).trim();
+
+                if (!registrationNo.isEmpty()) {
+                    registrationNumbers.add(registrationNo);
+                }
+            }
+        }
+
+    } catch (Exception e) {
+        throw new IllegalArgumentException("Failed to read Excel file: " + e.getMessage());
+    }
+
+    if (registrationNumbers.isEmpty()) {
+        throw new IllegalArgumentException("No registration numbers found in Excel. Please check Registration No. column.");
+    }
+
+    List<User> users = userRepository.findAllById(registrationNumbers);
+
+    Map<String, User> userMap = new HashMap<>();
+    for (User user : users) {
+        userMap.put(user.getId(), user);
+    }
+
+    List<String> notFoundRegistrationNumbers = new ArrayList<>();
+    List<User> usersToUpdate = new ArrayList<>();
+
+    for (String registrationNo : registrationNumbers) {
+        User user = userMap.get(registrationNo);
+
+        if (user == null) {
+            notFoundRegistrationNumbers.add(registrationNo);
+            continue;
+        }
+
+        if (isReservedSuperAdmin(user)) {
+            notFoundRegistrationNumbers.add(registrationNo + " - SUPERADMIN_SKIPPED");
+            continue;
+        }
+
+        if (user.getStatus() == UserStatus.DELETED) {
+            notFoundRegistrationNumbers.add(registrationNo + " - DELETED_USER_SKIPPED");
+            continue;
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(cleanPassword));
+        user.setUpdatedAt(Instant.now());
+        usersToUpdate.add(user);
+    }
+
+    userRepository.saveAll(usersToUpdate);
+
+    return new BulkPasswordResetResponse(
+            registrationNumbers.size(),
+            usersToUpdate.size(),
+            notFoundRegistrationNumbers.size(),
+            notFoundRegistrationNumbers
+    );
 }
 
 @Transactional
