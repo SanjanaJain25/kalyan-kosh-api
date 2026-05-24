@@ -94,6 +94,36 @@ public boolean isManager(User user) {
     return user != null && isManagerRole(user.getRole());
 }
 
+public void validateSambhagAccess(User manager, UUID sambhagId) {
+    if (isAdminOrSuperAdmin(manager)) {
+        return;
+    }
+
+    if (sambhagId == null || !hasAccessToSambhag(manager, sambhagId)) {
+        throw new IllegalArgumentException("You do not have access to this sambhag");
+    }
+}
+
+public void validateDistrictAccess(User manager, UUID districtId) {
+    if (isAdminOrSuperAdmin(manager)) {
+        return;
+    }
+
+    if (districtId == null || !hasAccessToDistrict(manager, districtId)) {
+        throw new IllegalArgumentException("You do not have access to this district");
+    }
+}
+
+public void validateBlockAccess(User manager, UUID blockId) {
+    if (isAdminOrSuperAdmin(manager)) {
+        return;
+    }
+
+    if (blockId == null || !hasAccessToBlock(manager, blockId)) {
+        throw new IllegalArgumentException("You do not have access to this block");
+    }
+}
+
 public ManagerAreaScope buildAreaScope(User currentUser) {
     UUID noScopeUuid = new UUID(0L, 0L);
 

@@ -6,10 +6,10 @@ import com.example.kalyan_kosh_api.dto.UpdatePasswordRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.service.UserService;
-
+import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.example.kalyan_kosh_api.service.ManagerScopeService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -31,16 +31,18 @@ private final SystemSettingService systemSettingService;
 private final UserService userService;
 private final UserRepository userRepository;
 private final ExportMobilePermissionService exportMobilePermissionService;
-
-  public UserController(
+private final ManagerScopeService managerScopeService;
+ public UserController(
         UserService userService,
         SystemSettingService systemSettingService,
         UserRepository userRepository,
-        ExportMobilePermissionService exportMobilePermissionService
+        ExportMobilePermissionService exportMobilePermissionService,
+        ManagerScopeService managerScopeService
 ) {
     this.userService = userService;
     this.systemSettingService = systemSettingService;
     this.userRepository = userRepository;
+    this.managerScopeService = managerScopeService;
     this.exportMobilePermissionService = exportMobilePermissionService;
 }
 
@@ -119,6 +121,29 @@ public ResponseEntity<Map<String, Boolean>> getProfileFieldLocksForUser() {
         PageResponse<UserResponse> response = userService.getAllUsersPaginated(page, size);
         return ResponseEntity.ok(response);
     }
+    private void validateExportAreaAccess(User currentUser,
+                                      String sambhagId,
+                                      String districtId,
+                                      String blockId) {
+    if (currentUser.getRole() == Role.ROLE_ADMIN ||
+        currentUser.getRole() == Role.ROLE_SUPERADMIN) {
+        return;
+    }
+
+    if (blockId != null && !blockId.isBlank()) {
+        managerScopeService.validateBlockAccess(currentUser, UUID.fromString(blockId));
+        return;
+    }
+
+    if (districtId != null && !districtId.isBlank()) {
+        managerScopeService.validateDistrictAccess(currentUser, UUID.fromString(districtId));
+        return;
+    }
+
+    if (sambhagId != null && !sambhagId.isBlank()) {
+        managerScopeService.validateSambhagAccess(currentUser, UUID.fromString(sambhagId));
+    }
+}
 @GetMapping("/export")
 public void exportUsers(
         @RequestParam(required = false) String sambhagId,
@@ -138,8 +163,20 @@ response.setCharacterEncoding("UTF-8");
     response.setHeader("Content-Disposition",
             "attachment; filename=our_member_list_" + timestamp + ".csv");
 
-userService.exportUsersCsv(
-        sambhagId, districtId, blockId, name, mobile, userId, includeMobile, response.getWriter()
+validateExportAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+userService.exportUsersCsvScoped(
+        sambhagId,
+        districtId,
+        blockId,
+        name,
+        mobile,
+        userId,
+        includeMobile,
+        scope,
+        response.getWriter()
 );
 }
     /**

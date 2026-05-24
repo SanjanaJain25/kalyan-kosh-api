@@ -983,7 +983,96 @@ Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "cre
         user.setUpdatedAt(Instant.now());
         userRepo.save(user);
     }
+public void exportUsersCsvScoped(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        boolean includeMobile,
+        ManagerAreaScope scope,
+        java.io.PrintWriter writer
+) {
+    UUID cleanSambhagId = parseOptionalUuid(sambhagId);
+    UUID cleanDistrictId = parseOptionalUuid(districtId);
+    UUID cleanBlockId = parseOptionalUuid(blockId);
 
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+
+    List<UUID> scopeSambhagIds =
+            scope.getSambhagIds() == null || scope.getSambhagIds().isEmpty()
+                    ? List.of(new UUID(0L, 0L))
+                    : scope.getSambhagIds();
+
+    List<UUID> scopeDistrictIds =
+            scope.getDistrictIds() == null || scope.getDistrictIds().isEmpty()
+                    ? List.of(new UUID(0L, 0L))
+                    : scope.getDistrictIds();
+
+    List<UUID> scopeBlockIds =
+            scope.getBlockIds() == null || scope.getBlockIds().isEmpty()
+                    ? List.of(new UUID(0L, 0L))
+                    : scope.getBlockIds();
+
+    List<User> users = userRepo.findAllUsersForExportScoped(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            scope.isUnrestricted(),
+            scopeSambhagIds,
+            scopeDistrictIds,
+            scopeBlockIds
+    );
+
+    writer.write("\uFEFF");
+
+    if (includeMobile) {
+        writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+    } else {
+        writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
+    }
+
+    for (User user : users) {
+        UserResponse u = toUserResponse(user);
+
+        if (includeMobile) {
+            writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    csvSafe(u.getId()),
+                    csvSafe(u.getName()),
+                    csvSafe(u.getSurname()),
+                    csvSafeExcelText(u.getMobileNumber()),
+                    csvSafe(u.getDepartment()),
+                    csvSafe(u.getDepartmentState()),
+                    csvSafe(u.getDepartmentSambhag()),
+                    csvSafe(u.getDepartmentDistrict()),
+                    csvSafe(u.getDepartmentBlock()),
+                    csvSafe(u.getSchoolOfficeName()),
+                    u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+            );
+        } else {
+            writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    csvSafe(u.getId()),
+                    csvSafe(u.getName()),
+                    csvSafe(u.getSurname()),
+                    csvSafe(u.getDepartment()),
+                    csvSafe(u.getDepartmentState()),
+                    csvSafe(u.getDepartmentSambhag()),
+                    csvSafe(u.getDepartmentDistrict()),
+                    csvSafe(u.getDepartmentBlock()),
+                    csvSafe(u.getSchoolOfficeName()),
+                    u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+            );
+        }
+    }
+
+    writer.flush();
+}
     /**
      * Register a new user
      */
@@ -1239,6 +1328,7 @@ response.setNominee2QrCodes(null);
 }
         return response;
     }
+
 
 private List<String> getNomineeQrCodesForResponse(
         Long deathCaseId,
