@@ -239,57 +239,105 @@ private Specification<User> buildLocationSpecification(String locationType, UUID
     /**
      * Add standard filtering predicates
      */
-    private void addStandardFilters(List<Predicate> predicates, 
-                                   jakarta.persistence.criteria.Root<User> root,
-                                   jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder,
-                                   String searchTerm, Role filterRole, UserStatus filterStatus,
-                                   String filterStateId, String filterSambhagId,
-                                   String filterDistrictId, String filterBlockId) {
+   /**
+ * Add standard filtering predicates
+ */
+private void addStandardFilters(List<Predicate> predicates,
+                               jakarta.persistence.criteria.Root<User> root,
+                               jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder,
+                               String searchTerm, Role filterRole, UserStatus filterStatus,
+                               String filterStateId, String filterSambhagId,
+                               String filterDistrictId, String filterBlockId) {
 
-        // Search term filter
-        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            String likePattern = "%" + searchTerm.trim().toLowerCase() + "%";
-            Predicate namePredicate = criteriaBuilder.like(
-                criteriaBuilder.lower(root.get("name")), likePattern);
-            Predicate emailPredicate = criteriaBuilder.like(
-                criteriaBuilder.lower(root.get("email")), likePattern);
-            Predicate phonePredicate = criteriaBuilder.like(
-                criteriaBuilder.lower(root.get("mobileNumber")), likePattern);
+    // Search term filter
+    if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+        String likePattern = "%" + searchTerm.trim().toLowerCase() + "%";
 
-            predicates.add(criteriaBuilder.or(namePredicate, emailPredicate, phonePredicate));
-        }
-        
-        // Role filter
-        if (filterRole != null) {
-            predicates.add(criteriaBuilder.equal(root.get("role"), filterRole));
-        }
-        
-        // Status filter
-        if (filterStatus != null) {
-            predicates.add(criteriaBuilder.equal(root.get("status"), filterStatus));
-        }
-        
-        // Location filters - convert String to UUID
-        if (filterStateId != null && !filterStateId.isEmpty()) {
-            UUID stateUUID = UUID.fromString(filterStateId);
-            predicates.add(criteriaBuilder.equal(root.get("departmentState").get("id"), stateUUID));
-        }
-        
-        if (filterSambhagId != null && !filterSambhagId.isEmpty()) {
-            UUID sambhagUUID = UUID.fromString(filterSambhagId);
-            predicates.add(criteriaBuilder.equal(root.get("departmentSambhag").get("id"), sambhagUUID));
-        }
-        
-        if (filterDistrictId != null && !filterDistrictId.isEmpty()) {
-            UUID districtUUID = UUID.fromString(filterDistrictId);
-            predicates.add(criteriaBuilder.equal(root.get("departmentDistrict").get("id"), districtUUID));
-        }
-        
-        if (filterBlockId != null && !filterBlockId.isEmpty()) {
-            UUID blockUUID = UUID.fromString(filterBlockId);
-            predicates.add(criteriaBuilder.equal(root.get("departmentBlock").get("id"), blockUUID));
-        }
+        Predicate idPredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(root.get("id")),
+                likePattern
+        );
+
+        Predicate namePredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("name"), "")),
+                likePattern
+        );
+
+        Predicate surnamePredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("surname"), "")),
+                likePattern
+        );
+
+        Predicate fullNamePredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(
+                        criteriaBuilder.concat(
+                                criteriaBuilder.concat(
+                                        criteriaBuilder.coalesce(root.get("name"), ""),
+                                        " "
+                                ),
+                                criteriaBuilder.coalesce(root.get("surname"), "")
+                        )
+                ),
+                likePattern
+        );
+
+        Predicate emailPredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("email"), "")),
+                likePattern
+        );
+
+        Predicate phonePredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("mobileNumber"), "")),
+                likePattern
+        );
+
+        Predicate departmentUniqueIdPredicate = criteriaBuilder.like(
+                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("departmentUniqueId"), "")),
+                likePattern
+        );
+
+        predicates.add(criteriaBuilder.or(
+                idPredicate,
+                namePredicate,
+                surnamePredicate,
+                fullNamePredicate,
+                emailPredicate,
+                phonePredicate,
+                departmentUniqueIdPredicate
+        ));
     }
+
+    // Role filter
+    if (filterRole != null) {
+        predicates.add(criteriaBuilder.equal(root.get("role"), filterRole));
+    }
+
+    // Status filter
+    if (filterStatus != null) {
+        predicates.add(criteriaBuilder.equal(root.get("status"), filterStatus));
+    }
+
+    // Location filters - convert String to UUID
+    if (filterStateId != null && !filterStateId.isEmpty()) {
+        UUID stateUUID = UUID.fromString(filterStateId);
+        predicates.add(criteriaBuilder.equal(root.get("departmentState").get("id"), stateUUID));
+    }
+
+    if (filterSambhagId != null && !filterSambhagId.isEmpty()) {
+        UUID sambhagUUID = UUID.fromString(filterSambhagId);
+        predicates.add(criteriaBuilder.equal(root.get("departmentSambhag").get("id"), sambhagUUID));
+    }
+
+    if (filterDistrictId != null && !filterDistrictId.isEmpty()) {
+        UUID districtUUID = UUID.fromString(filterDistrictId);
+        predicates.add(criteriaBuilder.equal(root.get("departmentDistrict").get("id"), districtUUID));
+    }
+
+    if (filterBlockId != null && !filterBlockId.isEmpty()) {
+        UUID blockUUID = UUID.fromString(filterBlockId);
+        predicates.add(criteriaBuilder.equal(root.get("departmentBlock").get("id"), blockUUID));
+    }
+}
     
     /**
      * Get all users with filters (for admin)
