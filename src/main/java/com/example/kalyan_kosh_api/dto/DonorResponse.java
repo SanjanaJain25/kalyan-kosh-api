@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 
 @Data
@@ -25,7 +25,7 @@ private Long deathCaseId;
     private String block;                   // ब्लॉक
     private String schoolName;              // स्कूल का नाम
     private String beneficiary;             // लाभार्थी
-    private Instant receiptUploadDate;      // रसीद अपलोड दिनांक
+  private LocalDateTime receiptUploadDate;     // रसीद अपलोड दिनांक
 
     private Double amount;                  // सहयोग राशि
     private LocalDate paymentDate;          // भुगतान दिनांक
