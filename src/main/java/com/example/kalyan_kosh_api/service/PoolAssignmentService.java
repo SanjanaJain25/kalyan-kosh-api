@@ -6,7 +6,7 @@ import com.example.kalyan_kosh_api.repository.IdSequenceRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.*;
+
 import java.util.List;
 
 @Service
@@ -56,37 +56,45 @@ public class PoolAssignmentService {
     }
 
     /**
-     * Admin action: equally distribute ROLE_USER across all OPEN death cases.
+     * Admin action: equally distribute ALL users across all OPEN death cases.
+     *
+     * overwrite = false:
+     * - Keeps users who already have an OPEN assigned death case.
+     * - Assigns only users whose assigned death case is NULL or not OPEN.
+     *
+     * overwrite = true:
+     * - Reassigns all users again.
+     * - Existing user's QR/death-case may change.
      */
- @Transactional
-public void rebalanceAllUsersAcrossPools(boolean overwrite) {
+    @Transactional
+    public void rebalanceAllUsersAcrossPools(boolean overwrite) {
 
-    List<DeathCase> activePools = deathCaseRepo.findByStatusOrderByIdAsc(DeathCaseStatus.OPEN);
+        List<DeathCase> activePools = deathCaseRepo.findByStatusOrderByIdAsc(DeathCaseStatus.OPEN);
 
-    if (activePools.isEmpty()) {
-        return;
+        if (activePools.isEmpty()) {
+            return;
+        }
+
+        List<User> users = userRepo.findAll();
+
+        // Rebalance all users, regardless of role
+        List<User> eligibleUsers = users.stream()
+                .filter(u -> overwrite
+                        || u.getAssignedDeathCase() == null
+                        || u.getAssignedDeathCase().getStatus() != DeathCaseStatus.OPEN)
+                .toList();
+
+        if (eligibleUsers.isEmpty()) {
+            return;
+        }
+
+        // Distribute users evenly across active pools
+        for (int i = 0; i < eligibleUsers.size(); i++) {
+            User user = eligibleUsers.get(i);
+            DeathCase pool = activePools.get(i % activePools.size());
+            user.setAssignedDeathCase(pool);
+        }
+
+        userRepo.saveAll(eligibleUsers);
     }
-
-    List<User> users = userRepo.findAll();
-
-    // Only rebalance normal users
-    List<User> eligibleUsers = users.stream()
-            .filter(u -> u.getRole() == Role.ROLE_USER)
-            .filter(u -> overwrite || u.getAssignedDeathCase() == null ||
-                    u.getAssignedDeathCase().getStatus() != DeathCaseStatus.OPEN)
-            .toList();
-
-    if (eligibleUsers.isEmpty()) {
-        return;
-    }
-
-    // Distribute users evenly across active pools
-    for (int i = 0; i < eligibleUsers.size(); i++) {
-        User user = eligibleUsers.get(i);
-        DeathCase pool = activePools.get(i % activePools.size());
-        user.setAssignedDeathCase(pool);
-    }
-
-    userRepo.saveAll(eligibleUsers);
-}
 }
