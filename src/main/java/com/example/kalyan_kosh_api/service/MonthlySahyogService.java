@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 public class MonthlySahyogService {
@@ -118,9 +121,30 @@ public List<DonorResponse> getDonorsForExportByBeneficiary(
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
+}
+private static final ZoneId INDIA_ZONE = ZoneId.of("Asia/Kolkata");
+
+private LocalDateTime toIndiaDateTime(Object value) {
+    if (value == null) {
+        return null;
+    }
+
+    if (value instanceof java.sql.Timestamp timestamp) {
+        return LocalDateTime.ofInstant(timestamp.toInstant(), INDIA_ZONE);
+    }
+
+    if (value instanceof Instant instant) {
+        return LocalDateTime.ofInstant(instant, INDIA_ZONE);
+    }
+
+    if (value instanceof LocalDateTime localDateTime) {
+        return localDateTime;
+    }
+
+    return null;
 }
 public void exportNoUtrEverCsv(
         String name,
@@ -229,7 +253,7 @@ public List<DonorResponse> getAllDonorsForExport() {
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
 }
@@ -349,7 +373,7 @@ List<DonorResponse> donors = donorPage.getContent().stream()
                 .schoolName((String) row[9])
                 .deathCaseId(row[10] != null ? ((Number) row[10]).longValue() : null)
                 .beneficiary((String) row[11])
-                .receiptUploadDate(row[12] != null ? ((java.sql.Timestamp) row[12]).toInstant() : null)
+                .receiptUploadDate(toIndiaDateTime(row[12]))
                 .receiptId(row[13] != null ? ((Number) row[13]).longValue() : null)
                 .amount(row[14] != null ? ((Number) row[14]).doubleValue() : null)
                 .paymentDate(row[15] != null ? ((java.sql.Date) row[15]).toLocalDate() : null)
@@ -405,7 +429,7 @@ public DonorResponse updateSahyogReceipt(Long receiptId, UpdateSahyogReceiptRequ
             .name(saved.getUser().getName() + (saved.getUser().getSurname() != null ? " " + saved.getUser().getSurname() : ""))
             .department(saved.getUser().getDepartment())
             .beneficiary(saved.getDeathCase() != null ? saved.getDeathCase().getDeceasedName() : null)
-            .receiptUploadDate(saved.getUploadedAt())
+            .receiptUploadDate(toIndiaDateTime(saved.getUploadedAt()))
             .amount(saved.getAmount())
             .paymentDate(saved.getPaymentDate())
             .referenceName(saved.getReferenceName())
@@ -579,7 +603,7 @@ public PageResponse<UserResponse> searchNonDonorsByBeneficiary(
                         .block((String) row[8])
                         .schoolName((String) row[9])
                         .beneficiary((String) row[10])
-                        .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                        .receiptUploadDate(toIndiaDateTime(row[11]))
                         .build())
                 .toList();
 
@@ -654,7 +678,7 @@ public List<DonorResponse> getDonorsForExport(
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
 }
@@ -707,7 +731,7 @@ UUID cleanBlockId = parseUuidOrNull(blockId);
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
 }
@@ -779,7 +803,7 @@ UUID cleanBlockId = parseUuidOrNull(blockId);
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
 }
@@ -893,7 +917,7 @@ public PageResponse<DonorResponse> searchDonors(
                     .block((String) row[8])
                     .schoolName((String) row[9])
                     .beneficiary((String) row[10])
-                    .receiptUploadDate(row[11] != null ? ((java.sql.Timestamp) row[11]).toInstant() : null)
+                    .receiptUploadDate(toIndiaDateTime(row[11]))
                     .build())
             .toList();
 
@@ -975,7 +999,7 @@ public PageResponse<DonorResponse> searchDonors(
                 .block(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : null)  // ब्लॉक
                 .schoolName(user.getSchoolOfficeName())  // स्कूल का नाम
                 .beneficiary(receipt.getDeathCase() != null ? receipt.getDeathCase().getDeceasedName() : null)  // लाभार्थी
-                .receiptUploadDate(receipt.getUploadedAt())  // रसीद अपलोड दिनांक
+                .receiptUploadDate(toIndiaDateTime(receipt.getUploadedAt()))  // रसीद अपलोड दिनांक
                 .build();
     }
 
