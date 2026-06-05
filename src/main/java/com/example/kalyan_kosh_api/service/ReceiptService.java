@@ -20,7 +20,7 @@ import java.time.ZoneId;
 
 @Service
 public class ReceiptService {
-private static final ZoneId INDIA_ZONE = ZoneId.of("Asia/Kolkata");
+
     private static final Logger log = LoggerFactory.getLogger(ReceiptService.class);
 
     private final ReceiptRepository receiptRepo;
@@ -47,7 +47,6 @@ private final EmailService emailService;
     this.auditLogService = auditLogService;
     this.emailService = emailService;
 }
-
 
 @Transactional
 public ReceiptResponse manualMoveAsahyogToSahyog(
@@ -172,11 +171,8 @@ private ReceiptResponse createReceiptForTargetUser(UploadReceiptRequest req, Str
         throw new IllegalArgumentException("UTR number is required");
     }
 
-   LocalDate paymentDate = req.getPaymentDate() != null
-        ? req.getPaymentDate()
-        : LocalDate.now();
-
-Instant now = java.time.ZonedDateTime.now(INDIA_ZONE).toInstant();
+    LocalDate paymentDate = LocalDate.now();
+    Instant now = Instant.now();
 
     log.info("Creating receipt for targetUser: {}, assignedDeathCaseId: {}, amount: {}",
             targetUserId, assignedCase.getId(), req.getAmount());

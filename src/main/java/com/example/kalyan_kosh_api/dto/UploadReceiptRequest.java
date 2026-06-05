@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
-import java.time.LocalDate;
 
 @Data
 public class UploadReceiptRequest {
@@ -25,7 +24,7 @@ public class UploadReceiptRequest {
      * If userId is not available, backend can find user by mobile number.
      */
     private String mobileNumber;
-private LocalDate paymentDate;
+
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     private Double amount;
