@@ -48,6 +48,31 @@ private final EmailService emailService;
     this.emailService = emailService;
 }
 
+private String normalizeUtr(String utrNumber) {
+    if (utrNumber == null) {
+        return null;
+    }
+
+    String cleaned = utrNumber.trim();
+
+    if (cleaned.isEmpty()) {
+        return null;
+    }
+
+    return cleaned.toUpperCase();
+}
+
+private void validateUniqueUtr(String utrNumber) {
+    String normalizedUtr = normalizeUtr(utrNumber);
+
+    if (normalizedUtr == null) {
+        throw new IllegalArgumentException("UTR number is required");
+    }
+
+    if (receiptRepo.existsByNormalizedUtrNumber(normalizedUtr)) {
+        throw new IllegalArgumentException("This UTR number is already submitted. Duplicate UTR is not allowed.");
+    }
+}
 
 @Transactional
 public ReceiptResponse manualMoveAsahyogToSahyog(
@@ -68,7 +93,17 @@ public ReceiptResponse manualMoveAsahyogToSahyog(
 
     DeathCase deathCase = deathCaseRepo.findById(req.getDeathCaseId())
             .orElseThrow(() -> new IllegalArgumentException("Death case not found: " + req.getDeathCaseId()));
+String finalUtrNumber;
 
+if (req.getUtrNumber() != null && !req.getUtrNumber().isBlank()) {
+    finalUtrNumber = normalizeUtr(req.getUtrNumber());
+
+    if (receiptRepo.existsByNormalizedUtrNumber(finalUtrNumber)) {
+        throw new IllegalArgumentException("This UTR number is already submitted. Duplicate UTR is not allowed.");
+    }
+} else {
+    finalUtrNumber = "MANUAL-" + targetUser.getId() + "-" + System.currentTimeMillis();
+}
     Receipt receipt = Receipt.builder()
             .user(targetUser)
             .deathCase(deathCase)
@@ -79,11 +114,7 @@ public ReceiptResponse manualMoveAsahyogToSahyog(
                             ? req.getReferenceName().trim()
                             : "Manual Admin Entry"
             )
-            .utrNumber(
-                    req.getUtrNumber() != null && !req.getUtrNumber().isBlank()
-                            ? req.getUtrNumber().trim()
-                            : "MANUAL-" + targetUser.getId() + "-" + System.currentTimeMillis()
-            )
+            .utrNumber(finalUtrNumber)
             .status(ReceiptStatus.VERIFIED)
           .uploadedAt(req.getPaymentDate().atStartOfDay(ZoneId.systemDefault()).toInstant())
             .build();
@@ -167,10 +198,15 @@ private ReceiptResponse createReceiptForTargetUser(UploadReceiptRequest req, Str
     if (assignedCase.getStatus() != DeathCaseStatus.OPEN) {
         throw new IllegalStateException("Assigned pool is not active. Please contact admin.");
     }
+String normalizedUtr = normalizeUtr(req.getUtrNumber());
 
-    if (req.getUtrNumber() == null || req.getUtrNumber().trim().isEmpty()) {
-        throw new IllegalArgumentException("UTR number is required");
-    }
+if (normalizedUtr == null) {
+    throw new IllegalArgumentException("UTR number is required");
+}
+
+if (receiptRepo.existsByNormalizedUtrNumber(normalizedUtr)) {
+    throw new IllegalArgumentException("This UTR number is already submitted. Duplicate UTR is not allowed.");
+}
 
    LocalDate paymentDate = req.getPaymentDate() != null
         ? req.getPaymentDate()
@@ -187,7 +223,7 @@ Instant now = java.time.ZonedDateTime.now(INDIA_ZONE).toInstant();
             .amount(req.getAmount())
             .paymentDate(paymentDate)
             .referenceName(req.getReferenceName())
-            .utrNumber(req.getUtrNumber().trim())
+.utrNumber(normalizedUtr)
             .status(ReceiptStatus.UPLOADED)
             .uploadedAt(now)
             .build();

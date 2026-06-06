@@ -12,6 +12,7 @@ import java.util.Set;
 import com.example.kalyan_kosh_api.entity.DeathCase;
 import java.util.UUID;
 
+
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
@@ -165,6 +166,27 @@ List<Object[]> searchAllDonorsForExportScopedNative(
             @Param("endDate") LocalDate endDate,
             org.springframework.data.domain.Pageable pageable
     );
+
+@Query("""
+    SELECT COUNT(r) > 0
+    FROM Receipt r
+    WHERE r.utrNumber IS NOT NULL
+      AND TRIM(r.utrNumber) <> ''
+      AND LOWER(TRIM(r.utrNumber)) = LOWER(TRIM(:utrNumber))
+""")
+boolean existsByNormalizedUtrNumber(@Param("utrNumber") String utrNumber);
+@Query("""
+    SELECT COUNT(r) > 0
+    FROM Receipt r
+    WHERE r.utrNumber IS NOT NULL
+      AND TRIM(r.utrNumber) <> ''
+      AND LOWER(TRIM(r.utrNumber)) = LOWER(TRIM(:utrNumber))
+      AND r.id <> :receiptId
+""")
+boolean existsByNormalizedUtrNumberExceptId(
+        @Param("utrNumber") String utrNumber,
+        @Param("receiptId") Long receiptId
+);
 
     // ✅ Search donors by name and/or mobile and/or userId with pagination
  @Query(value = """

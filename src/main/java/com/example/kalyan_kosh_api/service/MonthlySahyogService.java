@@ -409,9 +409,19 @@ public DonorResponse updateSahyogReceipt(Long receiptId, UpdateSahyogReceiptRequ
         receipt.setReferenceName(request.getReferenceName());
     }
 
-    if (request.getUtrNumber() != null) {
-        receipt.setUtrNumber(request.getUtrNumber());
+  if (request.getUtrNumber() != null) {
+    String normalizedUtr = request.getUtrNumber().trim().toUpperCase();
+
+    if (normalizedUtr.isEmpty()) {
+        throw new IllegalArgumentException("UTR number is required");
     }
+
+    if (receiptRepo.existsByNormalizedUtrNumberExceptId(normalizedUtr, receipt.getId())) {
+        throw new IllegalArgumentException("This UTR number is already submitted. Duplicate UTR is not allowed.");
+    }
+
+    receipt.setUtrNumber(normalizedUtr);
+}
 
     if (request.getDeathCaseId() != null) {
         DeathCase deathCase = deathCaseRepo.findById(request.getDeathCaseId())
