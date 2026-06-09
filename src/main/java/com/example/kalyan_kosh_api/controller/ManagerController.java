@@ -69,10 +69,15 @@ private AdminUserManagementService adminUserManagementService;
             String targetManagerId = managerId != null ? managerId : currentUser.getId();
             
             // Check permission - can view own assignments or admin can view all
-            if (!targetManagerId.equals(currentUser.getId()) && currentUser.getRole() != Role.ROLE_ADMIN) {
-                return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
-            }
-            
+           boolean isOwnAssignment = targetManagerId.equals(currentUser.getId());
+
+boolean isAdminOrSuperAdmin =
+        currentUser.getRole() == Role.ROLE_ADMIN ||
+        currentUser.getRole() == Role.ROLE_SUPERADMIN;
+
+if (!isOwnAssignment && !isAdminOrSuperAdmin) {
+    return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
+}
             List<ManagerAssignmentResponse> assignments = managerAssignmentService.getManagerAssignments(targetManagerId);
             return ResponseEntity.ok(assignments);
         } catch (Exception e) {
