@@ -70,7 +70,7 @@ public class EmailService {
                 If you did not request this OTP, please ignore this email.
                 
                 Regards,
-                PMUIMS Kalyan Kosh Team
+                PMUMS Kalyan Kosh Team
                 """.formatted(otp);
     }
 public void sendEmailWithAttachment(
