@@ -23,6 +23,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
+import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
+import com.example.kalyan_kosh_api.service.ManagerScopeService;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/monthly-sahyog")
@@ -34,17 +37,20 @@ private final SystemSettingService systemSettingService;
 private final MonthlySahyogService service;
 private final UserRepository userRepository;
 private final ExportMobilePermissionService exportMobilePermissionService;
+private final ManagerScopeService managerScopeService;
 
-  public AdminMonthlySahyogController(
+ public AdminMonthlySahyogController(
         MonthlySahyogService service,
         SystemSettingService systemSettingService,
         UserRepository userRepository,
-        ExportMobilePermissionService exportMobilePermissionService
+        ExportMobilePermissionService exportMobilePermissionService,
+        ManagerScopeService managerScopeService
 ) {
     this.service = service;
     this.systemSettingService = systemSettingService;
     this.userRepository = userRepository;
     this.exportMobilePermissionService = exportMobilePermissionService;
+    this.managerScopeService = managerScopeService;
 }
 
 private User getCurrentUser() {
@@ -56,6 +62,41 @@ private User getCurrentUser() {
 
     return userRepository.findById(authentication.getName())
             .orElseThrow(() -> new IllegalArgumentException("Current user not found"));
+}
+
+private UUID parseUuidOrNull(String value) {
+    if (value == null || value.trim().isEmpty()) {
+        return null;
+    }
+    return UUID.fromString(value.trim());
+}
+
+private void validateNoUtrExportAreaAccess(User currentUser, String sambhagId, String districtId, String blockId) {
+    if (managerScopeService.isAdminOrSuperAdmin(currentUser)) {
+        return;
+    }
+
+    if (!managerScopeService.isManager(currentUser)) {
+        throw new IllegalArgumentException("You are not allowed to export this data");
+    }
+
+    UUID cleanBlockId = parseUuidOrNull(blockId);
+    UUID cleanDistrictId = parseUuidOrNull(districtId);
+    UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+
+    if (cleanBlockId != null) {
+        managerScopeService.validateBlockAccess(currentUser, cleanBlockId);
+        return;
+    }
+
+    if (cleanDistrictId != null) {
+        managerScopeService.validateDistrictAccess(currentUser, cleanDistrictId);
+        return;
+    }
+
+    if (cleanSambhagId != null) {
+        managerScopeService.validateSambhagAccess(currentUser, cleanSambhagId);
+    }
 }
 private Role getCurrentUserRole() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -282,24 +323,53 @@ public void exportNoUtrEver(
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
+
+        // Existing text filters - keep these for old functionality
         @RequestParam(required = false) String sambhag,
         @RequestParam(required = false) String district,
         @RequestParam(required = false) String block,
-        HttpServletResponse response) throws Exception {
-User currentUser = getCurrentUser();
-boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);    String timestamp = java.time.LocalDateTime.now()
+
+        // New ID filters - used by manager dashboard
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+
+        HttpServletResponse response
+) throws Exception {
+
+    User currentUser = getCurrentUser();
+
+    validateNoUtrExportAreaAccess(currentUser, sambhagId, districtId, blockId);
+
+    ManagerAreaScope scope = managerScopeService.buildAreaScope(currentUser);
+
+    boolean includeMobile = exportMobilePermissionService.canExportMobileNumber(currentUser);
+
+    String timestamp = java.time.LocalDateTime.now()
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
-   response.setContentType("text/csv; charset=UTF-8");
-response.setCharacterEncoding("UTF-8");
+    response.setContentType("text/csv; charset=UTF-8");
+    response.setCharacterEncoding("UTF-8");
     response.setHeader(
             "Content-Disposition",
             "attachment; filename=zero_utr_members_list_" + timestamp + ".csv"
     );
 
-service.exportNoUtrEverCsv(
-        name, mobile, userId, sambhag, district, block, includeMobile, response.getWriter()
-);}
+    service.exportNoUtrEverCsv(
+            name,
+            mobile,
+            userId,
+            sambhag,
+            district,
+            block,
+            sambhagId,
+            districtId,
+            blockId,
+            scope,
+            includeMobile,
+            response.getWriter()
+    );
+}
 @GetMapping("/no-utr-ever/search")
 public ResponseEntity<?> searchNoUtrEverUsers(
         @RequestParam(required = false) String name,

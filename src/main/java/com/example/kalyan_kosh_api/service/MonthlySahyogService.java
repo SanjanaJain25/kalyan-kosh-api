@@ -146,6 +146,7 @@ private LocalDateTime toIndiaDateTime(Object value) {
 
     return null;
 }
+
 public void exportNoUtrEverCsv(
         String name,
         String mobile,
@@ -153,59 +154,85 @@ public void exportNoUtrEverCsv(
         String sambhag,
         String district,
         String block,
+        String sambhagId,
+        String districtId,
+        String blockId,
+        ManagerAreaScope scope,
         boolean includeMobile,
         PrintWriter writer) {
 
     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+
     String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
     String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
     String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
 
-    List<User> users = userRepo.searchNoUtrEverUsersForExport(
-            cleanName, cleanMobile, cleanUserId, cleanSambhag, cleanDistrict, cleanBlock
+    UUID cleanSambhagId = parseUuidOrNull(sambhagId);
+    UUID cleanDistrictId = parseUuidOrNull(districtId);
+    UUID cleanBlockId = parseUuidOrNull(blockId);
+
+    List<User> users = userRepo.searchNoUtrEverUsersForExportScoped(
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            scope.isUnrestricted(),
+            scope.getSambhagIds(),
+            scope.getDistrictIds(),
+            scope.getBlockIds()
     );
-writer.write("\uFEFF");
-if (includeMobile) {
-    writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
-} else {
-    writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
-}
-for (User user : users) {
-    UserResponse u = toUserResponse(user);
+
+    writer.write("\uFEFF");
 
     if (includeMobile) {
-        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
-                csvSafe(u.getId()),
-                csvSafe(u.getName()),
-                csvSafe(u.getSurname()),
-                csvSafe(u.getMobileNumber()),
-                csvSafe(u.getDepartment()),
-                csvSafe(u.getDepartmentState()),
-                csvSafe(u.getDepartmentSambhag()),
-                csvSafe(u.getDepartmentDistrict()),
-                csvSafe(u.getDepartmentBlock()),
-                csvSafe(u.getSchoolOfficeName()),
-                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
-        );
+        writer.println("UserId,Name,Surname,Mobile,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
     } else {
-        writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
-                csvSafe(u.getId()),
-                csvSafe(u.getName()),
-                csvSafe(u.getSurname()),
-                csvSafe(u.getDepartment()),
-                csvSafe(u.getDepartmentState()),
-                csvSafe(u.getDepartmentSambhag()),
-                csvSafe(u.getDepartmentDistrict()),
-                csvSafe(u.getDepartmentBlock()),
-                csvSafe(u.getSchoolOfficeName()),
-                u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
-        );
+        writer.println("UserId,Name,Surname,Department,State,Sambhag,District,Block,SchoolOfficeName,CreatedAt");
     }
-}
+
+    for (User user : users) {
+        UserResponse u = toUserResponse(user);
+
+        if (includeMobile) {
+            writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    csvSafe(u.getId()),
+                    csvSafe(u.getName()),
+                    csvSafe(u.getSurname()),
+                    csvSafe(u.getMobileNumber()),
+                    csvSafe(u.getDepartment()),
+                    csvSafe(u.getDepartmentState()),
+                    csvSafe(u.getDepartmentSambhag()),
+                    csvSafe(u.getDepartmentDistrict()),
+                    csvSafe(u.getDepartmentBlock()),
+                    csvSafe(u.getSchoolOfficeName()),
+                    u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+            );
+        } else {
+            writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
+                    csvSafe(u.getId()),
+                    csvSafe(u.getName()),
+                    csvSafe(u.getSurname()),
+                    csvSafe(u.getDepartment()),
+                    csvSafe(u.getDepartmentState()),
+                    csvSafe(u.getDepartmentSambhag()),
+                    csvSafe(u.getDepartmentDistrict()),
+                    csvSafe(u.getDepartmentBlock()),
+                    csvSafe(u.getSchoolOfficeName()),
+                    u.getCreatedAt() != null ? u.getCreatedAt().toString() : ""
+            );
+        }
+    }
+
     writer.flush();
 }
+
 public List<UserResponse> getNonDonorsForExportByBeneficiary(
         Long beneficiaryId,
          boolean openOnly,

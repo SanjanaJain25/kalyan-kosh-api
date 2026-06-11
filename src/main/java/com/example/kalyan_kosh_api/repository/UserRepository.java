@@ -1389,7 +1389,64 @@ List<User> findAllUsersForExportScoped(
         @Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
         @Param("scopeBlockIds") List<UUID> scopeBlockIds
 );
+@Query("""
+    SELECT u
+    FROM User u
+    LEFT JOIN FETCH u.departmentState s
+    LEFT JOIN FETCH u.departmentSambhag sa
+    LEFT JOIN FETCH u.departmentDistrict d
+    LEFT JOIN FETCH u.departmentBlock b
+    LEFT JOIN FETCH u.assignedDeathCase adc
+    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
 
+      AND (:name IS NULL OR
+           LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
+           LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%')))
+
+      AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+      AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+
+      AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+      AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+      AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+
+      AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+      AND (:districtId IS NULL OR d.id = :districtId)
+      AND (:blockId IS NULL OR b.id = :blockId)
+
+      AND (
+            :unrestricted = true
+            OR sa.id IN :scopeSambhagIds
+            OR d.id IN :scopeDistrictIds
+            OR b.id IN :scopeBlockIds
+      )
+
+      AND NOT EXISTS (
+          SELECT 1
+          FROM Receipt r
+          WHERE r.user.id = u.id
+            AND r.utrNumber IS NOT NULL
+            AND TRIM(r.utrNumber) <> ''
+      )
+
+    ORDER BY u.createdAt DESC
+""")
+List<User> searchNoUtrEverUsersForExportScoped(
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block,
+        @Param("sambhagId") UUID sambhagId,
+        @Param("districtId") UUID districtId,
+        @Param("blockId") UUID blockId,
+        @Param("unrestricted") boolean unrestricted,
+        @Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
+        @Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
+        @Param("scopeBlockIds") List<UUID> scopeBlockIds
+);
 // ✅ Search non-donors by name and/or mobile and/or userId with pagination
   @Query(value = "SELECT u FROM User u " +
        "LEFT JOIN FETCH u.departmentState s " +
