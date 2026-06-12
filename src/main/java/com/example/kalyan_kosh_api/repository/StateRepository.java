@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface StateRepository extends JpaRepository<State, UUID> {
     Optional<State> findByName(String name);
     Optional<State> findByCode(String code);
+    Optional<State> findByNameIgnoreCase(String name);
 }
 

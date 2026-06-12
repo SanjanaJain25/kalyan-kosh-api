@@ -26,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.kalyan_kosh_api.dto.BulkPasswordResetResponse;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.kalyan_kosh_api.dto.BulkLocationUpdateResponse;
 /**
  * Admin User Management Controller
  * Handles all admin operations for user management including:
@@ -165,6 +166,38 @@ public ResponseEntity<?> bulkPasswordReset(
         return ResponseEntity.internalServerError().body(Map.of(
                 "success", false,
                 "message", "Failed to reset passwords: " + e.getMessage()
+        ));
+    }
+}
+
+@PostMapping(value = "/bulk-location-update", consumes = "multipart/form-data")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+public ResponseEntity<?> bulkLocationUpdate(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam(defaultValue = "true") boolean dryRun
+) {
+    try {
+        BulkLocationUpdateResponse response =
+                adminUserService.bulkUpdateUserLocationsFromExcel(file, dryRun);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", dryRun
+                        ? "Dry run completed successfully. No database changes were made."
+                        : "Bulk location update completed successfully.",
+                "data", response
+        ));
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+        ));
+
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "Failed to update user locations: " + e.getMessage()
         ));
     }
 }

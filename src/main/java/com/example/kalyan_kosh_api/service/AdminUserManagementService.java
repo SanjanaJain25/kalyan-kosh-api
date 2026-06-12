@@ -34,6 +34,17 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.kalyan_kosh_api.dto.BulkLocationUpdateResponse;
+import com.example.kalyan_kosh_api.entity.State;
+import com.example.kalyan_kosh_api.entity.Sambhag;
+import com.example.kalyan_kosh_api.entity.District;
+import com.example.kalyan_kosh_api.entity.Block;
+import com.example.kalyan_kosh_api.repository.StateRepository;
+import com.example.kalyan_kosh_api.repository.SambhagRepository;
+import com.example.kalyan_kosh_api.repository.DistrictRepository;
+import com.example.kalyan_kosh_api.repository.BlockRepository;
+
+import java.util.LinkedHashMap;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -54,7 +65,11 @@ private final ManagerQueryRepository managerQueryRepository;
 private final ManagerQueryMessageRepository managerQueryMessageRepository;
 private final DeleteRequestRepository deleteRequestRepository;
 private final AuditLogRepository auditLogRepository;
- public AdminUserManagementService(
+private final StateRepository stateRepository;
+private final SambhagRepository sambhagRepository;
+private final DistrictRepository districtRepository;
+private final BlockRepository blockRepository;
+public AdminUserManagementService(
         PasswordEncoder passwordEncoder,
         UserRepository userRepository,
         ReceiptRepository receiptRepository,
@@ -62,7 +77,11 @@ private final AuditLogRepository auditLogRepository;
         ManagerQueryRepository managerQueryRepository,
         ManagerQueryMessageRepository managerQueryMessageRepository,
         DeleteRequestRepository deleteRequestRepository,
-        AuditLogRepository auditLogRepository
+        AuditLogRepository auditLogRepository,
+        StateRepository stateRepository,
+        SambhagRepository sambhagRepository,
+        DistrictRepository districtRepository,
+        BlockRepository blockRepository
 ) {
     this.passwordEncoder = passwordEncoder;
     this.userRepository = userRepository;
@@ -72,6 +91,10 @@ private final AuditLogRepository auditLogRepository;
     this.managerQueryMessageRepository = managerQueryMessageRepository;
     this.deleteRequestRepository = deleteRequestRepository;
     this.auditLogRepository = auditLogRepository;
+    this.stateRepository = stateRepository;
+    this.sambhagRepository = sambhagRepository;
+    this.districtRepository = districtRepository;
+    this.blockRepository = blockRepository;
 }
 private boolean isReservedSuperAdmin(User user) {
     return user != null
@@ -274,6 +297,193 @@ public void resetUserPassword(String userId, String newPassword) {
     user.setPasswordHash(passwordEncoder.encode(cleanPassword));
     user.setUpdatedAt(Instant.now());
     userRepository.save(user);
+}
+
+@Transactional
+public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
+        MultipartFile file,
+        boolean dryRun
+) {
+    if (file == null || file.isEmpty()) {
+        throw new IllegalArgumentException("Excel file is required");
+    }
+
+    Map<String, ExcelLocationRow> excelRows = new LinkedHashMap<>();
+    List<String> duplicateUserIds = new ArrayList<>();
+    List<String> notFoundUsers = new ArrayList<>();
+    List<String> locationErrors = new ArrayList<>();
+
+    try (InputStream inputStream = file.getInputStream();
+         Workbook workbook = WorkbookFactory.create(inputStream)) {
+
+        DataFormatter formatter = new DataFormatter();
+        Sheet sheet = workbook.getSheetAt(0);
+
+        if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) {
+            throw new IllegalArgumentException("Excel sheet is empty");
+        }
+
+        Row headerRow = sheet.getRow(0);
+
+        if (headerRow == null) {
+            throw new IllegalArgumentException("Header row not found in Excel");
+        }
+
+        Map<String, Integer> columnMap = new HashMap<>();
+
+        for (Cell cell : headerRow) {
+            String header = formatter.formatCellValue(cell)
+                    .trim()
+                    .replace(" ", "")
+                    .toLowerCase();
+
+            columnMap.put(header, cell.getColumnIndex());
+        }
+
+        int userIdCol = getRequiredExcelColumn(columnMap, "userid");
+        int stateCol = getRequiredExcelColumn(columnMap, "state");
+        int sambhagCol = getRequiredExcelColumn(columnMap, "sambhag");
+        int districtCol = getRequiredExcelColumn(columnMap, "district");
+        int blockCol = getRequiredExcelColumn(columnMap, "block");
+
+        for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+
+            if (row == null) {
+                continue;
+            }
+
+            String userId = getExcelCellValue(formatter, row, userIdCol);
+            String stateName = getExcelCellValue(formatter, row, stateCol);
+            String sambhagName = getExcelCellValue(formatter, row, sambhagCol);
+            String districtName = getExcelCellValue(formatter, row, districtCol);
+            String blockName = getExcelCellValue(formatter, row, blockCol);
+
+            if (userId == null || userId.isBlank()) {
+                continue;
+            }
+
+            if (excelRows.containsKey(userId)) {
+                duplicateUserIds.add(userId);
+                continue;
+            }
+
+            excelRows.put(userId, new ExcelLocationRow(
+                    userId,
+                    stateName,
+                    sambhagName,
+                    districtName,
+                    blockName,
+                    rowIndex + 1
+            ));
+        }
+
+    } catch (IllegalArgumentException e) {
+        throw e;
+    } catch (Exception e) {
+        throw new IllegalArgumentException("Failed to read Excel file: " + e.getMessage());
+    }
+
+    if (excelRows.isEmpty()) {
+        throw new IllegalArgumentException("No valid UserId rows found in Excel");
+    }
+
+    List<User> existingUsers = userRepository.findAllById(excelRows.keySet());
+
+    Map<String, User> userMap = new HashMap<>();
+
+    for (User user : existingUsers) {
+        userMap.put(user.getId(), user);
+    }
+
+    List<User> usersToUpdate = new ArrayList<>();
+    Instant now = Instant.now();
+
+    for (ExcelLocationRow excelRow : excelRows.values()) {
+        User user = userMap.get(excelRow.userId());
+
+        if (user == null) {
+            notFoundUsers.add("Row " + excelRow.rowNumber() + ": User not found - " + excelRow.userId());
+            continue;
+        }
+
+        if (isReservedSuperAdmin(user)) {
+            notFoundUsers.add("Row " + excelRow.rowNumber() + ": Reserved super admin skipped - " + excelRow.userId());
+            continue;
+        }
+
+        if (user.getStatus() == UserStatus.DELETED) {
+            notFoundUsers.add("Row " + excelRow.rowNumber() + ": Deleted user skipped - " + excelRow.userId());
+            continue;
+        }
+
+        if (isBlank(excelRow.stateName())
+                || isBlank(excelRow.sambhagName())
+                || isBlank(excelRow.districtName())
+                || isBlank(excelRow.blockName())) {
+
+            locationErrors.add("Row " + excelRow.rowNumber() + ": Location value missing for user - " + excelRow.userId());
+            continue;
+        }
+
+        State state = stateRepository.findByNameIgnoreCase(excelRow.stateName())
+                .orElse(null);
+
+        if (state == null) {
+            locationErrors.add("Row " + excelRow.rowNumber() + ": State not found - " + excelRow.stateName());
+            continue;
+        }
+
+        Sambhag sambhag = sambhagRepository.findByNameIgnoreCaseAndState(excelRow.sambhagName(), state)
+                .orElse(null);
+
+        if (sambhag == null) {
+            locationErrors.add("Row " + excelRow.rowNumber() + ": Sambhag not found - " + excelRow.sambhagName());
+            continue;
+        }
+
+        District district = districtRepository.findByNameIgnoreCaseAndSambhag(excelRow.districtName(), sambhag)
+                .orElse(null);
+
+        if (district == null) {
+            locationErrors.add("Row " + excelRow.rowNumber() + ": District not found - " + excelRow.districtName());
+            continue;
+        }
+
+        Block block = blockRepository.findByNameIgnoreCaseAndDistrict(excelRow.blockName(), district)
+                .orElse(null);
+
+        if (block == null) {
+            locationErrors.add("Row " + excelRow.rowNumber() + ": Block not found - " + excelRow.blockName());
+            continue;
+        }
+
+        user.setDepartmentState(state);
+        user.setDepartmentSambhag(sambhag);
+        user.setDepartmentDistrict(district);
+        user.setDepartmentBlock(block);
+        user.setUpdatedAt(now);
+
+        usersToUpdate.add(user);
+    }
+
+    if (!dryRun && !usersToUpdate.isEmpty()) {
+        userRepository.saveAll(usersToUpdate);
+    }
+
+    int skippedCount = duplicateUserIds.size() + notFoundUsers.size() + locationErrors.size();
+
+    return new BulkLocationUpdateResponse(
+            excelRows.size() + duplicateUserIds.size(),
+            excelRows.size(),
+            dryRun ? 0 : usersToUpdate.size(),
+            skippedCount,
+            duplicateUserIds.size(),
+            duplicateUserIds,
+            notFoundUsers,
+            locationErrors,
+            dryRun
+    );
 }
 @Transactional
 public BulkPasswordResetResponse bulkResetPasswordsFromExcel(
@@ -504,6 +714,38 @@ public void resetManagerDashboardPassword(String userId, String newPassword) {
         
     //     return true;
     // }
+private int getRequiredExcelColumn(Map<String, Integer> columnMap, String columnName) {
+    Integer index = columnMap.get(columnName.toLowerCase());
+
+    if (index == null) {
+        throw new IllegalArgumentException("Required Excel column missing: " + columnName);
+    }
+
+    return index;
+}
+
+private String getExcelCellValue(DataFormatter formatter, Row row, int columnIndex) {
+    Cell cell = row.getCell(columnIndex);
+
+    if (cell == null) {
+        return "";
+    }
+
+    return formatter.formatCellValue(cell).trim();
+}
+
+private boolean isBlank(String value) {
+    return value == null || value.trim().isEmpty();
+}
+
+private record ExcelLocationRow(
+        String userId,
+        String stateName,
+        String sambhagName,
+        String districtName,
+        String blockName,
+        int rowNumber
+) {}
 
     private AdminUserResponse convertToAdminUserResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();

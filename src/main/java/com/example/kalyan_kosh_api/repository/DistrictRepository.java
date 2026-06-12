@@ -13,4 +13,5 @@ public interface DistrictRepository extends JpaRepository<District, UUID> {
     Optional<District> findByNameAndSambhag(String name, Sambhag sambhag);
     List<District> findBySambhag(Sambhag sambhag);
     List<District> findBySambhagId(UUID sambhagId);
+    Optional<District> findByNameIgnoreCaseAndSambhag(String name, Sambhag sambhag);
 }

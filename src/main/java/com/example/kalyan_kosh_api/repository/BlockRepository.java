@@ -14,7 +14,7 @@ public interface BlockRepository extends JpaRepository<Block, UUID> {
 
     // Find block by name
     Optional<Block> findByName(String name);
-
+Optional<Block> findByNameIgnoreCaseAndDistrict(String name, District district);
     // Find block by name and district
     Optional<Block> findByNameAndDistrict(String name, District district);
 }

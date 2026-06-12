@@ -13,5 +13,6 @@ public interface SambhagRepository extends JpaRepository<Sambhag, UUID> {
     Optional<Sambhag> findByNameAndState(String name, State state);
     List<Sambhag> findByState(State state);
     List<Sambhag> findByStateId(UUID stateId);
+    Optional<Sambhag> findByNameIgnoreCaseAndState(String name, State state);
 }
 
