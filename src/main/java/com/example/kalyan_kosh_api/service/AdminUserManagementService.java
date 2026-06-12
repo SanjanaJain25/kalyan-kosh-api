@@ -57,6 +57,8 @@ import java.util.Set;
 public class AdminUserManagementService {
     private static final String RESERVED_SUPER_ADMIN_ID = "PMUMS202502";
 private static final Role RESERVED_SUPER_ADMIN_ROLE = Role.ROLE_SUPERADMIN;
+private static final int BULK_IMPORT_BATCH_SIZE = 1000;
+private static final int MAX_RESPONSE_ERROR_DETAILS = 500;
 private final PasswordEncoder passwordEncoder;
 private final UserRepository userRepository;
 private final ReceiptRepository receiptRepository;
@@ -309,9 +311,14 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
     }
 
     Map<String, ExcelLocationRow> excelRows = new LinkedHashMap<>();
+
     List<String> duplicateUserIds = new ArrayList<>();
     List<String> notFoundUsers = new ArrayList<>();
     List<String> locationErrors = new ArrayList<>();
+
+    int duplicateCount = 0;
+    int notFoundCount = 0;
+    int locationErrorCount = 0;
 
     try (InputStream inputStream = file.getInputStream();
          Workbook workbook = WorkbookFactory.create(inputStream)) {
@@ -335,7 +342,9 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
             String header = formatter.formatCellValue(cell)
                     .trim()
                     .replace(" ", "")
-                    .toLowerCase();
+                    .replace("_", "")
+                    .replace("-", "")
+                    .toLowerCase(Locale.ROOT);
 
             columnMap.put(header, cell.getColumnIndex());
         }
@@ -359,12 +368,15 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
             String districtName = getExcelCellValue(formatter, row, districtCol);
             String blockName = getExcelCellValue(formatter, row, blockCol);
 
-            if (userId == null || userId.isBlank()) {
+            if (isBlank(userId)) {
                 continue;
             }
 
+            userId = userId.trim();
+
             if (excelRows.containsKey(userId)) {
-                duplicateUserIds.add(userId);
+                duplicateCount++;
+                addLimitedMessage(duplicateUserIds, userId);
                 continue;
             }
 
@@ -388,13 +400,12 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
         throw new IllegalArgumentException("No valid UserId rows found in Excel");
     }
 
-    List<User> existingUsers = userRepository.findAllById(excelRows.keySet());
+    Map<String, State> stateMap = buildStateMap();
+    Map<String, Sambhag> sambhagMap = buildSambhagMap();
+    Map<String, District> districtMap = buildDistrictMap();
+    Map<String, Block> blockMap = buildBlockMap();
 
-    Map<String, User> userMap = new HashMap<>();
-
-    for (User user : existingUsers) {
-        userMap.put(user.getId(), user);
-    }
+    Map<String, User> userMap = loadUsersInBatches(new ArrayList<>(excelRows.keySet()));
 
     List<User> usersToUpdate = new ArrayList<>();
     Instant now = Instant.now();
@@ -403,17 +414,29 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
         User user = userMap.get(excelRow.userId());
 
         if (user == null) {
-            notFoundUsers.add("Row " + excelRow.rowNumber() + ": User not found - " + excelRow.userId());
+            notFoundCount++;
+            addLimitedMessage(
+                    notFoundUsers,
+                    "Row " + excelRow.rowNumber() + ": User not found - " + excelRow.userId()
+            );
             continue;
         }
 
         if (isReservedSuperAdmin(user)) {
-            notFoundUsers.add("Row " + excelRow.rowNumber() + ": Reserved super admin skipped - " + excelRow.userId());
+            notFoundCount++;
+            addLimitedMessage(
+                    notFoundUsers,
+                    "Row " + excelRow.rowNumber() + ": Reserved super admin skipped - " + excelRow.userId()
+            );
             continue;
         }
 
         if (user.getStatus() == UserStatus.DELETED) {
-            notFoundUsers.add("Row " + excelRow.rowNumber() + ": Deleted user skipped - " + excelRow.userId());
+            notFoundCount++;
+            addLimitedMessage(
+                    notFoundUsers,
+                    "Row " + excelRow.rowNumber() + ": Deleted user skipped - " + excelRow.userId()
+            );
             continue;
         }
 
@@ -422,39 +445,74 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
                 || isBlank(excelRow.districtName())
                 || isBlank(excelRow.blockName())) {
 
-            locationErrors.add("Row " + excelRow.rowNumber() + ": Location value missing for user - " + excelRow.userId());
+            locationErrorCount++;
+            addLimitedMessage(
+                    locationErrors,
+                    "Row " + excelRow.rowNumber() + ": Location value missing for user - " + excelRow.userId()
+            );
             continue;
         }
 
-        State state = stateRepository.findByNameIgnoreCase(excelRow.stateName())
-                .orElse(null);
+        String stateKey = normalizeLocationKey(excelRow.stateName());
+        String sambhagKey = stateKey + "|" + normalizeLocationKey(excelRow.sambhagName());
+        String districtKey = sambhagKey + "|" + normalizeLocationKey(excelRow.districtName());
+        String blockKey = districtKey + "|" + normalizeLocationKey(excelRow.blockName());
+
+        State state = stateMap.get(stateKey);
 
         if (state == null) {
-            locationErrors.add("Row " + excelRow.rowNumber() + ": State not found - " + excelRow.stateName());
+            locationErrorCount++;
+            addLimitedMessage(
+                    locationErrors,
+                    "Row " + excelRow.rowNumber() + ": State not found - " + excelRow.stateName()
+            );
             continue;
         }
 
-        Sambhag sambhag = sambhagRepository.findByNameIgnoreCaseAndState(excelRow.sambhagName(), state)
-                .orElse(null);
+        Sambhag sambhag = sambhagMap.get(sambhagKey);
 
         if (sambhag == null) {
-            locationErrors.add("Row " + excelRow.rowNumber() + ": Sambhag not found - " + excelRow.sambhagName());
+            locationErrorCount++;
+            addLimitedMessage(
+                    locationErrors,
+                    "Row " + excelRow.rowNumber() + ": Sambhag not found - " + excelRow.sambhagName()
+            );
             continue;
         }
 
-        District district = districtRepository.findByNameIgnoreCaseAndSambhag(excelRow.districtName(), sambhag)
-                .orElse(null);
+        District district = districtMap.get(districtKey);
 
         if (district == null) {
-            locationErrors.add("Row " + excelRow.rowNumber() + ": District not found - " + excelRow.districtName());
+            locationErrorCount++;
+            addLimitedMessage(
+                    locationErrors,
+                    "Row " + excelRow.rowNumber() + ": District not found - " + excelRow.districtName()
+            );
             continue;
         }
 
-        Block block = blockRepository.findByNameIgnoreCaseAndDistrict(excelRow.blockName(), district)
-                .orElse(null);
+        Block block = blockMap.get(blockKey);
 
         if (block == null) {
-            locationErrors.add("Row " + excelRow.rowNumber() + ": Block not found - " + excelRow.blockName());
+            locationErrorCount++;
+            addLimitedMessage(
+                    locationErrors,
+                    "Row " + excelRow.rowNumber() + ": Block not found - " + excelRow.blockName()
+            );
+            continue;
+        }
+
+        boolean alreadySameLocation =
+                user.getDepartmentState() != null
+                        && user.getDepartmentSambhag() != null
+                        && user.getDepartmentDistrict() != null
+                        && user.getDepartmentBlock() != null
+                        && user.getDepartmentState().getId().equals(state.getId())
+                        && user.getDepartmentSambhag().getId().equals(sambhag.getId())
+                        && user.getDepartmentDistrict().getId().equals(district.getId())
+                        && user.getDepartmentBlock().getId().equals(block.getId());
+
+        if (alreadySameLocation) {
             continue;
         }
 
@@ -468,22 +526,193 @@ public BulkLocationUpdateResponse bulkUpdateUserLocationsFromExcel(
     }
 
     if (!dryRun && !usersToUpdate.isEmpty()) {
-        userRepository.saveAll(usersToUpdate);
+        saveUsersInBatches(usersToUpdate);
     }
 
-    int skippedCount = duplicateUserIds.size() + notFoundUsers.size() + locationErrors.size();
+    int skippedCount = duplicateCount + notFoundCount + locationErrorCount;
 
     return new BulkLocationUpdateResponse(
-            excelRows.size() + duplicateUserIds.size(),
+            excelRows.size() + duplicateCount,
             excelRows.size(),
             dryRun ? 0 : usersToUpdate.size(),
             skippedCount,
-            duplicateUserIds.size(),
+            duplicateCount,
             duplicateUserIds,
             notFoundUsers,
             locationErrors,
             dryRun
     );
+}
+private Map<String, User> loadUsersInBatches(List<String> userIds) {
+    Map<String, User> userMap = new HashMap<>();
+
+    for (int i = 0; i < userIds.size(); i += BULK_IMPORT_BATCH_SIZE) {
+        int end = Math.min(i + BULK_IMPORT_BATCH_SIZE, userIds.size());
+
+        List<User> users = userRepository.findAllById(userIds.subList(i, end));
+
+        for (User user : users) {
+            userMap.put(user.getId(), user);
+        }
+    }
+
+    return userMap;
+}
+
+private void saveUsersInBatches(List<User> usersToUpdate) {
+    for (int i = 0; i < usersToUpdate.size(); i += BULK_IMPORT_BATCH_SIZE) {
+        int end = Math.min(i + BULK_IMPORT_BATCH_SIZE, usersToUpdate.size());
+
+        userRepository.saveAll(usersToUpdate.subList(i, end));
+        userRepository.flush();
+    }
+}
+
+private Map<String, State> buildStateMap() {
+    Map<String, State> map = new HashMap<>();
+
+    for (State state : stateRepository.findAll()) {
+        addStateKey(map, state.getName(), state);
+
+        if (!isBlank(state.getCode())) {
+            addStateKey(map, state.getCode(), state);
+        }
+
+        // Common aliases for Madhya Pradesh
+        String normalizedName = normalizeLocationKey(state.getName());
+        String normalizedCode = normalizeLocationKey(state.getCode());
+
+        if ("madhya pradesh".equals(normalizedName)
+                || "मध्य प्रदेश".equals(normalizedName)
+                || "mp".equals(normalizedCode)) {
+
+            addStateKey(map, "Madhya Pradesh", state);
+            addStateKey(map, "MadhyaPradesh", state);
+            addStateKey(map, "MP", state);
+            addStateKey(map, "मध्य प्रदेश", state);
+        }
+    }
+
+    return map;
+}
+
+private void addStateKey(Map<String, State> map, String key, State state) {
+    String normalizedKey = normalizeLocationKey(key);
+
+    if (!normalizedKey.isEmpty()) {
+        map.putIfAbsent(normalizedKey, state);
+    }
+}
+
+private Map<String, Sambhag> buildSambhagMap() {
+    Map<String, Sambhag> map = new HashMap<>();
+
+    for (Sambhag sambhag : sambhagRepository.findAll()) {
+        if (sambhag.getState() == null) {
+            continue;
+        }
+
+        String key = normalizeLocationKey(sambhag.getState().getName())
+                + "|"
+                + normalizeLocationKey(sambhag.getName());
+
+        map.putIfAbsent(key, sambhag);
+
+        if (!isBlank(sambhag.getState().getCode())) {
+            String codeKey = normalizeLocationKey(sambhag.getState().getCode())
+                    + "|"
+                    + normalizeLocationKey(sambhag.getName());
+
+            map.putIfAbsent(codeKey, sambhag);
+        }
+
+        // MP aliases
+        map.putIfAbsent("madhya pradesh|" + normalizeLocationKey(sambhag.getName()), sambhag);
+        map.putIfAbsent("madhyapradesh|" + normalizeLocationKey(sambhag.getName()), sambhag);
+        map.putIfAbsent("mp|" + normalizeLocationKey(sambhag.getName()), sambhag);
+        map.putIfAbsent("मध्य प्रदेश|" + normalizeLocationKey(sambhag.getName()), sambhag);
+    }
+
+    return map;
+}
+
+private Map<String, District> buildDistrictMap() {
+    Map<String, District> map = new HashMap<>();
+
+    for (District district : districtRepository.findAll()) {
+        if (district.getSambhag() == null || district.getSambhag().getState() == null) {
+            continue;
+        }
+
+        String stateName = normalizeLocationKey(district.getSambhag().getState().getName());
+        String stateCode = normalizeLocationKey(district.getSambhag().getState().getCode());
+        String sambhagName = normalizeLocationKey(district.getSambhag().getName());
+        String districtName = normalizeLocationKey(district.getName());
+
+        map.putIfAbsent(stateName + "|" + sambhagName + "|" + districtName, district);
+
+        if (!stateCode.isEmpty()) {
+            map.putIfAbsent(stateCode + "|" + sambhagName + "|" + districtName, district);
+        }
+
+        // MP aliases
+        map.putIfAbsent("madhya pradesh|" + sambhagName + "|" + districtName, district);
+        map.putIfAbsent("madhyapradesh|" + sambhagName + "|" + districtName, district);
+        map.putIfAbsent("mp|" + sambhagName + "|" + districtName, district);
+        map.putIfAbsent("मध्य प्रदेश|" + sambhagName + "|" + districtName, district);
+    }
+
+    return map;
+}
+
+private Map<String, Block> buildBlockMap() {
+    Map<String, Block> map = new HashMap<>();
+
+    for (Block block : blockRepository.findAll()) {
+        if (block.getDistrict() == null
+                || block.getDistrict().getSambhag() == null
+                || block.getDistrict().getSambhag().getState() == null) {
+            continue;
+        }
+
+        String stateName = normalizeLocationKey(block.getDistrict().getSambhag().getState().getName());
+        String stateCode = normalizeLocationKey(block.getDistrict().getSambhag().getState().getCode());
+        String sambhagName = normalizeLocationKey(block.getDistrict().getSambhag().getName());
+        String districtName = normalizeLocationKey(block.getDistrict().getName());
+        String blockName = normalizeLocationKey(block.getName());
+
+        map.putIfAbsent(stateName + "|" + sambhagName + "|" + districtName + "|" + blockName, block);
+
+        if (!stateCode.isEmpty()) {
+            map.putIfAbsent(stateCode + "|" + sambhagName + "|" + districtName + "|" + blockName, block);
+        }
+
+        // MP aliases
+        map.putIfAbsent("madhya pradesh|" + sambhagName + "|" + districtName + "|" + blockName, block);
+        map.putIfAbsent("madhyapradesh|" + sambhagName + "|" + districtName + "|" + blockName, block);
+        map.putIfAbsent("mp|" + sambhagName + "|" + districtName + "|" + blockName, block);
+        map.putIfAbsent("मध्य प्रदेश|" + sambhagName + "|" + districtName + "|" + blockName, block);
+    }
+
+    return map;
+}
+
+private String normalizeLocationKey(String value) {
+    if (value == null) {
+        return "";
+    }
+
+    return value
+            .trim()
+            .replace('\u00A0', ' ')
+            .replaceAll("\\s+", " ")
+            .toLowerCase(Locale.ROOT);
+}
+
+private void addLimitedMessage(List<String> list, String message) {
+    if (list.size() < MAX_RESPONSE_ERROR_DETAILS) {
+        list.add(message);
+    }
 }
 @Transactional
 public BulkPasswordResetResponse bulkResetPasswordsFromExcel(
