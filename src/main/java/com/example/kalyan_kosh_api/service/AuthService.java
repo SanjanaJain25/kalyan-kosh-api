@@ -15,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.kalyan_kosh_api.entity.UserStatus;
-
+import org.springframework.security.authentication.BadCredentialsException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -278,6 +278,56 @@ try {
         return jwtUtil.generateToken(ud);
     }
 
+
+@Transactional
+public LoginResponse authenticateMobileAndGetLoginResponse(String mobileNumber, String rawPassword) {
+    String normalizedMobile = normalizeMobileNumber(mobileNumber);
+
+    User user = userRepo.findByMobileNumber(normalizedMobile)
+            .orElseThrow(() -> new BadCredentialsException("Invalid mobile number or password"));
+
+    if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+        throw new BadCredentialsException("Invalid mobile number or password");
+    }
+
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
+    }
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
+    }
+
+    user.setLastLoginAt(Instant.now());
+    user.setUpdatedAt(Instant.now());
+    userRepo.save(user);
+
+    UserDetails ud = userDetailsService.loadUserByUsername(user.getId());
+    String token = jwtUtil.generateMobileToken(ud);
+
+    UserResponse userResponse = mapper.map(user, UserResponse.class);
+
+    return new LoginResponse(token, userResponse);
+}
+
+private String normalizeMobileNumber(String mobileNumber) {
+    if (mobileNumber == null) {
+        return "";
+    }
+
+    String mobile = mobileNumber
+            .trim()
+            .replaceAll("\\s+", "")
+            .replaceAll("-", "");
+
+    if (mobile.startsWith("+91") && mobile.length() > 10) {
+        mobile = mobile.substring(3);
+    } else if (mobile.startsWith("91") && mobile.length() == 12) {
+        mobile = mobile.substring(2);
+    }
+
+    return mobile;
+}
     /**
      * Authenticate credentials and return login response with both JWT token and user details.
      * Throws AuthenticationException (runtime) if credentials invalid.

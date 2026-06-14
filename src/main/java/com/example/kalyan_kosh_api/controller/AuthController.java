@@ -5,6 +5,7 @@ import com.example.kalyan_kosh_api.dto.LoginResponse;
 import com.example.kalyan_kosh_api.dto.RegisterRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.dto.MobileLoginRequest;
 import com.example.kalyan_kosh_api.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -121,6 +122,35 @@ public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
     } catch (Exception e) {
         e.printStackTrace();
         return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
+
+@PostMapping("/mobile/login")
+public ResponseEntity<?> mobileLogin(@Valid @RequestBody MobileLoginRequest req) {
+    try {
+        LoginResponse loginResponse = authService.authenticateMobileAndGetLoginResponse(
+                req.getMobileNumber(),
+                req.getPassword()
+        );
+
+        return ResponseEntity.ok(loginResponse);
+
+    } catch (BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(createErrorResponse("INVALID_CREDENTIALS", "Invalid mobile number or password"));
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(createErrorResponse("ACCOUNT_NOT_ALLOWED", e.getMessage()));
+
+    } catch (RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("MOBILE_LOGIN_ERROR", "Mobile login failed: " + e.getMessage()));
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(createErrorResponse("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage()));
     }
 }
 
