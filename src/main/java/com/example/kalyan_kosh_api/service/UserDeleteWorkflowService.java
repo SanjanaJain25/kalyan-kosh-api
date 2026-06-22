@@ -31,8 +31,8 @@ private final AuditLogRepository auditLogRepository;
 private final ManagerAssignmentRepository managerAssignmentRepository;
 private final ManagerQueryRepository managerQueryRepository;
 private final ManagerQueryMessageRepository managerQueryMessageRepository;
-
-   public UserDeleteWorkflowService(
+private final ManagerUserService managerUserService;
+  public UserDeleteWorkflowService(
         UserRepository userRepository,
         DeleteRequestService deleteRequestService,
         AuditLogService auditLogService,
@@ -42,7 +42,8 @@ private final ManagerQueryMessageRepository managerQueryMessageRepository;
         AuditLogRepository auditLogRepository,
         ManagerAssignmentRepository managerAssignmentRepository,
         ManagerQueryRepository managerQueryRepository,
-        ManagerQueryMessageRepository managerQueryMessageRepository
+        ManagerQueryMessageRepository managerQueryMessageRepository,
+        ManagerUserService managerUserService
 ) {
     this.userRepository = userRepository;
     this.deleteRequestService = deleteRequestService;
@@ -54,10 +55,17 @@ private final ManagerQueryMessageRepository managerQueryMessageRepository;
     this.managerAssignmentRepository = managerAssignmentRepository;
     this.managerQueryRepository = managerQueryRepository;
     this.managerQueryMessageRepository = managerQueryMessageRepository;
+    this.managerUserService = managerUserService;
 }
 
 @PersistenceContext
 private EntityManager entityManager;
+
+private boolean isManagerRole(Role role) {
+    return role == Role.ROLE_SAMBHAG_MANAGER
+            || role == Role.ROLE_DISTRICT_MANAGER
+            || role == Role.ROLE_BLOCK_MANAGER;
+}
 
     @Transactional
 public User softDeleteUser(
@@ -77,7 +85,9 @@ public User softDeleteUser(
     if (targetUser.getStatus() == UserStatus.DELETED) {
         throw new IllegalArgumentException("User is already in trash.");
     }
-
+if (isManagerRole(actingUser.getRole()) && !managerUserService.canAccessUser(actingUser, targetUser.getId())) {
+    throw new IllegalArgumentException("You do not have access to request deletion for this user.");
+}
     // only create request here, do NOT soft delete now
     deleteRequestService.createDeleteRequest(
             DeleteEntityType.USER,

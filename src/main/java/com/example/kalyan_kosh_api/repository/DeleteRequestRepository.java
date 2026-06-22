@@ -20,6 +20,11 @@ public interface DeleteRequestRepository extends JpaRepository<DeleteRequest, Lo
 
     Optional<DeleteRequest> findFirstByEntityTypeAndEntityIdOrderByCreatedAtDesc(DeleteEntityType entityType, String entityId);
   
+  Optional<DeleteRequest> findFirstByEntityTypeAndEntityIdAndStatusOrderByCreatedAtDesc(
+        DeleteEntityType entityType,
+        String entityId,
+        DeleteRequestStatus status
+);
   @Modifying
 @Query(value = """
     DELETE FROM delete_requests

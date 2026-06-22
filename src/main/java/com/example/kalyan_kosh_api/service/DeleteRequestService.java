@@ -25,6 +25,17 @@ public class DeleteRequestService {
             String reason,
             String requestedFromDashboard
     ) {
+        boolean pendingRequestExists = deleteRequestRepository
+        .findFirstByEntityTypeAndEntityIdAndStatusOrderByCreatedAtDesc(
+                entityType,
+                entityId,
+                DeleteRequestStatus.PENDING
+        )
+        .isPresent();
+
+if (pendingRequestExists) {
+    throw new IllegalArgumentException("A pending delete request already exists for this user.");
+}
         DeleteRequest request = new DeleteRequest();
         request.setEntityType(entityType);
         request.setEntityId(entityId);

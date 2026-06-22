@@ -35,8 +35,8 @@ public class DeleteApprovalController {
     }
 
     @PostMapping("/users/{userId}/soft-delete")
-    @PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER')")
-    public ResponseEntity<?> softDeleteUser(
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN','SAMBHAG_MANAGER','DISTRICT_MANAGER','BLOCK_MANAGER')")  
+  public ResponseEntity<?> softDeleteUser(
             @PathVariable String userId,
             @RequestBody(required = false) DeleteActionRequest request,
             HttpServletRequest httpRequest
@@ -51,9 +51,9 @@ public class DeleteApprovalController {
                 httpRequest
         );
 
-        return ResponseEntity.ok().body(java.util.Map.of(
-                "message", "User soft deleted and delete request created successfully."
-        ));
+       return ResponseEntity.ok().body(java.util.Map.of(
+        "message", "Delete request created successfully. User will move to trash after Admin/Super Admin approval."
+));
     }
 
     @PostMapping("/users/{userId}/restore")
