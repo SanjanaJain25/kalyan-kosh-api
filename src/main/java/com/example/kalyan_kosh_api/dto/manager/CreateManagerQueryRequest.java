@@ -34,7 +34,7 @@ public class CreateManagerQueryRequest {
     private UUID relatedDistrictId;
     private UUID relatedBlockId;
 
-    // Optional: Related user context
+    @NotBlank(message = "Related user is required")
     private String relatedUserId;
     
     // Optional: Specific assignment (if known)

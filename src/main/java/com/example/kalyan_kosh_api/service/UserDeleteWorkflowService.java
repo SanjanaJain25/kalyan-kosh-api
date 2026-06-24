@@ -32,6 +32,8 @@ private final ManagerAssignmentRepository managerAssignmentRepository;
 private final ManagerQueryRepository managerQueryRepository;
 private final ManagerQueryMessageRepository managerQueryMessageRepository;
 private final ManagerUserService managerUserService;
+private final ManagerDeletePermissionService managerDeletePermissionService;
+
   public UserDeleteWorkflowService(
         UserRepository userRepository,
         DeleteRequestService deleteRequestService,
@@ -43,7 +45,8 @@ private final ManagerUserService managerUserService;
         ManagerAssignmentRepository managerAssignmentRepository,
         ManagerQueryRepository managerQueryRepository,
         ManagerQueryMessageRepository managerQueryMessageRepository,
-        ManagerUserService managerUserService
+        ManagerUserService managerUserService,
+ManagerDeletePermissionService managerDeletePermissionService
 ) {
     this.userRepository = userRepository;
     this.deleteRequestService = deleteRequestService;
@@ -56,6 +59,7 @@ private final ManagerUserService managerUserService;
     this.managerQueryRepository = managerQueryRepository;
     this.managerQueryMessageRepository = managerQueryMessageRepository;
     this.managerUserService = managerUserService;
+    this.managerDeletePermissionService = managerDeletePermissionService;
 }
 
 @PersistenceContext
@@ -85,8 +89,18 @@ public User softDeleteUser(
     if (targetUser.getStatus() == UserStatus.DELETED) {
         throw new IllegalArgumentException("User is already in trash.");
     }
-if (isManagerRole(actingUser.getRole()) && !managerUserService.canAccessUser(actingUser, targetUser.getId())) {
-    throw new IllegalArgumentException("You do not have access to request deletion for this user.");
+if (isManagerRole(actingUser.getRole())) {
+    if (!managerDeletePermissionService.canDeleteUsers(actingUser)) {
+        throw new IllegalArgumentException("You do not have permission to request user deletion. Please contact admin.");
+    }
+
+    if (targetUser.getRole() != Role.ROLE_USER) {
+        throw new IllegalArgumentException("Managers can request deletion only for normal users.");
+    }
+
+    if (!managerUserService.canAccessUser(actingUser, targetUser.getId())) {
+        throw new IllegalArgumentException("You do not have access to request deletion for this user.");
+    }
 }
     // only create request here, do NOT soft delete now
     deleteRequestService.createDeleteRequest(

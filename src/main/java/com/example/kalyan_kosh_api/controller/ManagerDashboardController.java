@@ -36,6 +36,8 @@ public class ManagerDashboardController {
     
     @Autowired
     private ManagerAssignmentService managerAssignmentService;
+@Autowired
+private ManagerDeletePermissionService managerDeletePermissionService;
 
     /**
      * Get complete dashboard overview for manager
@@ -69,7 +71,9 @@ public class ManagerDashboardController {
             dashboard.put("scope", scope);
             dashboard.put("queryStats", queryStats);
             dashboard.put("userStats", userStats);
-            
+            Map<String, Object> permissions = new HashMap<>();
+permissions.put("canDeleteUsers", managerDeletePermissionService.canDeleteUsers(manager));
+dashboard.put("permissions", permissions);
             // Add quick summary with null-safe values
             Map<String, Object> summary = new HashMap<>();
             summary.put("managedLocations", scope != null && scope.getManagedLocations() != null ? scope.getManagedLocations().size() : 0);
@@ -243,7 +247,7 @@ public class ManagerDashboardController {
             permissions.put("canAssignQueries", canAssignQueries(manager.getRole()));
             permissions.put("canEscalateQueries", canEscalateQueries(manager.getRole()));
             permissions.put("canViewAllReports", canViewAllReports(manager.getRole()));
-            
+            permissions.put("canDeleteUsers", managerDeletePermissionService.canDeleteUsers(manager));
             return ResponseEntity.ok(permissions);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
