@@ -100,7 +100,7 @@ public JwtAuthFilter jwtAuthFilter() {
 .requestMatchers("/api/security/**").authenticated()
                         // Public endpoints - Email OTP
                         .requestMatchers("/api/auth/email-otp/**").permitAll()
-
+.requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         // Public endpoints - Locations
                         .requestMatchers("/api/locations/**").permitAll()
 .requestMatchers(HttpMethod.GET, "/api/users/pending-profiles/filter").permitAll()

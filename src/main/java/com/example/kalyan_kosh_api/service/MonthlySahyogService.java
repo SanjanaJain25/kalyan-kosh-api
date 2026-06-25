@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
+import com.example.kalyan_kosh_api.dto.PublicSahyogListResponse;
 
 @Service
 public class MonthlySahyogService {
@@ -231,6 +233,176 @@ public void exportNoUtrEverCsv(
     }
 
     writer.flush();
+}
+
+
+public PageResponse<PublicSahyogListResponse> searchPublicDonorsByBeneficiary(
+        Long beneficiaryId,
+        boolean openOnly,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    PageResponse<DonorResponse> fullResponse = searchDonorsByBeneficiary(
+            beneficiaryId,
+            openOnly,
+            name,
+            mobile,
+            userId,
+            sambhag,
+            district,
+            block,
+            page,
+            size
+    );
+
+    return new PageResponse<>(
+            fullResponse.getContent()
+                    .stream()
+                    .map(this::toPublicSahyogListResponse)
+                    .toList(),
+            fullResponse.getPage(),
+            fullResponse.getSize(),
+            fullResponse.getTotalElements(),
+            fullResponse.getTotalPages(),
+            fullResponse.isLast(),
+            fullResponse.isFirst()
+    );
+}
+
+private PublicSahyogListResponse toPublicSahyogListResponse(DonorResponse donor) {
+    return PublicSahyogListResponse.builder()
+            .registrationNumber(donor.getRegistrationNumber())
+            .name(donor.getName())
+            .department(donor.getDepartment())
+            .state(donor.getState())
+            .sambhag(donor.getSambhag())
+            .district(donor.getDistrict())
+            .block(donor.getBlock())
+            .schoolName(donor.getSchoolName())
+            .beneficiary(donor.getBeneficiary())
+            .receiptUploadDate(donor.getReceiptUploadDate())
+            .build();
+}
+
+public PageResponse<PublicMemberListResponse> searchPublicNonDonorsByBeneficiary(
+        Long beneficiaryId,
+        boolean openOnly,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    PageResponse<UserResponse> fullResponse = searchNonDonorsByBeneficiary(
+            beneficiaryId,
+            openOnly,
+            name,
+            mobile,
+            userId,
+            sambhag,
+            district,
+            block,
+            page,
+            size
+    );
+
+    return new PageResponse<>(
+            fullResponse.getContent()
+                    .stream()
+                    .map(this::toPublicMemberListResponse)
+                    .toList(),
+            fullResponse.getPage(),
+            fullResponse.getSize(),
+            fullResponse.getTotalElements(),
+            fullResponse.getTotalPages(),
+            fullResponse.isLast(),
+            fullResponse.isFirst()
+    );
+}
+
+private PublicMemberListResponse toPublicMemberListResponse(UserResponse user) {
+    return PublicMemberListResponse.builder()
+            .id(user.getId())
+            .registrationNumber(user.getId())
+
+            .name(user.getName())
+            .surname(user.getSurname())
+
+            .department(user.getDepartment())
+
+            .departmentState(user.getDepartmentState())
+            .departmentSambhag(user.getDepartmentSambhag())
+            .departmentDistrict(user.getDepartmentDistrict())
+            .departmentBlock(user.getDepartmentBlock())
+
+            .state(user.getDepartmentState())
+            .sambhag(user.getDepartmentSambhag())
+            .district(user.getDepartmentDistrict())
+            .block(user.getDepartmentBlock())
+
+            .schoolOfficeName(user.getSchoolOfficeName())
+            .schoolName(user.getSchoolOfficeName())
+
+            .createdAt(user.getCreatedAt())
+
+            .build();
+}
+public PageResponse<PublicMemberListResponse> getPublicNoUtrEverUsers(
+        int page,
+        int size) {
+
+    PageResponse<UserResponse> fullResponse = getNoUtrEverUsersPaginated(page, size);
+
+    return toPublicMemberPage(fullResponse);
+}
+public PageResponse<PublicMemberListResponse> searchPublicNoUtrEverUsers(
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    PageResponse<UserResponse> fullResponse = searchNoUtrEverUsers(
+            name,
+            mobile,
+            userId,
+            sambhag,
+            district,
+            block,
+            page,
+            size
+    );
+
+    return toPublicMemberPage(fullResponse);
+}
+
+private PageResponse<PublicMemberListResponse> toPublicMemberPage(
+        PageResponse<UserResponse> fullResponse) {
+
+    return new PageResponse<>(
+            fullResponse.getContent()
+                    .stream()
+                    .map(this::toPublicMemberListResponse)
+                    .toList(),
+            fullResponse.getPage(),
+            fullResponse.getSize(),
+            fullResponse.getTotalElements(),
+            fullResponse.getTotalPages(),
+            fullResponse.isLast(),
+            fullResponse.isFirst()
+    );
 }
 
 public List<UserResponse> getNonDonorsForExportByBeneficiary(

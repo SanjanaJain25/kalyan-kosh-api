@@ -43,6 +43,7 @@ import com.example.kalyan_kosh_api.dto.manager.ManagerAreaScope;
 import java.util.UUID;
 import java.util.ArrayList;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
+import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
 
 @Service
 public class UserService {
@@ -481,6 +482,103 @@ for (UserResponse u : users) {
 }
 
     writer.flush();
+}
+
+public PageResponse<PublicMemberListResponse> getPublicMembersFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
+
+    PageResponse<UserResponse> fullResponse = getAllUsersFiltered(
+            sambhagId,
+            districtId,
+            blockId,
+            name,
+            mobile,
+            userId,
+            page,
+            size
+    );
+
+    return toPublicMemberPage(fullResponse);
+}
+
+public PageResponse<PublicMemberListResponse> getPublicPendingProfileUsersFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
+
+    PageResponse<UserResponse> fullResponse = getPendingProfileUsersFiltered(
+            sambhagId,
+            districtId,
+            blockId,
+            name,
+            mobile,
+            userId,
+            page,
+            size
+    );
+
+    return toPublicMemberPage(fullResponse);
+}
+
+private PageResponse<PublicMemberListResponse> toPublicMemberPage(
+        PageResponse<UserResponse> fullResponse) {
+
+    return new PageResponse<>(
+            fullResponse.getContent()
+                    .stream()
+                    .map(this::toPublicMemberListResponse)
+                    .toList(),
+            fullResponse.getPage(),
+            fullResponse.getSize(),
+            fullResponse.getTotalElements(),
+            fullResponse.getTotalPages(),
+            fullResponse.isLast(),
+            fullResponse.isFirst()
+    );
+}
+
+private PublicMemberListResponse toPublicMemberListResponse(UserResponse user) {
+    return PublicMemberListResponse.builder()
+            .id(user.getId())
+            .registrationNumber(user.getId())
+
+            .name(user.getName())
+            .surname(user.getSurname())
+
+            .department(user.getDepartment())
+
+            .departmentState(user.getDepartmentState())
+            .departmentSambhag(user.getDepartmentSambhag())
+            .departmentDistrict(user.getDepartmentDistrict())
+            .departmentBlock(user.getDepartmentBlock())
+
+            .state(user.getDepartmentState())
+            .sambhag(user.getDepartmentSambhag())
+            .district(user.getDepartmentDistrict())
+            .block(user.getDepartmentBlock())
+
+            .schoolOfficeName(user.getSchoolOfficeName())
+            .schoolName(user.getSchoolOfficeName())
+
+            .createdAt(user.getCreatedAt())
+
+            .utrUploaded(user.getUtrUploaded())
+            .allocatedQrCode(user.getAllocatedQrCode())
+            .latestUtrNumber(user.getLatestUtrNumber())
+
+            .build();
 }
 public List<UserResponse> getPendingProfileUsersForExport(
         String sambhagId,
