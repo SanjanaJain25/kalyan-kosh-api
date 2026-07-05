@@ -111,8 +111,11 @@ public JwtAuthFilter jwtAuthFilter() {
                         .requestMatchers(HttpMethod.GET, "/api/users/paginated").permitAll()
 
                         // Public endpoint - Get users with filters
-                        .requestMatchers(HttpMethod.GET, "/api/users/filter").permitAll()
+// Public endpoint - Get users with filters
+.requestMatchers(HttpMethod.GET, "/api/users/filter").permitAll()
 
+// Public endpoint - Lightweight user lookup for frontend
+.requestMatchers(HttpMethod.GET, "/api/users/lookup/filter").permitAll()
                         // Public endpoint - User registration
                         .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
 
