@@ -335,20 +335,86 @@ org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(
         org.springframework.data.domain.Pageable pageable
 );
 
+// @Query(value = """
+//     SELECT u.id, u.department_unique_id, u.name, u.surname, u.department,
+//            s.name as state_name, sa.name as sambhag_name, d.name as district_name,
+//            b.name as block_name, u.school_office_name,
+//            dc.deceased_name as beneficiary, MAX(r.uploaded_at) as receipt_date
+//     FROM receipt r
+//     JOIN users u ON r.user_id = u.id
+//     LEFT JOIN state s ON u.department_state_id = s.id
+//     LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
+//     LEFT JOIN district d ON u.department_district_id = d.id
+//     LEFT JOIN block b ON u.department_block_id = b.id
+//     LEFT JOIN death_case dc ON r.death_case_id = dc.id
+//     WHERE r.payment_date BETWEEN :startDate AND :endDate AND r.amount > 0
+//       AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+//            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
+//            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
+//       AND (:mobile IS NULL OR u.mobile_number LIKE CONCAT('%', :mobile, '%'))
+//       AND (:userId IS NULL OR u.id LIKE CONCAT('%', :userId, '%'))
+//       AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
+//       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
+//       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
+//       AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
+//     GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
+//              s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
+//     ORDER BY MAX(r.uploaded_at) DESC
+//     """, nativeQuery = true)
+// List<Object[]> searchDonorsForExportNative(
+//         @Param("startDate") LocalDate startDate,
+//         @Param("endDate") LocalDate endDate,
+//         @Param("name") String name,
+//         @Param("mobile") String mobile,
+//         @Param("userId") String userId,
+//         @Param("sambhag") String sambhag,
+//         @Param("district") String district,
+//         @Param("block") String block,
+//         @Param("beneficiary") String beneficiary
+// );
 @Query(value = """
-    SELECT u.id, u.department_unique_id, u.name, u.surname, u.department,
-           s.name as state_name, sa.name as sambhag_name, d.name as district_name,
-           b.name as block_name, u.school_office_name,
-           dc.deceased_name as beneficiary, MAX(r.uploaded_at) as receipt_date
-    FROM receipt r
-    JOIN users u ON r.user_id = u.id
+    SELECT u.id,
+           u.department_unique_id,
+           u.name,
+           u.surname,
+           u.department,
+           s.name AS state_name,
+           sa.name AS sambhag_name,
+           d.name AS district_name,
+           b.name AS block_name,
+           u.school_office_name,
+           dc.id AS death_case_id,
+           dc.deceased_name AS beneficiary,
+           x.receipt_date AS receipt_date,
+           r.id AS receipt_id,
+           r.amount AS amount,
+           r.payment_date AS payment_date,
+           r.reference_name AS reference_name,
+           r.utr_number AS utr_number
+    FROM (
+        SELECT r.user_id,
+               r.death_case_id,
+               MAX(r.uploaded_at) AS receipt_date,
+               MAX(r.id) AS receipt_id
+        FROM receipt r FORCE INDEX (idx_receipt_user_death_uploaded)
+        LEFT JOIN death_case dc ON r.death_case_id = dc.id
+        WHERE r.amount > 0
+          AND (
+              (:beneficiaryId IS NULL AND :openOnly = false)
+              OR (:beneficiaryId IS NOT NULL AND r.death_case_id = :beneficiaryId)
+              OR (:beneficiaryId IS NULL AND :openOnly = true AND dc.status = 'OPEN')
+          )
+        GROUP BY r.user_id, r.death_case_id
+        ORDER BY receipt_date DESC
+    ) x
+    JOIN users u ON u.id = x.user_id
+    LEFT JOIN receipt r ON r.id = x.receipt_id
     LEFT JOIN state s ON u.department_state_id = s.id
     LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
     LEFT JOIN district d ON u.department_district_id = d.id
     LEFT JOIN block b ON u.department_block_id = b.id
-    LEFT JOIN death_case dc ON r.death_case_id = dc.id
-    WHERE r.payment_date BETWEEN :startDate AND :endDate AND r.amount > 0
-      AND (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+    LEFT JOIN death_case dc ON x.death_case_id = dc.id
+    WHERE (:name IS NULL OR LOWER(CONCAT(u.name, ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))
            OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :name, '%')))
       AND (:mobile IS NULL OR u.mobile_number LIKE CONCAT('%', :mobile, '%'))
@@ -356,22 +422,36 @@ org.springframework.data.domain.Page<Object[]> searchDonorsByBeneficiaryNative(
       AND (:sambhag IS NULL OR LOWER(COALESCE(sa.name, '')) LIKE LOWER(CONCAT('%', :sambhag, '%')))
       AND (:district IS NULL OR LOWER(COALESCE(d.name, '')) LIKE LOWER(CONCAT('%', :district, '%')))
       AND (:block IS NULL OR LOWER(COALESCE(b.name, '')) LIKE LOWER(CONCAT('%', :block, '%')))
-      AND (:beneficiary IS NULL OR LOWER(TRIM(COALESCE(dc.deceased_name, ''))) = LOWER(TRIM(:beneficiary)))
-    GROUP BY u.id, u.department_unique_id, u.name, u.surname, u.department,
-             s.name, sa.name, d.name, b.name, u.school_office_name, dc.deceased_name
-    ORDER BY MAX(r.uploaded_at) DESC
-    """, nativeQuery = true)
-List<Object[]> searchDonorsForExportNative(
-        @Param("startDate") LocalDate startDate,
-        @Param("endDate") LocalDate endDate,
+    ORDER BY x.receipt_date DESC
+    """,
+    countQuery = """
+    SELECT COUNT(*)
+    FROM (
+        SELECT r.user_id, r.death_case_id
+        FROM receipt r FORCE INDEX (idx_receipt_user_death_uploaded)
+        LEFT JOIN death_case dc ON r.death_case_id = dc.id
+        WHERE r.amount > 0
+          AND (
+              (:beneficiaryId IS NULL AND :openOnly = false)
+              OR (:beneficiaryId IS NOT NULL AND r.death_case_id = :beneficiaryId)
+              OR (:beneficiaryId IS NULL AND :openOnly = true AND dc.status = 'OPEN')
+          )
+        GROUP BY r.user_id, r.death_case_id
+    ) x
+    """,
+    nativeQuery = true)
+Page<Object[]> searchDonorsByBeneficiaryNative(
+        @Param("beneficiaryId") Long beneficiaryId,
+        @Param("openOnly") boolean openOnly,
         @Param("name") String name,
         @Param("mobile") String mobile,
         @Param("userId") String userId,
         @Param("sambhag") String sambhag,
         @Param("district") String district,
         @Param("block") String block,
-        @Param("beneficiary") String beneficiary
+        Pageable pageable
 );
+
 @Query(value = """
     SELECT u.id,
            u.department_unique_id,
