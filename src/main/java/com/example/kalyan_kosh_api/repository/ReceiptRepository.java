@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Set;
 import com.example.kalyan_kosh_api.entity.DeathCase;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
