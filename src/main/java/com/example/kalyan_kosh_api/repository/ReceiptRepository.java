@@ -520,6 +520,38 @@ List<Object[]> searchDonorsByBeneficiaryNoCount(
         @Param("limit") int limit,
         @Param("offset") int offset
 );
+
+@Query(value = """
+    SELECT COUNT(DISTINCT r.user_id, r.death_case_id)
+    FROM receipt r FORCE INDEX (idx_receipt_death_amount_uploaded_user)
+    JOIN death_case dc ON r.death_case_id = dc.id
+    JOIN users uf ON uf.id = r.user_id
+    LEFT JOIN sambhag fsa ON uf.department_sambhag_id = fsa.id
+    LEFT JOIN district fd ON uf.department_district_id = fd.id
+    LEFT JOIN block fb ON uf.department_block_id = fb.id
+    WHERE r.amount > 0
+      AND (
+          (:beneficiaryId IS NOT NULL AND r.death_case_id = :beneficiaryId)
+          OR (:beneficiaryId IS NULL AND dc.status = 'OPEN')
+      )
+      AND (:name IS NULL OR LOWER(CONCAT(uf.name, ' ', COALESCE(uf.surname, ''))) LIKE LOWER(CONCAT(:name, '%'))
+           OR LOWER(uf.name) LIKE LOWER(CONCAT(:name, '%'))
+           OR LOWER(uf.surname) LIKE LOWER(CONCAT(:name, '%')))
+      AND (:mobile IS NULL OR uf.mobile_number LIKE CONCAT(:mobile, '%'))
+      AND (:userId IS NULL OR uf.id LIKE CONCAT(:userId, '%'))
+      AND (:sambhag IS NULL OR LOWER(COALESCE(fsa.name, '')) LIKE LOWER(CONCAT(:sambhag, '%')))
+      AND (:district IS NULL OR LOWER(COALESCE(fd.name, '')) LIKE LOWER(CONCAT(:district, '%')))
+      AND (:block IS NULL OR LOWER(COALESCE(fb.name, '')) LIKE LOWER(CONCAT(:block, '%')))
+    """, nativeQuery = true)
+long countDonorsByBeneficiaryOptimized(
+        @Param("beneficiaryId") Long beneficiaryId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block
+);
 @Query(value = """
     SELECT u.id,
            u.department_unique_id,

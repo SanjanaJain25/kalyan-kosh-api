@@ -284,23 +284,30 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
         cleanBlock = null;
     }
 
-    List<Object[]> rows = receiptRepo.searchDonorsByBeneficiaryNoCount(
-            beneficiaryId,
-            cleanName,
-            cleanMobile,
-            cleanUserId,
-            cleanSambhag,
-            cleanDistrict,
-            cleanBlock,
-            safeSize + 1,
-            offset
-    );
+   List<Object[]> rows = receiptRepo.searchDonorsByBeneficiaryNoCount(
+        beneficiaryId,
+        cleanName,
+        cleanMobile,
+        cleanUserId,
+        cleanSambhag,
+        cleanDistrict,
+        cleanBlock,
+        safeSize,
+        offset
+);
 
-    boolean hasNext = rows.size() > safeSize;
+long totalElements = receiptRepo.countDonorsByBeneficiaryOptimized(
+        beneficiaryId,
+        cleanName,
+        cleanMobile,
+        cleanUserId,
+        cleanSambhag,
+        cleanDistrict,
+        cleanBlock
+);
 
-    if (hasNext) {
-        rows = rows.subList(0, safeSize);
-    }
+int totalPages = (int) Math.ceil((double) totalElements / safeSize);
+boolean isLast = safePage >= totalPages - 1;
 
     List<DonorResponse> donors = rows.stream()
             .map(row -> DonorResponse.builder()
@@ -322,19 +329,15 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
                     .utrNumber((String) row[17])
                     .build())
             .toList();
-
-    long fakeTotalElements = ((long) safePage * safeSize) + donors.size() + (hasNext ? 1 : 0);
-    int fakeTotalPages = hasNext ? safePage + 2 : safePage + 1;
-
-    return new PageResponse<>(
-            donors,
-            safePage,
-            safeSize,
-            fakeTotalElements,
-            fakeTotalPages,
-            !hasNext,
-            safePage == 0
-    );
+return new PageResponse<>(
+        donors,
+        safePage,
+        safeSize,
+        totalElements,
+        totalPages,
+        isLast,
+        safePage == 0
+);
 }
 
 private PublicSahyogListResponse toPublicSahyogListResponse(DonorResponse donor) {
