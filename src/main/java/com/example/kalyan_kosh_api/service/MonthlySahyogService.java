@@ -236,6 +236,121 @@ public void exportNoUtrEverCsv(
 }
 
 
+public PageResponse<DonorResponse> searchDonorsByBeneficiary(
+        Long beneficiaryId,
+        boolean openOnly,
+        String name,
+        String mobile,
+        String userId,
+        String sambhag,
+        String district,
+        String block,
+        int page,
+        int size) {
+
+    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+
+    // Production safety: by default show only current/open सहायता cases.
+    // This protects us even if old frontend/cache sends openOnly=false.
+    if (beneficiaryId == null) {
+        openOnly = true;
+    }
+
+    // Production safety: never allow huge page/offset.
+    int safePage = Math.max(0, Math.min(page, 50));
+    int safeSize = Math.min(Math.max(size, 1), 20);
+    int offset = safePage * safeSize;
+
+    // Production safety: avoid 1-2 character LIKE searches.
+    // Your processlist showed search like name = "K", which is very expensive.
+    if (cleanName != null && cleanName.length() < 3) {
+        cleanName = null;
+    }
+
+    if (cleanSambhag != null && cleanSambhag.length() < 3) {
+        cleanSambhag = null;
+    }
+
+    if (cleanDistrict != null && cleanDistrict.length() < 3) {
+        cleanDistrict = null;
+    }
+
+    if (cleanBlock != null && cleanBlock.length() < 3) {
+        cleanBlock = null;
+    }
+
+    List<Object[]> rows = receiptRepo.searchDonorsByBeneficiaryNoCount(
+            beneficiaryId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            cleanSambhag,
+            cleanDistrict,
+            cleanBlock,
+            safeSize + 1,
+            offset
+    );
+
+    boolean hasNext = rows.size() > safeSize;
+
+    if (hasNext) {
+        rows = rows.subList(0, safeSize);
+    }
+
+    List<DonorResponse> donors = rows.stream()
+            .map(row -> DonorResponse.builder()
+                    .registrationNumber((String) row[0])
+                    .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                    .department((String) row[4])
+                    .state((String) row[5])
+                    .sambhag((String) row[6])
+                    .district((String) row[7])
+                    .block((String) row[8])
+                    .schoolName((String) row[9])
+                    .deathCaseId(row[10] != null ? ((Number) row[10]).longValue() : null)
+                    .beneficiary((String) row[11])
+                    .receiptUploadDate(toIndiaDateTime(row[12]))
+                    .receiptId(row[13] != null ? ((Number) row[13]).longValue() : null)
+                    .amount(row[14] != null ? ((Number) row[14]).doubleValue() : null)
+                    .paymentDate(row[15] != null ? ((java.sql.Date) row[15]).toLocalDate() : null)
+                    .referenceName((String) row[16])
+                    .utrNumber((String) row[17])
+                    .build())
+            .toList();
+
+    long fakeTotalElements = ((long) safePage * safeSize) + donors.size() + (hasNext ? 1 : 0);
+    int fakeTotalPages = hasNext ? safePage + 2 : safePage + 1;
+
+    return new PageResponse<>(
+            donors,
+            safePage,
+            safeSize,
+            fakeTotalElements,
+            fakeTotalPages,
+            !hasNext,
+            safePage == 0
+    );
+}
+
+private PublicSahyogListResponse toPublicSahyogListResponse(DonorResponse donor) {
+    return PublicSahyogListResponse.builder()
+            .registrationNumber(donor.getRegistrationNumber())
+            .name(donor.getName())
+            .department(donor.getDepartment())
+            .state(donor.getState())
+            .sambhag(donor.getSambhag())
+            .district(donor.getDistrict())
+            .block(donor.getBlock())
+            .schoolName(donor.getSchoolName())
+            .beneficiary(donor.getBeneficiary())
+            .receiptUploadDate(donor.getReceiptUploadDate())
+            .build();
+}
 public PageResponse<PublicSahyogListResponse> searchPublicDonorsByBeneficiary(
         Long beneficiaryId,
         boolean openOnly,
@@ -274,22 +389,6 @@ public PageResponse<PublicSahyogListResponse> searchPublicDonorsByBeneficiary(
             fullResponse.isFirst()
     );
 }
-
-private PublicSahyogListResponse toPublicSahyogListResponse(DonorResponse donor) {
-    return PublicSahyogListResponse.builder()
-            .registrationNumber(donor.getRegistrationNumber())
-            .name(donor.getName())
-            .department(donor.getDepartment())
-            .state(donor.getState())
-            .sambhag(donor.getSambhag())
-            .district(donor.getDistrict())
-            .block(donor.getBlock())
-            .schoolName(donor.getSchoolName())
-            .beneficiary(donor.getBeneficiary())
-            .receiptUploadDate(donor.getReceiptUploadDate())
-            .build();
-}
-
 public PageResponse<PublicMemberListResponse> searchPublicNonDonorsByBeneficiary(
         Long beneficiaryId,
         boolean openOnly,
@@ -528,69 +627,69 @@ public List<UserResponse> getAllNonDonorsForExport() {
             .toList();
 }
 
-public PageResponse<DonorResponse> searchDonorsByBeneficiary(
-        Long beneficiaryId,
-         boolean openOnly,
-        String name,
-        String mobile,
-        String userId,
-        String sambhag,
-        String district,
-        String block,
-        int page,
-        int size) {
+// public PageResponse<DonorResponse> searchDonorsByBeneficiary(
+//         Long beneficiaryId,
+//          boolean openOnly,
+//         String name,
+//         String mobile,
+//         String userId,
+//         String sambhag,
+//         String district,
+//         String block,
+//         int page,
+//         int size) {
 
-    String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
-    String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
-    String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
-    String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
-    String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
-    String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
+//     String cleanName = (name != null && !name.trim().isEmpty()) ? name.trim() : null;
+//     String cleanMobile = (mobile != null && !mobile.trim().isEmpty()) ? mobile.trim() : null;
+//     String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim() : null;
+//     String cleanSambhag = (sambhag != null && !sambhag.trim().isEmpty()) ? sambhag.trim() : null;
+//     String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
+//     String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
 
-    Pageable pageable = PageRequest.of(page, size);
+//     Pageable pageable = PageRequest.of(page, size);
 
-    Page<Object[]> donorPage = receiptRepo.searchDonorsByBeneficiaryNative(
-            beneficiaryId,
-            openOnly,
-            cleanName,
-            cleanMobile,
-            cleanUserId,
-            cleanSambhag,
-            cleanDistrict,
-            cleanBlock,
-            pageable
-    );
-List<DonorResponse> donors = donorPage.getContent().stream()
-        .map(row -> DonorResponse.builder()
-                .registrationNumber((String) row[0])
-                .name(row[2] + (row[3] != null ? " " + row[3] : ""))
-                .department((String) row[4])
-                .state((String) row[5])
-                .sambhag((String) row[6])
-                .district((String) row[7])
-                .block((String) row[8])
-                .schoolName((String) row[9])
-                .deathCaseId(row[10] != null ? ((Number) row[10]).longValue() : null)
-                .beneficiary((String) row[11])
-                .receiptUploadDate(toIndiaDateTime(row[12]))
-                .receiptId(row[13] != null ? ((Number) row[13]).longValue() : null)
-                .amount(row[14] != null ? ((Number) row[14]).doubleValue() : null)
-                .paymentDate(row[15] != null ? ((java.sql.Date) row[15]).toLocalDate() : null)
-                .referenceName((String) row[16])
-                .utrNumber((String) row[17])
-                .build())
-        .toList();
+//     Page<Object[]> donorPage = receiptRepo.searchDonorsByBeneficiaryNative(
+//             beneficiaryId,
+//             openOnly,
+//             cleanName,
+//             cleanMobile,
+//             cleanUserId,
+//             cleanSambhag,
+//             cleanDistrict,
+//             cleanBlock,
+//             pageable
+//     );
+// List<DonorResponse> donors = donorPage.getContent().stream()
+//         .map(row -> DonorResponse.builder()
+//                 .registrationNumber((String) row[0])
+//                 .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+//                 .department((String) row[4])
+//                 .state((String) row[5])
+//                 .sambhag((String) row[6])
+//                 .district((String) row[7])
+//                 .block((String) row[8])
+//                 .schoolName((String) row[9])
+//                 .deathCaseId(row[10] != null ? ((Number) row[10]).longValue() : null)
+//                 .beneficiary((String) row[11])
+//                 .receiptUploadDate(toIndiaDateTime(row[12]))
+//                 .receiptId(row[13] != null ? ((Number) row[13]).longValue() : null)
+//                 .amount(row[14] != null ? ((Number) row[14]).doubleValue() : null)
+//                 .paymentDate(row[15] != null ? ((java.sql.Date) row[15]).toLocalDate() : null)
+//                 .referenceName((String) row[16])
+//                 .utrNumber((String) row[17])
+//                 .build())
+//         .toList();
 
-    return new PageResponse<>(
-            donors,
-            donorPage.getNumber(),
-            donorPage.getSize(),
-            donorPage.getTotalElements(),
-            donorPage.getTotalPages(),
-            donorPage.isLast(),
-            donorPage.isFirst()
-    );
-}
+//     return new PageResponse<>(
+//             donors,
+//             donorPage.getNumber(),
+//             donorPage.getSize(),
+//             donorPage.getTotalElements(),
+//             donorPage.getTotalPages(),
+//             donorPage.isLast(),
+//             donorPage.isFirst()
+//     );
+// }
 public DonorResponse updateSahyogReceipt(Long receiptId, UpdateSahyogReceiptRequest request) {
 
     Receipt receipt = receiptRepo.findById(receiptId)

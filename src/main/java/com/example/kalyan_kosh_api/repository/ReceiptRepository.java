@@ -453,7 +453,73 @@ Page<Object[]> searchDonorsByBeneficiaryNative(
         @Param("block") String block,
         Pageable pageable
 );
-
+@Query(value = """
+    SELECT u.id,
+           u.department_unique_id,
+           u.name,
+           u.surname,
+           u.department,
+           s.name AS state_name,
+           sa.name AS sambhag_name,
+           d.name AS district_name,
+           b.name AS block_name,
+           u.school_office_name,
+           dc.id AS death_case_id,
+           dc.deceased_name AS beneficiary,
+           x.receipt_date AS receipt_date,
+           r.id AS receipt_id,
+           r.amount AS amount,
+           r.payment_date AS payment_date,
+           r.reference_name AS reference_name,
+           r.utr_number AS utr_number
+    FROM (
+        SELECT r.user_id,
+               r.death_case_id,
+               MAX(r.uploaded_at) AS receipt_date,
+               MAX(r.id) AS receipt_id
+        FROM receipt r FORCE INDEX (idx_receipt_death_amount_uploaded_user)
+        JOIN death_case dc ON r.death_case_id = dc.id
+        JOIN users uf ON uf.id = r.user_id
+        LEFT JOIN sambhag fsa ON uf.department_sambhag_id = fsa.id
+        LEFT JOIN district fd ON uf.department_district_id = fd.id
+        LEFT JOIN block fb ON uf.department_block_id = fb.id
+        WHERE r.amount > 0
+          AND (
+              (:beneficiaryId IS NOT NULL AND r.death_case_id = :beneficiaryId)
+              OR (:beneficiaryId IS NULL AND dc.status = 'OPEN')
+          )
+          AND (:name IS NULL OR LOWER(CONCAT(uf.name, ' ', COALESCE(uf.surname, ''))) LIKE LOWER(CONCAT(:name, '%'))
+               OR LOWER(uf.name) LIKE LOWER(CONCAT(:name, '%'))
+               OR LOWER(uf.surname) LIKE LOWER(CONCAT(:name, '%')))
+          AND (:mobile IS NULL OR uf.mobile_number LIKE CONCAT(:mobile, '%'))
+          AND (:userId IS NULL OR uf.id LIKE CONCAT(:userId, '%'))
+          AND (:sambhag IS NULL OR LOWER(COALESCE(fsa.name, '')) LIKE LOWER(CONCAT(:sambhag, '%')))
+          AND (:district IS NULL OR LOWER(COALESCE(fd.name, '')) LIKE LOWER(CONCAT(:district, '%')))
+          AND (:block IS NULL OR LOWER(COALESCE(fb.name, '')) LIKE LOWER(CONCAT(:block, '%')))
+        GROUP BY r.user_id, r.death_case_id
+        ORDER BY receipt_date DESC
+        LIMIT :limit OFFSET :offset
+    ) x
+    JOIN users u ON u.id = x.user_id
+    LEFT JOIN receipt r ON r.id = x.receipt_id
+    LEFT JOIN state s ON u.department_state_id = s.id
+    LEFT JOIN sambhag sa ON u.department_sambhag_id = sa.id
+    LEFT JOIN district d ON u.department_district_id = d.id
+    LEFT JOIN block b ON u.department_block_id = b.id
+    LEFT JOIN death_case dc ON x.death_case_id = dc.id
+    ORDER BY x.receipt_date DESC
+    """, nativeQuery = true)
+List<Object[]> searchDonorsByBeneficiaryNoCount(
+        @Param("beneficiaryId") Long beneficiaryId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        @Param("sambhag") String sambhag,
+        @Param("district") String district,
+        @Param("block") String block,
+        @Param("limit") int limit,
+        @Param("offset") int offset
+);
 @Query(value = """
     SELECT u.id,
            u.department_unique_id,
