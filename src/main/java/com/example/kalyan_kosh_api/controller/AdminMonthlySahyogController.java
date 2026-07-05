@@ -393,7 +393,7 @@ public ResponseEntity<?> searchNoUtrEverUsers(
 @GetMapping("/donors/search-by-beneficiary")
 public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(required = false) Long beneficiaryId,
-        @RequestParam(required = false, defaultValue = "true") boolean openOnly,
+        @RequestParam(required = false, defaultValue = "false") boolean openOnly,
         @RequestParam(required = false) String name,
         @RequestParam(required = false) String mobile,
         @RequestParam(required = false) String userId,
@@ -403,8 +403,6 @@ public ResponseEntity<?> searchDonorsByBeneficiary(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
     try {
-        page = Math.max(0, Math.min(page, 50));
-        size = Math.min(Math.max(size, 1), 20);
 
         PageResponse<DonorResponse> result = service.searchDonorsByBeneficiary(
                 beneficiaryId, openOnly, name, mobile, userId, sambhag, district, block, page, size

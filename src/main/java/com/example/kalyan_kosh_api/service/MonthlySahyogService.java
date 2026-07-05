@@ -255,37 +255,17 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
     String cleanDistrict = (district != null && !district.trim().isEmpty()) ? district.trim() : null;
     String cleanBlock = (block != null && !block.trim().isEmpty()) ? block.trim() : null;
 
-    // Production safety: by default show only current/open सहायता cases.
-    // This protects us even if old frontend/cache sends openOnly=false.
-    if (beneficiaryId == null) {
-        openOnly = true;
-    }
+    
 
     // Production safety: never allow huge page/offset.
     int safePage = Math.max(0, Math.min(page, 50));
     int safeSize = Math.min(Math.max(size, 1), 20);
     int offset = safePage * safeSize;
 
-    // Production safety: avoid 1-2 character LIKE searches.
-    // Your processlist showed search like name = "K", which is very expensive.
-    if (cleanName != null && cleanName.length() < 3) {
-        cleanName = null;
-    }
 
-    if (cleanSambhag != null && cleanSambhag.length() < 3) {
-        cleanSambhag = null;
-    }
-
-    if (cleanDistrict != null && cleanDistrict.length() < 3) {
-        cleanDistrict = null;
-    }
-
-    if (cleanBlock != null && cleanBlock.length() < 3) {
-        cleanBlock = null;
-    }
-
-   List<Object[]> rows = receiptRepo.searchDonorsByBeneficiaryNoCount(
+List<Object[]> rows = receiptRepo.searchDonorsByBeneficiaryNoCount(
         beneficiaryId,
+        openOnly,
         cleanName,
         cleanMobile,
         cleanUserId,
@@ -298,6 +278,7 @@ public PageResponse<DonorResponse> searchDonorsByBeneficiary(
 
 long totalElements = receiptRepo.countDonorsByBeneficiaryOptimized(
         beneficiaryId,
+        openOnly,
         cleanName,
         cleanMobile,
         cleanUserId,
@@ -305,7 +286,6 @@ long totalElements = receiptRepo.countDonorsByBeneficiaryOptimized(
         cleanDistrict,
         cleanBlock
 );
-
 int totalPages = (int) Math.ceil((double) totalElements / safeSize);
 boolean isLast = safePage >= totalPages - 1;
 
