@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Modifying;
 import java.util.UUID;
+import com.example.kalyan_kosh_api.dto.UserLookupResponse;
 
 public interface UserRepository extends JpaRepository<User, String>, JpaSpecificationExecutor<User> {
     Optional<User> findByMobileNumber(String mobile);
@@ -175,6 +176,69 @@ List<User> findUsersForJoiningDateExportScoped(
 @Param("scopeSambhagIds") List<UUID> scopeSambhagIds,
 @Param("scopeDistrictIds") List<UUID> scopeDistrictIds,
 @Param("scopeBlockIds") List<UUID> scopeBlockIds
+);
+
+@Query(
+        value = """
+                SELECT new com.example.kalyan_kosh_api.dto.UserLookupResponse(
+                    u.id,
+                    u.name,
+                    u.surname,
+                    u.mobileNumber,
+                    u.department,
+                    u.departmentUniqueId,
+                    s.name,
+                    sa.name,
+                    d.name,
+                    b.name,
+                    u.schoolOfficeName,
+                    u.role
+                )
+                FROM User u
+                LEFT JOIN u.departmentState s
+                LEFT JOIN u.departmentSambhag sa
+                LEFT JOIN u.departmentDistrict d
+                LEFT JOIN u.departmentBlock b
+                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                ORDER BY u.createdAt DESC
+                """,
+        countQuery = """
+                SELECT COUNT(u)
+                FROM User u
+                LEFT JOIN u.departmentSambhag sa
+                LEFT JOIN u.departmentDistrict d
+                LEFT JOIN u.departmentBlock b
+                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:mobile IS NULL OR COALESCE(u.mobileNumber, '') LIKE CONCAT('%', :mobile, '%'))
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                """
+)
+Page<UserLookupResponse> findUserLookupWithFilters(
+        @Param("sambhagId") UUID sambhagId,
+        @Param("districtId") UUID districtId,
+        @Param("blockId") UUID blockId,
+        @Param("name") String name,
+        @Param("mobile") String mobile,
+        @Param("userId") String userId,
+        Pageable pageable
 );
 
 @Query("""

@@ -17,6 +17,7 @@ import com.example.kalyan_kosh_api.repository.StateRepository;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.entity.DeathCaseStatus;
 import org.springframework.data.domain.Page;
+import com.example.kalyan_kosh_api.dto.UserLookupResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -640,6 +641,47 @@ String cleanUserId = (userId != null && !userId.trim().isEmpty()) ? userId.trim(
     return users.stream()
             .map(this::toUserResponse)
             .collect(Collectors.toList());
+}
+@Transactional(readOnly = true)
+public PageResponse<UserLookupResponse> getUsersLookupFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
+
+    Pageable pageable = PageRequest.of(page, size);
+
+    UUID cleanSambhagId = parseOptionalUuid(sambhagId);
+    UUID cleanDistrictId = parseOptionalUuid(districtId);
+    UUID cleanBlockId = parseOptionalUuid(blockId);
+
+    String cleanName = normalizeString(name);
+    String cleanMobile = normalizeString(mobile);
+    String cleanUserId = normalizeString(userId);
+
+    Page<UserLookupResponse> userPage = userRepo.findUserLookupWithFilters(
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanName,
+            cleanMobile,
+            cleanUserId,
+            pageable
+    );
+
+    return new PageResponse<>(
+            userPage.getContent(),
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages(),
+            userPage.isLast(),
+            userPage.isFirst()
+    );
 }
 
 public AdminUserMatchResponse checkExistingUserForManualCreate(AdminCreateUserRequest req) {

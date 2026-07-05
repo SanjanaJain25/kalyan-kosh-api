@@ -22,6 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
+import com.example.kalyan_kosh_api.dto.UserLookupResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -108,6 +109,30 @@ public ResponseEntity<Map<String, Boolean>> getProfileFieldLocksForUser() {
         return ResponseEntity.ok(users);
     }
 
+@GetMapping("/lookup/filter")
+public ResponseEntity<PageResponse<UserLookupResponse>> getUsersLookupFiltered(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size) {
+
+    PageResponse<UserLookupResponse> response = userService.getUsersLookupFiltered(
+            sambhagId,
+            districtId,
+            blockId,
+            name,
+            mobile,
+            userId,
+            page,
+            size
+    );
+
+    return ResponseEntity.ok(response);
+}
     /**
      * GET ALL USERS WITH PAGINATION - 20 records per page by default
      * Sorted by insertion order (createdAt ASC)
