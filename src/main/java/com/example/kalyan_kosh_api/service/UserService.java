@@ -89,6 +89,19 @@ public UserService(UserRepository userRepo,
     String trimmed = value.trim();
     return trimmed.isEmpty() ? null : trimmed;
 }
+private String maskUtrNumber(String utrNumber) {
+    if (utrNumber == null || utrNumber.trim().isEmpty()) {
+        return null;
+    }
+
+    String cleanUtr = utrNumber.trim();
+
+    if (cleanUtr.length() <= 4) {
+        return "****";
+    }
+
+    return "********" + cleanUtr.substring(cleanUtr.length() - 4);
+}
 private boolean hasValue(String value) {
     return value != null && !value.trim().isEmpty();
 }
@@ -693,35 +706,9 @@ private UserLookupResponse toUserLookupResponse(User user) {
     UserLookupResponse response = new UserLookupResponse();
 
     response.setId(user.getId());
-    response.setRegistrationNumber(user.getId());
     response.setName(user.getName());
     response.setSurname(user.getSurname());
-
-    String fullName = ((user.getName() != null ? user.getName() : "") +
-            (user.getSurname() != null && !user.getSurname().isBlank() ? " " + user.getSurname() : "")).trim();
-
-    response.setFullName(fullName);
     response.setMobileNumber(user.getMobileNumber());
-    response.setDepartment(user.getDepartment());
-    response.setDepartmentUniqueId(user.getDepartmentUniqueId());
-    response.setSchoolOfficeName(user.getSchoolOfficeName());
-    response.setRole(user.getRole());
-
-    if (user.getDepartmentState() != null) {
-        response.setDepartmentState(user.getDepartmentState().getName());
-    }
-
-    if (user.getDepartmentSambhag() != null) {
-        response.setDepartmentSambhag(user.getDepartmentSambhag().getName());
-    }
-
-    if (user.getDepartmentDistrict() != null) {
-        response.setDepartmentDistrict(user.getDepartmentDistrict().getName());
-    }
-
-    if (user.getDepartmentBlock() != null) {
-        response.setDepartmentBlock(user.getDepartmentBlock().getName());
-    }
 
     if (user.getAssignedDeathCase() != null
             && user.getAssignedDeathCase().getStatus() == DeathCaseStatus.OPEN) {
@@ -755,16 +742,16 @@ private UserLookupResponse toUserLookupResponse(User user) {
             Receipt latestReceipt = latestReceiptOpt.get();
 
             response.setUtrUploaded(true);
-            response.setLatestReceiptId(latestReceipt.getId());
-            response.setLatestUtrNumber(latestReceipt.getUtrNumber());
-            response.setUtrUploadedAt(latestReceipt.getUploadedAt());
+
+            // Important: public API should only return masked UTR
+            response.setLatestUtrNumber(maskUtrNumber(latestReceipt.getUtrNumber()));
+
+            // No need to show QR after UTR already uploaded
             response.setAllocatedQrCode(null);
         } else {
             response.setUtrUploaded(false);
-            response.setAllocatedQrCode(getAllocatedQrCodeForUser(user, deathCase));
-            response.setLatestReceiptId(null);
             response.setLatestUtrNumber(null);
-            response.setUtrUploadedAt(null);
+            response.setAllocatedQrCode(getAllocatedQrCodeForUser(user, deathCase));
         }
 
     } else {
@@ -774,9 +761,7 @@ private UserLookupResponse toUserLookupResponse(User user) {
         response.setNominee1QrCodes(null);
         response.setNominee2QrCodes(null);
         response.setUtrUploaded(false);
-        response.setLatestReceiptId(null);
         response.setLatestUtrNumber(null);
-        response.setUtrUploadedAt(null);
     }
 
     return response;
