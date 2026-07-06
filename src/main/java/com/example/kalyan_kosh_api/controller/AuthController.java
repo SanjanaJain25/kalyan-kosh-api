@@ -153,5 +153,15 @@ public ResponseEntity<?> mobileLogin(@Valid @RequestBody MobileLoginRequest req)
                 .body(createErrorResponse("UNKNOWN_ERROR", "An unexpected error occurred: " + e.getMessage()));
     }
 }
+@GetMapping("/me")
+public ResponseEntity<?> me(Authentication authentication) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(createErrorResponse("UNAUTHORIZED", "User is not authenticated"));
+    }
+
+    UserResponse userResponse = authService.getCurrentUserResponse(authentication.getName());
+    return ResponseEntity.ok(userResponse);
+}
 
 }

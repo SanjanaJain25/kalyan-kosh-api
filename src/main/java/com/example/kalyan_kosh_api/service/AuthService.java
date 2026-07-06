@@ -328,6 +328,21 @@ private String normalizeMobileNumber(String mobileNumber) {
 
     return mobile;
 }
+@Transactional(readOnly = true)
+public UserResponse getCurrentUserResponse(String userId) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException("Your account is blocked. Please contact admin.");
+    }
+
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new IllegalArgumentException("Your account is deleted. Please contact admin.");
+    }
+
+    return mapper.map(user, UserResponse.class);
+}
     /**
      * Authenticate credentials and return login response with both JWT token and user details.
      * Throws AuthenticationException (runtime) if credentials invalid.
