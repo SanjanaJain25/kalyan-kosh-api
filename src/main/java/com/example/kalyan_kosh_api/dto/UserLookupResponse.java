@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -33,6 +36,16 @@ public class UserLookupResponse {
 
     private Role role;
 
+    private Long assignedDeathCaseId;
+    private String assignedDeathCaseName;
+    private String allocatedQrCode;
+    private List<String> nominee1QrCodes;
+    private List<String> nominee2QrCodes;
+    private Boolean utrUploaded;
+    private Long latestReceiptId;
+    private String latestUtrNumber;
+    private Instant utrUploadedAt;
+
     public UserLookupResponse(
             String id,
             String name,
@@ -51,7 +64,8 @@ public class UserLookupResponse {
         this.registrationNumber = id;
         this.name = name;
         this.surname = surname;
-        this.fullName = (name != null ? name : "") + (surname != null && !surname.isBlank() ? " " + surname : "");
+        this.fullName = ((name != null ? name : "") +
+                (surname != null && !surname.isBlank() ? " " + surname : "")).trim();
         this.mobileNumber = mobileNumber;
         this.department = department;
         this.departmentUniqueId = departmentUniqueId;

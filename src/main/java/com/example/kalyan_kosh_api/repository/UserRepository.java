@@ -180,26 +180,19 @@ List<User> findUsersForJoiningDateExportScoped(
 
 @Query(
         value = """
-                SELECT new com.example.kalyan_kosh_api.dto.UserLookupResponse(
-                    u.id,
-                    u.name,
-                    u.surname,
-                    u.mobileNumber,
-                    u.department,
-                    u.departmentUniqueId,
-                    s.name,
-                    sa.name,
-                    d.name,
-                    b.name,
-                    u.schoolOfficeName,
-                    u.role
-                )
+                SELECT u
                 FROM User u
-                LEFT JOIN u.departmentState s
-                LEFT JOIN u.departmentSambhag sa
-                LEFT JOIN u.departmentDistrict d
-                LEFT JOIN u.departmentBlock b
-                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                LEFT JOIN FETCH u.departmentState s
+                LEFT JOIN FETCH u.departmentSambhag sa
+                LEFT JOIN FETCH u.departmentDistrict d
+                LEFT JOIN FETCH u.departmentBlock b
+                LEFT JOIN FETCH u.assignedDeathCase adc
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND (
+                        u.status IS NULL
+                        OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+                  )
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)
                   AND (:blockId IS NULL OR b.id = :blockId)
                   AND (
@@ -218,7 +211,12 @@ List<User> findUsersForJoiningDateExportScoped(
                 LEFT JOIN u.departmentSambhag sa
                 LEFT JOIN u.departmentDistrict d
                 LEFT JOIN u.departmentBlock b
-                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND (
+                        u.status IS NULL
+                        OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+                  )
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)
                   AND (:blockId IS NULL OR b.id = :blockId)
                   AND (
@@ -231,7 +229,7 @@ List<User> findUsersForJoiningDateExportScoped(
                   AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
                 """
 )
-Page<UserLookupResponse> findUserLookupWithFilters(
+Page<User> findUserLookupWithFilters(
         @Param("sambhagId") UUID sambhagId,
         @Param("districtId") UUID districtId,
         @Param("blockId") UUID blockId,

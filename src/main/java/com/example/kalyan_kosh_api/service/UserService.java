@@ -663,7 +663,7 @@ public PageResponse<UserLookupResponse> getUsersLookupFiltered(
     String cleanMobile = normalizeString(mobile);
     String cleanUserId = normalizeString(userId);
 
-    Page<UserLookupResponse> userPage = userRepo.findUserLookupWithFilters(
+    Page<User> userPage = userRepo.findUserLookupWithFilters(
             cleanSambhagId,
             cleanDistrictId,
             cleanBlockId,
@@ -673,8 +673,13 @@ public PageResponse<UserLookupResponse> getUsersLookupFiltered(
             pageable
     );
 
+    List<UserLookupResponse> lookupResponses = userPage.getContent()
+            .stream()
+            .map(this::toUserLookupResponse)
+            .collect(Collectors.toList());
+
     return new PageResponse<>(
-            userPage.getContent(),
+            lookupResponses,
             userPage.getNumber(),
             userPage.getSize(),
             userPage.getTotalElements(),
@@ -682,6 +687,99 @@ public PageResponse<UserLookupResponse> getUsersLookupFiltered(
             userPage.isLast(),
             userPage.isFirst()
     );
+}
+
+private UserLookupResponse toUserLookupResponse(User user) {
+    UserLookupResponse response = new UserLookupResponse();
+
+    response.setId(user.getId());
+    response.setRegistrationNumber(user.getId());
+    response.setName(user.getName());
+    response.setSurname(user.getSurname());
+
+    String fullName = ((user.getName() != null ? user.getName() : "") +
+            (user.getSurname() != null && !user.getSurname().isBlank() ? " " + user.getSurname() : "")).trim();
+
+    response.setFullName(fullName);
+    response.setMobileNumber(user.getMobileNumber());
+    response.setDepartment(user.getDepartment());
+    response.setDepartmentUniqueId(user.getDepartmentUniqueId());
+    response.setSchoolOfficeName(user.getSchoolOfficeName());
+    response.setRole(user.getRole());
+
+    if (user.getDepartmentState() != null) {
+        response.setDepartmentState(user.getDepartmentState().getName());
+    }
+
+    if (user.getDepartmentSambhag() != null) {
+        response.setDepartmentSambhag(user.getDepartmentSambhag().getName());
+    }
+
+    if (user.getDepartmentDistrict() != null) {
+        response.setDepartmentDistrict(user.getDepartmentDistrict().getName());
+    }
+
+    if (user.getDepartmentBlock() != null) {
+        response.setDepartmentBlock(user.getDepartmentBlock().getName());
+    }
+
+    if (user.getAssignedDeathCase() != null
+            && user.getAssignedDeathCase().getStatus() == DeathCaseStatus.OPEN) {
+
+        DeathCase deathCase = user.getAssignedDeathCase();
+
+        response.setAssignedDeathCaseId(deathCase.getId());
+        response.setAssignedDeathCaseName(deathCase.getDeceasedName());
+
+        response.setNominee1QrCodes(getNomineeQrCodesForResponse(
+                deathCase.getId(),
+                true,
+                deathCase.getNominee1QrCodes(),
+                deathCase.getNominee1QrCode()
+        ));
+
+        response.setNominee2QrCodes(getNomineeQrCodesForResponse(
+                deathCase.getId(),
+                false,
+                deathCase.getNominee2QrCodes(),
+                deathCase.getNominee2QrCode()
+        ));
+
+        Optional<Receipt> latestReceiptOpt =
+                receiptRepo.findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(
+                        user.getId(),
+                        deathCase.getId()
+                );
+
+        if (latestReceiptOpt.isPresent()) {
+            Receipt latestReceipt = latestReceiptOpt.get();
+
+            response.setUtrUploaded(true);
+            response.setLatestReceiptId(latestReceipt.getId());
+            response.setLatestUtrNumber(latestReceipt.getUtrNumber());
+            response.setUtrUploadedAt(latestReceipt.getUploadedAt());
+            response.setAllocatedQrCode(null);
+        } else {
+            response.setUtrUploaded(false);
+            response.setAllocatedQrCode(getAllocatedQrCodeForUser(user, deathCase));
+            response.setLatestReceiptId(null);
+            response.setLatestUtrNumber(null);
+            response.setUtrUploadedAt(null);
+        }
+
+    } else {
+        response.setAssignedDeathCaseId(null);
+        response.setAssignedDeathCaseName(null);
+        response.setAllocatedQrCode(null);
+        response.setNominee1QrCodes(null);
+        response.setNominee2QrCodes(null);
+        response.setUtrUploaded(false);
+        response.setLatestReceiptId(null);
+        response.setLatestUtrNumber(null);
+        response.setUtrUploadedAt(null);
+    }
+
+    return response;
 }
 
 public AdminUserMatchResponse checkExistingUserForManualCreate(AdminCreateUserRequest req) {
