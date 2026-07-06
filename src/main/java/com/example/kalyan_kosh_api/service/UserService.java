@@ -45,6 +45,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
+import com.example.kalyan_kosh_api.dto.PublicUserResponse;
 
 @Service
 public class UserService {
@@ -157,7 +158,70 @@ public User findById(String userId) {
     return userRepo.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 }
+@Transactional(readOnly = true)
+public PageResponse<PublicUserResponse> getPublicUsersFiltered(
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String mobile,
+        String userId,
+        int page,
+        int size) {
 
+    PageResponse<UserResponse> fullResponse = getAllUsersFiltered(
+            sambhagId,
+            districtId,
+            blockId,
+            name,
+            mobile,
+            userId,
+            page,
+            size
+    );
+
+    List<PublicUserResponse> safeUsers = fullResponse.getContent()
+            .stream()
+            .map(this::toPublicUserResponse)
+            .collect(Collectors.toList());
+
+    return new PageResponse<>(
+            safeUsers,
+            fullResponse.getPage(),
+            fullResponse.getSize(),
+            fullResponse.getTotalElements(),
+            fullResponse.getTotalPages(),
+            fullResponse.isLast(),
+            fullResponse.isFirst()
+    );
+}
+private PublicUserResponse toPublicUserResponse(UserResponse user) {
+    PublicUserResponse response = new PublicUserResponse();
+
+    response.setId(user.getId());
+    response.setName(user.getName());
+    response.setSurname(user.getSurname());
+
+    response.setDepartment(user.getDepartment());
+    response.setDepartmentUniqueId(user.getDepartmentUniqueId());
+    response.setDepartmentState(user.getDepartmentState());
+    response.setDepartmentSambhag(user.getDepartmentSambhag());
+    response.setDepartmentDistrict(user.getDepartmentDistrict());
+    response.setDepartmentBlock(user.getDepartmentBlock());
+
+    response.setSchoolOfficeName(user.getSchoolOfficeName());
+
+    response.setAssignedDeathCaseId(user.getAssignedDeathCaseId());
+    response.setAssignedDeathCaseName(user.getAssignedDeathCaseName());
+
+    response.setAllocatedQrCode(user.getAllocatedQrCode());
+    response.setNominee1QrCodes(user.getNominee1QrCodes());
+    response.setNominee2QrCodes(user.getNominee2QrCodes());
+
+    response.setUtrUploaded(user.getUtrUploaded());
+
+    return response;
+}
 @Transactional(readOnly = true)
     public UserResponse getUserById(String id) {
         User user = userRepo.findByIdWithLocations(id)

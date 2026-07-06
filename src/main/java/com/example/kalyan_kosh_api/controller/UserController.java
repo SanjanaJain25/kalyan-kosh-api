@@ -23,6 +23,9 @@ import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.repository.UserRepository;
 import com.example.kalyan_kosh_api.service.ExportMobilePermissionService;
 import com.example.kalyan_kosh_api.dto.UserLookupResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import com.example.kalyan_kosh_api.dto.PublicUserResponse;
 
 @RestController
 @RequestMapping("/api/users")
@@ -97,10 +100,11 @@ public ResponseEntity<Map<String, Boolean>> getProfileFieldLocksForUser() {
     return ResponseEntity.ok(systemSettingService.getProfileFieldLockSettings());
 }
     // GET USER BY ID
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable String id) {
-        return ResponseEntity.ok(userService.getUserById(id));
-    }
+@GetMapping("/{id}")
+public ResponseEntity<UserResponse> getUser(@PathVariable String id) {
+    validateSelfAccess(id);
+    return ResponseEntity.ok(userService.getUserById(id));
+}
 
     // GET ALL USERS (without pagination)
     @GetMapping
@@ -132,6 +136,22 @@ public ResponseEntity<PageResponse<UserLookupResponse>> getUsersLookupFiltered(
     );
 
     return ResponseEntity.ok(response);
+}
+
+private void validateSelfAccess(String requestedUserId) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null
+            || authentication.getName() == null
+            || "anonymousUser".equals(authentication.getName())) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+    }
+
+    String loggedInUserId = authentication.getName();
+
+    if (!loggedInUserId.equals(requestedUserId)) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can access only your own profile");
+    }
 }
     /**
      * GET ALL USERS WITH PAGINATION - 20 records per page by default
@@ -217,20 +237,39 @@ userService.exportUsersCsvScoped(
      *
      * Usage: GET /api/users/filter?sambhagId=1&districtId=2&blockId=3&name=राहुल&mobile=98765&userId=PMUMS&page=0&size=20
      */
-    @GetMapping("/filter")
-    public ResponseEntity<PageResponse<UserResponse>> getAllUsersFiltered(
-            @RequestParam(required = false) String sambhagId,
-            @RequestParam(required = false) String districtId,
-            @RequestParam(required = false) String blockId,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String mobile,
-            @RequestParam(required = false) String userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+   @GetMapping("/filter")
+public ResponseEntity<?> getAllUsersFiltered(
+        @RequestParam(required = false) String sambhagId,
+        @RequestParam(required = false) String districtId,
+        @RequestParam(required = false) String blockId,
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) String mobile,
+        @RequestParam(required = false) String userId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+
+    Role currentRole = getCurrentUserRole();
+
+    boolean isAdminOrManager =
+            currentRole == Role.ROLE_SUPERADMIN
+            || currentRole == Role.ROLE_ADMIN
+            || currentRole == Role.ROLE_SAMBHAG_MANAGER
+            || currentRole == Role.ROLE_DISTRICT_MANAGER
+            || currentRole == Role.ROLE_BLOCK_MANAGER;
+
+    if (isAdminOrManager) {
         PageResponse<UserResponse> response = userService.getAllUsersFiltered(
-                sambhagId, districtId, blockId, name, mobile, userId, page, size);
+                sambhagId, districtId, blockId, name, mobile, userId, page, size
+        );
         return ResponseEntity.ok(response);
     }
+
+    PageResponse<PublicUserResponse> response = userService.getPublicUsersFiltered(
+            sambhagId, districtId, blockId, name, mobile, userId, page, size
+    );
+
+    return ResponseEntity.ok(response);
+}
 
     /**
  * GET PENDING PROFILE USERS WITH FILTERS AND PAGINATION
@@ -287,12 +326,13 @@ userService.exportPendingProfilesCsv(
 );
 }
     // UPDATE USER
-    @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(
-            @PathVariable String id,
-            @RequestBody UpdateUserRequest req) {
-        return ResponseEntity.ok(userService.updateUser(id, req));
-    }
+   @PutMapping("/{id}")
+public ResponseEntity<UserResponse> updateUser(
+        @PathVariable String id,
+        @RequestBody UpdateUserRequest req) {
+    validateSelfAccess(id);
+    return ResponseEntity.ok(userService.updateUser(id, req));
+}
 
     /**
      * UPDATE PASSWORD
@@ -307,6 +347,7 @@ userService.exportPendingProfilesCsv(
             @PathVariable String id,
             @Valid @RequestBody UpdatePasswordRequest req) {
         try {
+            validateSelfAccess(id);
             userService.updatePassword(
                 id,
                 req.getCurrentPassword(),
