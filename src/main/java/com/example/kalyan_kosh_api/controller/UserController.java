@@ -331,7 +331,16 @@ public ResponseEntity<UserResponse> updateUser(
         @PathVariable String id,
         @RequestBody UpdateUserRequest req) {
     validateSelfAccess(id);
-    return ResponseEntity.ok(userService.updateUser(id, req));
+
+    User currentUser = getCurrentUser();
+
+    /*
+     * SuperAdmin should be able to update their own profile fields
+     * even if profile locks are enabled from admin settings.
+     */
+    boolean bypassProfileLocks = currentUser.getRole() == Role.ROLE_SUPERADMIN;
+
+    return ResponseEntity.ok(userService.updateUser(id, req, bypassProfileLocks));
 }
 
     /**
