@@ -13,9 +13,45 @@ import com.example.kalyan_kosh_api.entity.DeathCase;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
+    /**
+     * Returns all receipts when utrNumber is null.
+     *
+     * When utrNumber is provided, it performs a case-insensitive
+     * complete or partial UTR search.
+     *
+     * Example:
+     * Search value: 12345
+     *
+     * Matching UTR values:
+     * ABC12345
+     * 
+     * 123456789
+     * UTR-12345-XYZ
+     */
+    @EntityGraph(attributePaths = {
+            "user",
+            "user.departmentSambhag",
+            "user.departmentDistrict",
+            "user.departmentBlock",
+            "deathCase"
+    })
+    @Query("""
+        SELECT receipt
+        FROM Receipt receipt
+        WHERE (
+            :utrNumber IS NULL
+            OR UPPER(COALESCE(receipt.utrNumber, ''))
+               LIKE CONCAT('%', CONCAT(:utrNumber, '%'))
+        )
+    """)
+    Page<Receipt> searchAdminReceipts(
+            @Param("utrNumber") String utrNumber,
+            Pageable pageable
+    );
 
     List<Receipt> findByUserOrderByUploadedAtDesc(User user);
 Optional<Receipt> findTopByUserIdAndDeathCaseIdOrderByUploadedAtDesc(String userId, Long deathCaseId);

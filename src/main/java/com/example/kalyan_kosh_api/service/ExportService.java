@@ -700,58 +700,207 @@ public String exportRetentionUsersCsv(List<User> users, String reportName, boole
         }
     }
     
-    /**
-     * Export receipts to Excel format
+       /**
+     * Export receipt records to Excel.
+     *
+     * This export contains the UTR and the member information
+     * associated with the receipt.
      */
-    public byte[] exportReceiptsExcel(List<AdminReceiptResponse> receipts) throws IOException {
+    public byte[] exportReceiptsExcel(
+            List<AdminReceiptResponse> receipts
+    ) throws IOException {
+
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Receipts");
-            
-            // Create header style
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
+
+            Sheet sheet =
+                    workbook.createSheet("Receipts");
+
+            /*
+             * Header style
+             */
+            CellStyle headerStyle =
+                    workbook.createCellStyle();
+
+            Font headerFont =
+                    workbook.createFont();
+
             headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
+
+            headerFont.setColor(
+                    IndexedColors.WHITE.getIndex()
+            );
+
             headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            // Create header row
-            Row headerRow = sheet.createRow(0);
+
+            headerStyle.setFillForegroundColor(
+                    IndexedColors.DARK_BLUE.getIndex()
+            );
+
+            headerStyle.setFillPattern(
+                    FillPatternType.SOLID_FOREGROUND
+            );
+
+            /*
+             * Excel headers
+             */
             String[] headers = {
-                "Registration No", "Name", "Sambhag", "District", "Block",
-                "Department", "Payment Date", "Amount"
+                    "Receipt ID",
+                    "UTR Number",
+                    "Registration No",
+                    "Department Employee ID",
+                    "Member Name",
+                    "Mobile Number",
+                    "Sambhag",
+                    "District",
+                    "Block",
+                    "Department",
+                    "Beneficiary",
+                    "Reference Name",
+                    "Payment Date",
+                    "Uploaded At",
+                    "Amount",
+                    "Status"
             };
-            
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
+
+            Row headerRow =
+                    sheet.createRow(0);
+
+            for (int columnIndex = 0;
+                 columnIndex < headers.length;
+                 columnIndex++) {
+
+                Cell cell =
+                        headerRow.createCell(columnIndex);
+
+                cell.setCellValue(
+                        headers[columnIndex]
+                );
+
+                cell.setCellStyle(
+                        headerStyle
+                );
             }
-            
-            // Create data rows
-            int rowNum = 1;
+
+            /*
+             * Excel data rows
+             */
+            int rowNumber = 1;
+
             for (AdminReceiptResponse receipt : receipts) {
-                Row row = sheet.createRow(rowNum++);
-                
-                row.createCell(0).setCellValue(receipt.getRegNo() != null ? receipt.getRegNo() : "");
-                row.createCell(1).setCellValue(receipt.getName() != null ? receipt.getName() : "");
-                row.createCell(2).setCellValue(receipt.getSambhag() != null ? receipt.getSambhag() : "");
-                row.createCell(3).setCellValue(receipt.getDistrict() != null ? receipt.getDistrict() : "");
-                row.createCell(4).setCellValue(receipt.getBlock() != null ? receipt.getBlock() : "");
-                row.createCell(5).setCellValue(receipt.getDepartment() != null ? receipt.getDepartment() : "");
-                row.createCell(6).setCellValue(receipt.getPaymentDate() != null ? receipt.getPaymentDate().toString() : "");
-                row.createCell(7).setCellValue(receipt.getAmount());
+
+                Row row =
+                        sheet.createRow(rowNumber++);
+
+                row.createCell(0).setCellValue(
+                        receipt.getReceiptId() != null
+                                ? receipt.getReceiptId()
+                                : 0
+                );
+
+                row.createCell(1).setCellValue(
+                        receipt.getUtrNumber() != null
+                                ? receipt.getUtrNumber()
+                                : ""
+                );
+
+                row.createCell(2).setCellValue(
+                        receipt.getRegNo() != null
+                                ? receipt.getRegNo()
+                                : ""
+                );
+
+                row.createCell(3).setCellValue(
+                        receipt.getDepartmentUniqueId() != null
+                                ? receipt.getDepartmentUniqueId()
+                                : ""
+                );
+
+                row.createCell(4).setCellValue(
+                        receipt.getName() != null
+                                ? receipt.getName()
+                                : ""
+                );
+
+                row.createCell(5).setCellValue(
+                        receipt.getMobileNumber() != null
+                                ? receipt.getMobileNumber()
+                                : ""
+                );
+
+                row.createCell(6).setCellValue(
+                        receipt.getSambhag() != null
+                                ? receipt.getSambhag()
+                                : ""
+                );
+
+                row.createCell(7).setCellValue(
+                        receipt.getDistrict() != null
+                                ? receipt.getDistrict()
+                                : ""
+                );
+
+                row.createCell(8).setCellValue(
+                        receipt.getBlock() != null
+                                ? receipt.getBlock()
+                                : ""
+                );
+
+                row.createCell(9).setCellValue(
+                        receipt.getDepartment() != null
+                                ? receipt.getDepartment()
+                                : ""
+                );
+
+                row.createCell(10).setCellValue(
+                        receipt.getBeneficiary() != null
+                                ? receipt.getBeneficiary()
+                                : ""
+                );
+
+                row.createCell(11).setCellValue(
+                        receipt.getReferenceName() != null
+                                ? receipt.getReferenceName()
+                                : ""
+                );
+
+                row.createCell(12).setCellValue(
+                        receipt.getPaymentDate() != null
+                                ? receipt.getPaymentDate().toString()
+                                : ""
+                );
+
+                row.createCell(13).setCellValue(
+                        receipt.getUploadedAt() != null
+                                ? receipt.getUploadedAt().toString()
+                                : ""
+                );
+
+                row.createCell(14).setCellValue(
+                        receipt.getAmount()
+                );
+
+                row.createCell(15).setCellValue(
+                        receipt.getStatus() != null
+                                ? receipt.getStatus().name()
+                                : ""
+                );
             }
-            
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
+
+            /*
+             * Auto-size all columns
+             */
+            for (int columnIndex = 0;
+                 columnIndex < headers.length;
+                 columnIndex++) {
+
+                sheet.autoSizeColumn(columnIndex);
             }
-            
-            // Write to byte array
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            ByteArrayOutputStream outputStream =
+                    new ByteArrayOutputStream();
+
             workbook.write(outputStream);
+
             return outputStream.toByteArray();
         }
     }
