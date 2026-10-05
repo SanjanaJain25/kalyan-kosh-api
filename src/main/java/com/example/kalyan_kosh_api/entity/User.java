@@ -72,6 +72,22 @@ private String managerDashboardPasswordHash; // Separate Manager Dashboard passw
 
     @Enumerated(EnumType.STRING)
     private UserStatus status = UserStatus.ACTIVE;
+
+    /**
+     * Member lifecycle/tracking flag. This is separate from account status so
+     * RETIRED/DECEASED users can retain their historical records independently
+     * of whether the account is ACTIVE/BLOCKED/DELETED.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_status", nullable = false, length = 20)
+    private MemberStatus memberStatus = MemberStatus.NORMAL;
+
+    @Column(name = "member_status_updated_at")
+    private Instant memberStatusUpdatedAt;
+
+    @Column(name = "member_status_updated_by", length = 20)
+    private String memberStatusUpdatedBy;
+
 // Pool Assignment (Each user mapped to exactly one death case pool)
 @ManyToOne(fetch = FetchType.EAGER)
 @JoinColumn(name = "assigned_death_case_id")

@@ -3,7 +3,9 @@ package com.example.kalyan_kosh_api.service;
 import com.example.kalyan_kosh_api.dto.AdminUserListResponse;
 import com.example.kalyan_kosh_api.dto.AdminUserResponse;
 import com.example.kalyan_kosh_api.dto.UpdateUserRoleRequest;
+import com.example.kalyan_kosh_api.dto.UpdateMemberStatusRequest;
 import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.repository.UserRepository;
@@ -45,7 +47,9 @@ import com.example.kalyan_kosh_api.repository.DistrictRepository;
 import com.example.kalyan_kosh_api.repository.BlockRepository;
 import java.util.Locale;
 import java.util.LinkedHashMap;
-
+import com.example.kalyan_kosh_api.portal.PortalCode;
+import com.example.kalyan_kosh_api.portal.PortalContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,6 +75,7 @@ private final StateRepository stateRepository;
 private final SambhagRepository sambhagRepository;
 private final DistrictRepository districtRepository;
 private final BlockRepository blockRepository;
+private final JdbcTemplate jdbcTemplate;
 public AdminUserManagementService(
         PasswordEncoder passwordEncoder,
         UserRepository userRepository,
@@ -83,7 +88,8 @@ public AdminUserManagementService(
         StateRepository stateRepository,
         SambhagRepository sambhagRepository,
         DistrictRepository districtRepository,
-        BlockRepository blockRepository
+        BlockRepository blockRepository,
+        JdbcTemplate jdbcTemplate
 ) {
     this.passwordEncoder = passwordEncoder;
     this.userRepository = userRepository;
@@ -97,6 +103,7 @@ public AdminUserManagementService(
     this.sambhagRepository = sambhagRepository;
     this.districtRepository = districtRepository;
     this.blockRepository = blockRepository;
+    this.jdbcTemplate = jdbcTemplate;
 }
 private boolean isReservedSuperAdmin(User user) {
     return user != null
@@ -148,8 +155,17 @@ private String normalize(String value) {
 //         .filter(user -> filterUser(user, userId, name, email, mobileNumber, role, status, sambhag, district, block))
 //         .map(this::convertToAdminUserResponse)
 //         .collect(Collectors.toList());
+List<String> pageUserIds = userPage.getContent().stream()
+        .map(User::getId)
+        .collect(Collectors.toList());
+Map<String, Double> totalSahyogByUser = loadVerifiedSahyogTotals(pageUserIds);
+
 List<AdminUserResponse> users = userPage.getContent().stream()
-        .map(this::convertToAdminUserResponse)
+        .map(user -> {
+            AdminUserResponse response = convertToAdminUserResponse(user);
+            response.setTotalSahyog(totalSahyogByUser.getOrDefault(user.getId(), 0.0));
+            return response;
+        })
         .collect(Collectors.toList());
 
         return new AdminUserListResponse(
@@ -161,6 +177,33 @@ List<AdminUserResponse> users = userPage.getContent().stream()
                 userPage.hasNext(),
                 userPage.hasPrevious()
         );
+    }
+
+
+    /**
+     * Update the lifecycle/tracking flag for a user.
+     * This does not change account access status (ACTIVE/BLOCKED/DELETED).
+     */
+    @Transactional
+    public AdminUserResponse updateMemberStatus(
+            String userId,
+            UpdateMemberStatusRequest request,
+            String updatedByUserId
+    ) {
+        User user = getUserById(userId);
+        validateNotReservedSuperAdmin(user);
+
+        if (request == null || request.getMemberStatus() == null) {
+            throw new IllegalArgumentException("Member status is required");
+        }
+
+        user.setMemberStatus(request.getMemberStatus());
+        user.setMemberStatusUpdatedAt(Instant.now());
+        user.setMemberStatusUpdatedBy(updatedByUserId);
+        user.setUpdatedAt(Instant.now());
+
+        User saved = userRepository.save(user);
+        return convertToAdminUserResponse(saved);
     }
 
     /**
@@ -870,14 +913,29 @@ public void resetManagerDashboardPassword(String userId, String newPassword) {
     /**
      * Get user by ID
      */
-    public AdminUserResponse getUserByIdResponse(String userId) {
-        User user = getUserById(userId);
+   public AdminUserResponse getUserByIdResponse(
+        String userId
+) {
+
+    User user = getUserById(userId);
 
     if (isReservedSuperAdmin(user)) {
-        throw new RuntimeException("User not found with ID: " + userId);
+        throw new RuntimeException(
+                "User not found with ID: " + userId
+        );
     }
-        return convertToAdminUserResponse(user);
-    }
+
+    AdminUserResponse response =
+            convertToAdminUserResponse(user);
+
+    // Add TAB2-only fields when admin views details.
+    populateTab2AdminFields(
+            response,
+            user.getId()
+    );
+
+    return response;
+}
 
     private User getUserById(String userId) {
         return userRepository.findById(userId)
@@ -976,6 +1034,68 @@ private record ExcelLocationRow(
         int rowNumber
 ) {}
 
+/**
+ * Loads fields stored only in the TAB2 users table.
+ *
+ * These are intentionally not mapped in User.java
+ * because the shared User entity is also used by TAB1.
+ */
+private void populateTab2AdminFields(
+        AdminUserResponse response,
+        String userId
+) {
+
+    if (response == null
+            || userId == null
+            || PortalContext.get() != PortalCode.TAB2) {
+
+        return;
+    }
+
+    jdbcTemplate.query(
+            "SELECT employee_category, tehsil " +
+            "FROM users " +
+            "WHERE id = ?",
+
+            rs -> {
+                if (rs.next()) {
+
+                    response.setEmployeeCategory(
+                            rs.getString(
+                                    "employee_category"
+                            )
+                    );
+
+                    response.setTehsil(
+                            rs.getString(
+                                    "tehsil"
+                            )
+                    );
+                }
+
+                return null;
+            },
+
+            userId
+    );
+}
+
+    private Map<String, Double> loadVerifiedSahyogTotals(List<String> userIds) {
+        Map<String, Double> totals = new HashMap<>();
+        if (userIds == null || userIds.isEmpty()) {
+            return totals;
+        }
+
+        for (Object[] row : receiptRepository.sumVerifiedSahyogByUserIds(userIds)) {
+            if (row == null || row.length < 2 || row[0] == null) {
+                continue;
+            }
+            double amount = row[1] instanceof Number ? ((Number) row[1]).doubleValue() : 0.0;
+            totals.put(String.valueOf(row[0]), amount);
+        }
+        return totals;
+    }
+
     private AdminUserResponse convertToAdminUserResponse(User user) {
         AdminUserResponse response = new AdminUserResponse();
         response.setId(user.getId());
@@ -1009,6 +1129,9 @@ response.setNominee2Relation(user.getNominee2Relation());
         // System fields
         response.setRole(user.getRole());
         response.setStatus(user.getStatus() != null ? user.getStatus() : UserStatus.ACTIVE);
+        response.setMemberStatus(user.getMemberStatus() != null ? user.getMemberStatus() : MemberStatus.NORMAL);
+        response.setMemberStatusUpdatedAt(user.getMemberStatusUpdatedAt());
+        response.setMemberStatusUpdatedBy(user.getMemberStatusUpdatedBy());
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         response.setLastLoginAt(user.getLastLoginAt());

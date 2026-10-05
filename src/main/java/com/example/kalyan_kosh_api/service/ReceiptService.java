@@ -30,6 +30,7 @@ private static final ZoneId INDIA_ZONE = ZoneId.of("Asia/Kolkata");
 private final DeathCaseRepository deathCaseRepo;
 private final AuditLogService auditLogService;
 private final EmailService emailService;
+private final SystemSettingService systemSettingService;
    public ReceiptService(
         ReceiptRepository receiptRepo,
         UserRepository userRepo,
@@ -37,7 +38,8 @@ private final EmailService emailService;
         PoolAssignmentService poolAssignmentService,
         DeathCaseRepository deathCaseRepo,
         AuditLogService auditLogService,
-        EmailService emailService
+        EmailService emailService,
+        SystemSettingService systemSettingService
 ) {
     this.receiptRepo = receiptRepo;
     this.userRepo = userRepo;
@@ -46,6 +48,7 @@ private final EmailService emailService;
     this.deathCaseRepo = deathCaseRepo;
     this.auditLogService = auditLogService;
     this.emailService = emailService;
+    this.systemSettingService = systemSettingService;
 }
 
 private String normalizeUtr(String utrNumber) {
@@ -214,13 +217,30 @@ if (receiptRepo.existsByNormalizedUtrNumber(normalizedUtr)) {
 
 Instant now = java.time.ZonedDateTime.now(INDIA_ZONE).toInstant();
 
+    double finalAmount = req.getAmount();
+
+    // When Admin marks Sahyog amount as read-only, the configured amount is
+    // authoritative. This prevents clients from bypassing the UI and posting
+    // a different amount directly to the API.
+    if (!systemSettingService.isSahyogAmountEditable()) {
+        double configuredAmount = systemSettingService.getSahyogDefaultAmount();
+
+        if (configuredAmount <= 0) {
+            throw new IllegalStateException(
+                    "Sahyog amount configuration is invalid. Please contact admin."
+            );
+        }
+
+        finalAmount = configuredAmount;
+    }
+
     log.info("Creating receipt for targetUser: {}, assignedDeathCaseId: {}, amount: {}",
-            targetUserId, assignedCase.getId(), req.getAmount());
+            targetUserId, assignedCase.getId(), finalAmount);
 
     Receipt receipt = Receipt.builder()
             .user(user)
             .deathCase(assignedCase)
-            .amount(req.getAmount())
+            .amount(finalAmount)
             .paymentDate(paymentDate)
             .referenceName(req.getReferenceName())
 .utrNumber(normalizedUtr)

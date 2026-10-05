@@ -4,66 +4,70 @@ import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.repository.UserRepository;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
-@Configuration
+@Component
 public class SuperAdminSeeder {
 
-    public static final String SUPER_ADMIN_ID = "PMUMS202502";
-    public static final String SUPER_ADMIN_PASSWORD = "Jyoti@7909";
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final String superAdminId;
+    private final String superAdminPassword;
+    private final String superAdminEmail;
+    private final String superAdminMobile;
 
-    @Bean
-    public CommandLineRunner seedSuperAdmin(UserRepository userRepository,
-                                            PasswordEncoder passwordEncoder) {
-        return args -> {
-            User user = userRepository.findById(SUPER_ADMIN_ID).orElse(null);
-            boolean isNewSuperAdmin = false;
+    public SuperAdminSeeder(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.seed.super-admin.id:PMUMS202502}") String superAdminId,
+            @Value("${app.seed.super-admin.password:Jyoti@7909}") String superAdminPassword,
+            @Value("${app.seed.super-admin.email:superadmin@pmums.com}") String superAdminEmail,
+            @Value("${app.seed.super-admin.mobile:9999999999}") String superAdminMobile
+    ) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.superAdminId = superAdminId;
+        this.superAdminPassword = superAdminPassword;
+        this.superAdminEmail = superAdminEmail;
+        this.superAdminMobile = superAdminMobile;
+    }
 
-            if (user == null) {
-                user = new User();
-                user.setId(SUPER_ADMIN_ID);
-                user.setCreatedAt(Instant.now());
+    public void seedIfMissing() {
+        User user = userRepository.findById(superAdminId).orElse(null);
+        boolean isNewSuperAdmin = false;
 
-                user.setName("Super");
-                user.setSurname("Admin");
-                user.setEmail("superadmin@pmums.com");
-                user.setMobileNumber("9999999999");
-                user.setCountryCode("+91");
-                user.setPasswordHash(passwordEncoder.encode(SUPER_ADMIN_PASSWORD));
+        if (user == null) {
+            user = new User();
+            user.setId(superAdminId);
+            user.setCreatedAt(Instant.now());
+            user.setName("Super");
+            user.setSurname("Admin");
+            user.setEmail(superAdminEmail);
+            user.setMobileNumber(superAdminMobile);
+            user.setCountryCode("+91");
+            user.setPasswordHash(passwordEncoder.encode(superAdminPassword));
+            isNewSuperAdmin = true;
+        }
 
-                isNewSuperAdmin = true;
-            }
+        user.setRole(Role.ROLE_SUPERADMIN);
+        user.setStatus(UserStatus.ACTIVE);
 
-            /*
-             * These two are system/security fields.
-             * Keep SuperAdmin always active and always ROLE_SUPERADMIN.
-             */
-            user.setRole(Role.ROLE_SUPERADMIN);
-            user.setStatus(UserStatus.ACTIVE);
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(superAdminPassword));
+        }
 
-            /*
-             * Safety check only.
-             * If password hash is missing/null, then set default password.
-             * Otherwise do not overwrite password changed from frontend.
-             */
-            if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
-                user.setPasswordHash(passwordEncoder.encode(SUPER_ADMIN_PASSWORD));
-            }
+        if (user.getCreatedAt() == null) {
+            user.setCreatedAt(Instant.now());
+        }
 
-            if (user.getCreatedAt() == null) {
-                user.setCreatedAt(Instant.now());
-            }
+        if (isNewSuperAdmin || user.getUpdatedAt() == null) {
+            user.setUpdatedAt(Instant.now());
+        }
 
-            if (isNewSuperAdmin || user.getUpdatedAt() == null) {
-                user.setUpdatedAt(Instant.now());
-            }
-
-            userRepository.save(user);
-        };
+        userRepository.save(user);
     }
 }

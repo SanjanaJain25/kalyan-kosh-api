@@ -4,13 +4,16 @@ import com.example.kalyan_kosh_api.dto.AdminUserListResponse;
 import com.example.kalyan_kosh_api.dto.AdminUserResponse;
 import com.example.kalyan_kosh_api.dto.UpdateUserRequest;
 import com.example.kalyan_kosh_api.dto.UpdateUserRoleRequest;
+import com.example.kalyan_kosh_api.dto.UpdateMemberStatusRequest;
 import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.Role;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.service.AdminUserManagementService;
 import com.example.kalyan_kosh_api.service.ExportService;
 import com.example.kalyan_kosh_api.service.UserService;
+import com.example.kalyan_kosh_api.service.UserDeleteWorkflowService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,19 +50,22 @@ private final ExportService exportService;
 private final UserService userService;
 private final UserRepository userRepository;
 private final ExportMobilePermissionService exportMobilePermissionService;
+private final UserDeleteWorkflowService userDeleteWorkflowService;
 
     public AdminUserManagementController(
         AdminUserManagementService adminUserService,
         ExportService exportService,
         UserService userService,
         UserRepository userRepository,
-        ExportMobilePermissionService exportMobilePermissionService
+        ExportMobilePermissionService exportMobilePermissionService,
+        UserDeleteWorkflowService userDeleteWorkflowService
 ) {
     this.adminUserService = adminUserService;
     this.exportService = exportService;
     this.userService = userService;
     this.userRepository = userRepository;
     this.exportMobilePermissionService = exportMobilePermissionService;
+    this.userDeleteWorkflowService = userDeleteWorkflowService;
 }
 
 
@@ -203,6 +209,34 @@ public ResponseEntity<?> bulkLocationUpdate(
 }
 
     /**
+     * Update the member lifecycle/tracking flag.
+     * Admin/Super Admin only; does not change login/delete account status.
+     */
+    @PutMapping("/{id}/member-status")
+    @PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+    public ResponseEntity<?> updateMemberStatus(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateMemberStatusRequest request
+    ) {
+        try {
+            User actingUser = getCurrentUser();
+            AdminUserResponse updated = adminUserService.updateMemberStatus(
+                    id, request, actingUser.getId()
+            );
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Member status updated successfully",
+                    "user", updated
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * Block a user
      */
     @PutMapping("/{id}/block")
@@ -288,24 +322,36 @@ public ResponseEntity<?> resetManagerDashboardPassword(
      * Delete a user (soft delete)
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable String id) {
-        adminUserService.deleteUser(id);
+    public ResponseEntity<Map<String, String>> deleteUser(
+            @PathVariable String id,
+            HttpServletRequest httpRequest
+    ) {
+        User actingUser = getCurrentUser();
+        userDeleteWorkflowService.softDeleteUser(
+                id,
+                actingUser,
+                "Administrative delete",
+                "LEGACY_ADMIN_USERS_ENDPOINT",
+                httpRequest
+        );
+
         return ResponseEntity.ok(Map.of(
-                "message", "User deleted successfully",
-                "userId", id,
-                "action", "DELETED"
+                "message", "Delete request submitted successfully. User will move to trash only after Admin/Super Admin approval.",
+                "userId", id
         ));
     }
 
     @PutMapping("/{id}/restore")
-public ResponseEntity<?> restoreUser(@PathVariable String id) {
-    adminUserService.restoreUser(id);
-    return ResponseEntity.ok(Map.of("success", true, "message", "User restored"));
-}
-/**
- * Update user role
- * PUT /api/admin/users/{id}/role
- */
+    @PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
+    public ResponseEntity<?> restoreUser(
+            @PathVariable String id,
+            HttpServletRequest httpRequest
+    ) {
+        User actingUser = getCurrentUser();
+        userDeleteWorkflowService.restoreUser(id, actingUser, httpRequest);
+        return ResponseEntity.ok(Map.of("success", true, "message", "User restored"));
+    }
+
 @PutMapping("/{id}/role")
 public ResponseEntity<?> updateUserRole(
         @PathVariable String id,
@@ -338,6 +384,7 @@ public ResponseEntity<?> updateUserRole(
  * Recommended rule: user must already be soft-deleted (status=DELETED)
  */
 @DeleteMapping("/{id}/permanent")
+@PreAuthorize("hasAnyRole('SUPERADMIN','ADMIN')")
 public ResponseEntity<?> permanentDeleteUser(@PathVariable String id) {
     try {
         adminUserService.permanentDeleteUser(id);

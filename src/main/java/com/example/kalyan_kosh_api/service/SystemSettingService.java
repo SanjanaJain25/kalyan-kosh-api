@@ -23,7 +23,6 @@ private final UserRepository userRepository;
         return repo.save(setting);
     });
 }
-@jakarta.annotation.PostConstruct
 public void initializeDefaultSettings() {
     getOrCreateSetting("mobile_otp_enabled", "false");
     getOrCreateSetting("export_mobile_number_enabled", "true");
@@ -33,6 +32,10 @@ public void initializeDefaultSettings() {
     getOrCreateSetting("block_manager_export_mobile_enabled", "false");
 getOrCreateSetting("global_force_logout_after", "");
 getOrCreateSetting("emergency_help_count", "10000000");
+    // Sahyog payment amount settings
+    getOrCreateSetting("sahyog_default_amount", "0");
+    getOrCreateSetting("sahyog_amount_autofill_enabled", "false");
+    getOrCreateSetting("sahyog_amount_editable", "true");
     // Profile field lock settings
     getOrCreateSetting("profile_lock_full_name", "false");
     getOrCreateSetting("profile_lock_date_of_birth", "false");
@@ -172,6 +175,74 @@ public void updateSelfDonationQrUrl(String qrUrl) {
 
     repo.save(setting);
 }
+
+public double getSahyogDefaultAmount() {
+    String value = getOrCreateSetting("sahyog_default_amount", "0").getSettingValue();
+
+    try {
+        double amount = Double.parseDouble(value);
+        return amount > 0 ? amount : 0D;
+    } catch (Exception ex) {
+        return 0D;
+    }
+}
+
+public boolean isSahyogAmountAutofillEnabled() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("sahyog_amount_autofill_enabled", "false").getSettingValue()
+    );
+}
+
+public boolean isSahyogAmountEditable() {
+    return Boolean.parseBoolean(
+            getOrCreateSetting("sahyog_amount_editable", "true").getSettingValue()
+    );
+}
+
+public java.util.Map<String, Object> getSahyogPaymentSettings() {
+    java.util.Map<String, Object> settings = new java.util.HashMap<>();
+    settings.put("defaultAmount", getSahyogDefaultAmount());
+    settings.put("autoFillEnabled", isSahyogAmountAutofillEnabled());
+    settings.put("amountEditable", isSahyogAmountEditable());
+    return settings;
+}
+
+public void updateSahyogPaymentSettings(
+        double defaultAmount,
+        boolean autoFillEnabled,
+        boolean amountEditable
+) {
+    if (defaultAmount < 0) {
+        throw new IllegalArgumentException("Default Sahyog amount cannot be negative");
+    }
+
+    // A read-only amount must always have a value to display.
+    if (!amountEditable) {
+        autoFillEnabled = true;
+    }
+
+    if ((autoFillEnabled || !amountEditable) && defaultAmount <= 0) {
+        throw new IllegalArgumentException(
+                "A positive default Sahyog amount is required when auto fill is enabled or amount is read-only"
+        );
+    }
+
+    SystemSetting defaultAmountSetting = getOrCreateSetting("sahyog_default_amount", "0");
+    defaultAmountSetting.setSettingValue(String.valueOf(defaultAmount));
+    defaultAmountSetting.setUpdatedAt(Instant.now());
+    repo.save(defaultAmountSetting);
+
+    SystemSetting autoFillSetting = getOrCreateSetting("sahyog_amount_autofill_enabled", "false");
+    autoFillSetting.setSettingValue(String.valueOf(autoFillEnabled));
+    autoFillSetting.setUpdatedAt(Instant.now());
+    repo.save(autoFillSetting);
+
+    SystemSetting editableSetting = getOrCreateSetting("sahyog_amount_editable", "true");
+    editableSetting.setSettingValue(String.valueOf(amountEditable));
+    editableSetting.setUpdatedAt(Instant.now());
+    repo.save(editableSetting);
+}
+
 public boolean isProfileLockFullNameEnabled() {
     return Boolean.parseBoolean(
             getOrCreateSetting("profile_lock_full_name", "false").getSettingValue()

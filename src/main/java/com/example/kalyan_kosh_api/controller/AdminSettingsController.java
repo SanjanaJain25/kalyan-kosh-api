@@ -24,6 +24,44 @@ public AdminSettingsController(SystemSettingService settingService,
 }
 
 
+
+@GetMapping("/sahyog-payment")
+public Map<String, Object> getSahyogPaymentSettings() {
+    return settingService.getSahyogPaymentSettings();
+}
+
+@PutMapping("/sahyog-payment")
+public Map<String, Object> updateSahyogPaymentSettings(@RequestBody Map<String, Object> req) {
+    Object amountValue = req.get("defaultAmount");
+    double defaultAmount;
+
+    try {
+        defaultAmount = amountValue == null
+                ? 0D
+                : Double.parseDouble(String.valueOf(amountValue));
+    } catch (NumberFormatException ex) {
+        throw new IllegalArgumentException("Default Sahyog amount must be a valid number");
+    }
+
+    boolean autoFillEnabled = Boolean.parseBoolean(
+            String.valueOf(req.getOrDefault("autoFillEnabled", false))
+    );
+    boolean amountEditable = Boolean.parseBoolean(
+            String.valueOf(req.getOrDefault("amountEditable", true))
+    );
+
+    settingService.updateSahyogPaymentSettings(
+            defaultAmount,
+            autoFillEnabled,
+            amountEditable
+    );
+
+    return Map.of(
+            "success", true,
+            "settings", settingService.getSahyogPaymentSettings()
+    );
+}
+
     @GetMapping("/mobile-otp")
     public Map<String, Boolean> getMobileOtpSetting() {
         return Map.of(

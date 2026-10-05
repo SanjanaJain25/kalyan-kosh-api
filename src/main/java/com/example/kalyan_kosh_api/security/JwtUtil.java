@@ -1,5 +1,7 @@
 package com.example.kalyan_kosh_api.security;
 
+import com.example.kalyan_kosh_api.portal.PortalCode;
+import com.example.kalyan_kosh_api.portal.PortalContext;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +45,7 @@ public class JwtUtil {
                 .setSubject(ud.getUsername())
                 .claim("roles", roles)
                 .claim("client", client)
+                .claim("portal", PortalContext.get().name())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMs))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -59,5 +62,13 @@ public class JwtUtil {
 
     public Date extractIssuedAt(String token) {
         return validate(token).getBody().getIssuedAt();
+    }
+
+    /**
+     * Returns null for old TAB1 tokens created before the portal claim was introduced.
+     */
+    public PortalCode extractPortal(String token) {
+        String value = validate(token).getBody().get("portal", String.class);
+        return PortalCode.fromValue(value);
     }
 }

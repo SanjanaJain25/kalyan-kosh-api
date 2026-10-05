@@ -2,9 +2,12 @@ package com.example.kalyan_kosh_api.controller;
 
 import com.example.kalyan_kosh_api.dto.PageResponse;
 import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
+import com.example.kalyan_kosh_api.dto.PublicBinUserResponse;
 import com.example.kalyan_kosh_api.dto.PublicSahyogListResponse;
 import com.example.kalyan_kosh_api.service.MonthlySahyogService;
+import com.example.kalyan_kosh_api.service.PublicBinUserService;
 import com.example.kalyan_kosh_api.service.UserService;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,12 +17,65 @@ public class PublicListController {
 
     private final UserService userService;
     private final MonthlySahyogService monthlySahyogService;
+    private final PublicBinUserService publicBinUserService;
 
     public PublicListController(
             UserService userService,
-            MonthlySahyogService monthlySahyogService) {
+            MonthlySahyogService monthlySahyogService,
+            PublicBinUserService publicBinUserService) {
         this.userService = userService;
         this.monthlySahyogService = monthlySahyogService;
+        this.publicBinUserService = publicBinUserService;
+    }
+
+
+
+    @GetMapping("/bin-users")
+    public ResponseEntity<PageResponse<PublicBinUserResponse>> getPublicBinUsers(
+            @RequestParam(required = false) String sambhagId,
+            @RequestParam(required = false) String districtId,
+            @RequestParam(required = false) String blockId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        return ResponseEntity.ok(
+                publicBinUserService.getPublicBinUsers(
+                        sambhagId,
+                        districtId,
+                        blockId,
+                        name,
+                        userId,
+                        page,
+                        size
+                )
+        );
+    }
+
+
+    @GetMapping("/members/deceased")
+    public ResponseEntity<PageResponse<PublicMemberListResponse>> getPublicDeceasedMembers(
+            @RequestParam(required = false) String sambhagId,
+            @RequestParam(required = false) String districtId,
+            @RequestParam(required = false) String blockId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        return ResponseEntity.ok(
+                userService.getPublicMembersByMemberStatusFiltered(
+                        MemberStatus.DECEASED,
+                        sambhagId,
+                        districtId,
+                        blockId,
+                        name,
+                        userId,
+                        page,
+                        size
+                )
+        );
     }
 
     @GetMapping("/members/filter")

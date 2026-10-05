@@ -31,6 +31,9 @@ import java.util.UUID;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import com.example.kalyan_kosh_api.portal.PortalCode;
+import com.example.kalyan_kosh_api.portal.PortalContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
 import com.example.kalyan_kosh_api.dto.PublicSahyogListResponse;
 
@@ -41,17 +44,21 @@ public class MonthlySahyogService {
     private final UserRepository userRepo;
     private final DeathCaseRepository deathCaseRepo;
     private final ReceiptRepository receiptRepo;
+private final JdbcTemplate jdbcTemplate;
 
-    public MonthlySahyogService(
-            MonthlySahyogRepository sahyogRepo,
-            UserRepository userRepo,
-            DeathCaseRepository deathCaseRepo,
-            ReceiptRepository receiptRepo) {
+   public MonthlySahyogService(
+        MonthlySahyogRepository sahyogRepo,
+        UserRepository userRepo,
+        DeathCaseRepository deathCaseRepo,
+        ReceiptRepository receiptRepo,
+        JdbcTemplate jdbcTemplate
+) {
 
         this.sahyogRepo = sahyogRepo;
         this.userRepo = userRepo;
         this.deathCaseRepo = deathCaseRepo;
         this.receiptRepo = receiptRepo;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public MonthlySahyog generate(LocalDate sahyogDate) {
@@ -128,6 +135,37 @@ public List<DonorResponse> getDonorsForExportByBeneficiary(
             .toList();
 }
 private static final ZoneId INDIA_ZONE = ZoneId.of("Asia/Kolkata");
+
+private String getTab2EmployeeCategory(
+        String userId
+) {
+
+    if (userId == null ||
+        PortalContext.get() != PortalCode.TAB2) {
+
+        return null;
+    }
+
+    List<String> values =
+            jdbcTemplate.query(
+                    """
+                    SELECT employee_category
+                    FROM users
+                    WHERE id = ?
+                    """,
+
+                    (rs, rowNum) ->
+                            rs.getString(
+                                    "employee_category"
+                            ),
+
+                    userId
+            );
+
+    return values.isEmpty()
+            ? null
+            : values.get(0);
+}
 
 private LocalDateTime toIndiaDateTime(Object value) {
     if (value == null) {
@@ -293,6 +331,12 @@ boolean isLast = safePage >= totalPages - 1;
             .map(row -> DonorResponse.builder()
                     .registrationNumber((String) row[0])
                     .name(row[2] + (row[3] != null ? " " + row[3] : ""))
+                     .employeeCategory(
+                getTab2EmployeeCategory(
+                        (String) row[0]
+                )
+        )
+
                     .department((String) row[4])
                     .state((String) row[5])
                     .sambhag((String) row[6])
@@ -324,6 +368,10 @@ private PublicSahyogListResponse toPublicSahyogListResponse(DonorResponse donor)
     return PublicSahyogListResponse.builder()
             .registrationNumber(donor.getRegistrationNumber())
             .name(donor.getName())
+                    .employeeCategory(
+                donor.getEmployeeCategory()
+        )
+
             .department(donor.getDepartment())
             .state(donor.getState())
             .sambhag(donor.getSambhag())
@@ -418,7 +466,11 @@ private PublicMemberListResponse toPublicMemberListResponse(UserResponse user) {
 
             .name(user.getName())
             .surname(user.getSurname())
-
+.employeeCategory(
+        getTab2EmployeeCategory(
+                user.getId()
+        )
+)
             .department(user.getDepartment())
 
             .departmentState(user.getDepartmentState())

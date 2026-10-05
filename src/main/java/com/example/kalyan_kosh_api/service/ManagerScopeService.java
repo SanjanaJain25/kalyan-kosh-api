@@ -325,29 +325,48 @@ public List<UUID> getAccessibleBlockIds(User manager) {
      * Check if user can access specific user based on location hierarchy
      */
     public boolean canAccessUser(User manager, User targetUser) {
-        // Admin can access everyone
-        if (manager.getRole() == Role.ROLE_ADMIN) {
+        if (manager == null || targetUser == null) {
+            return false;
+        }
+
+        // Admin and Super Admin are unrestricted.
+        if (isAdminOrSuperAdmin(manager)) {
             return true;
         }
-        
-        // Self access
-        if (manager.getId().equals(targetUser.getId())) {
+
+        // Managers may always access their own record.
+        if (manager.getId() != null && manager.getId().equals(targetUser.getId())) {
             return true;
         }
-        
-        // Check based on target user's location (using department* fields from User entity)
-        if (targetUser.getDepartmentBlock() != null && hasAccessToBlock(manager, targetUser.getDepartmentBlock().getId())) {
+
+        if (!isManager(manager)) {
+            return false;
+        }
+
+        /*
+         * IMPORTANT: use the exact same expanded scope lists that power the
+         * Manager Dashboard user list. This keeps VIEW and DELETE REQUEST
+         * authorization consistent for Sambhag -> District -> Block inheritance.
+         */
+        List<UUID> accessibleSambhagIds = getAccessibleSambhagIds(manager);
+        List<UUID> accessibleDistrictIds = getAccessibleDistrictIds(manager);
+        List<UUID> accessibleBlockIds = getAccessibleBlockIds(manager);
+
+        if (targetUser.getDepartmentBlock() != null
+                && accessibleBlockIds.contains(targetUser.getDepartmentBlock().getId())) {
             return true;
         }
-        
-        if (targetUser.getDepartmentDistrict() != null && hasAccessToDistrict(manager, targetUser.getDepartmentDistrict().getId())) {
+
+        if (targetUser.getDepartmentDistrict() != null
+                && accessibleDistrictIds.contains(targetUser.getDepartmentDistrict().getId())) {
             return true;
         }
-        
-        if (targetUser.getDepartmentSambhag() != null && hasAccessToSambhag(manager, targetUser.getDepartmentSambhag().getId())) {
+
+        if (targetUser.getDepartmentSambhag() != null
+                && accessibleSambhagIds.contains(targetUser.getDepartmentSambhag().getId())) {
             return true;
         }
-        
+
         return false;
     }
     

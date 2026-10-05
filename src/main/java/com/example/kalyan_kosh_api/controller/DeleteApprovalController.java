@@ -105,7 +105,7 @@ public class DeleteApprovalController {
 
 userDeleteWorkflowService.approveDeleteRequest(requestId, actingUser, httpRequest);
         return ResponseEntity.ok().body(java.util.Map.of(
-        "message", "Delete request approved successfully. User remains in trash until permanent deletion."
+        "message", "Delete request approved successfully. User has been moved to trash and can be restored if needed."
 ));
     }
 @PostMapping("/users/{userId}/permanent-delete")

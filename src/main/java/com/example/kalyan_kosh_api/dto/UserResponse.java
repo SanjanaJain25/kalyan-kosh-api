@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.dto;
 
 import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -18,6 +19,11 @@ public class UserResponse {
     private String gender;
     private String maritalStatus;
     private String homeAddress;
+
+    // TAB 2 additional profile fields
+    private String tehsil;
+    private String employeeCategory;
+
     private Integer pincode;            // Added pincode
     private LocalDate dateOfBirth;
     private LocalDate joiningDate;      // Added joining date
@@ -35,6 +41,7 @@ public class UserResponse {
     private String nominee2Name;
     private String nominee2Relation;
     private Role role;
+    private MemberStatus memberStatus;
     private Instant createdAt;
 private String mobileNumber;
 private Long assignedDeathCaseId;
@@ -80,6 +87,12 @@ public void setMobileNumber(String mobileNumber) {
 
     public String getHomeAddress() { return homeAddress; }
     public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+
+    public String getTehsil() { return tehsil; }
+    public void setTehsil(String tehsil) { this.tehsil = tehsil; }
+
+    public String getEmployeeCategory() { return employeeCategory; }
+    public void setEmployeeCategory(String employeeCategory) { this.employeeCategory = employeeCategory; }
 
     public Integer getPincode() { return pincode; }
     public void setPincode(Integer pincode) { this.pincode = pincode; }
@@ -132,6 +145,9 @@ public void setMobileNumber(String mobileNumber) {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public MemberStatus getMemberStatus() { return memberStatus; }
+    public void setMemberStatus(MemberStatus memberStatus) { this.memberStatus = memberStatus; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

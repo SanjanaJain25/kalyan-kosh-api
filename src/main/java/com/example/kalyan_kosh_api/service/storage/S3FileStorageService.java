@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.service.storage;
 
+import com.example.kalyan_kosh_api.portal.PortalContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -85,7 +86,8 @@ public class S3FileStorageService implements FileStorageService {
                 filename = System.currentTimeMillis() + "_" + originalFilename;
             }
 
-            String key = subdirectory + "/" + filename;
+            String portalFolder = PortalContext.get().getSlug();
+            String key = portalFolder + "/" + subdirectory + "/" + filename;
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)

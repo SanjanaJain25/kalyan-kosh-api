@@ -13,6 +13,11 @@ public class UpdateUserRequest {
     private String gender;
     private String maritalStatus;
     private String homeAddress;
+
+    // TAB 2 additional profile fields
+    private String tehsil;
+    private String employeeCategory;
+
     private Integer pincode;            // Added pincode
     private String dateOfBirth;         // Added date of birth
     private String joiningDate;         // Added joining date

@@ -18,6 +18,7 @@ public class DonorResponse {
 private Long deathCaseId;
     private String registrationNumber;      // पंजीकरण संख्या
     private String name;                    // नाम
+    private String employeeCategory;
     private String department;              // विभाग
     private String state;                   // राज्य
     private String sambhag;                 // संभाग

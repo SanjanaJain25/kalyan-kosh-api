@@ -3,6 +3,9 @@ package com.example.kalyan_kosh_api.config;
 import com.example.kalyan_kosh_api.security.CustomUserDetailsService;
 import com.example.kalyan_kosh_api.security.JwtAuthFilter;
 import com.example.kalyan_kosh_api.security.JwtUtil;
+import com.example.kalyan_kosh_api.portal.PortalDatabaseProperties;
+import com.example.kalyan_kosh_api.portal.PortalHeaderFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,15 +33,18 @@ public class SecurityConfig {
    private final CustomUserDetailsService uds;
 private final JwtUtil jwtUtil;
 private final SystemSettingService systemSettingService;
+private final PortalDatabaseProperties portalDatabaseProperties;
 
    public SecurityConfig(
         CustomUserDetailsService uds,
         JwtUtil jwtUtil,
-        SystemSettingService systemSettingService
+        SystemSettingService systemSettingService,
+        PortalDatabaseProperties portalDatabaseProperties
 ) {
     this.uds = uds;
     this.jwtUtil = jwtUtil;
     this.systemSettingService = systemSettingService;
+    this.portalDatabaseProperties = portalDatabaseProperties;
 }
 
     @Bean
@@ -58,6 +64,30 @@ private final SystemSettingService systemSettingService;
 public JwtAuthFilter jwtAuthFilter() {
     return new JwtAuthFilter(jwtUtil, uds, systemSettingService);
 }
+
+    @Bean
+    public PortalHeaderFilter portalHeaderFilter() {
+        return new PortalHeaderFilter(portalDatabaseProperties);
+    }
+
+    // These filters are managed by Spring Security; disable separate servlet registration.
+    @Bean
+    public FilterRegistrationBean<PortalHeaderFilter> portalHeaderFilterRegistration(
+            PortalHeaderFilter filter
+    ) {
+        FilterRegistrationBean<PortalHeaderFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthFilter> jwtAuthFilterRegistration(
+            JwtAuthFilter filter
+    ) {
+        FilterRegistrationBean<JwtAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -193,9 +223,11 @@ public JwtAuthFilter jwtAuthFilter() {
                         .anyRequest().authenticated()
                 )
 
-                // JWT filter
+                // Portal must be resolved before authentication and repository access.
                 .addFilterBefore(jwtAuthFilter(),
                         UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(portalHeaderFilter(),
+                        JwtAuthFilter.class)
 
                 .build();
     }
@@ -242,7 +274,7 @@ public CorsConfigurationSource corsConfigurationSource() {
     ));
 
     configuration.setAllowedHeaders(List.of("*"));
-    configuration.setExposedHeaders(List.of("Authorization"));
+    configuration.setExposedHeaders(List.of("Authorization", "X-Portal-Code"));
     configuration.setAllowCredentials(true); // works now
     configuration.setMaxAge(3600L);
 

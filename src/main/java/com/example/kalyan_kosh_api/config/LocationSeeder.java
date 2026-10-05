@@ -10,92 +10,96 @@ import com.example.kalyan_kosh_api.repository.SambhagRepository;
 import com.example.kalyan_kosh_api.repository.StateRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
 
-@Configuration
+@Component
 public class LocationSeeder {
 
-    @Bean
-    public CommandLineRunner seedData(
+    private static final Logger log = LoggerFactory.getLogger(LocationSeeder.class);
+
+    private final StateRepository stateRepo;
+    private final SambhagRepository sambhagRepo;
+    private final DistrictRepository districtRepo;
+    private final BlockRepository blockRepo;
+    private final ObjectMapper objectMapper;
+
+    public LocationSeeder(
             StateRepository stateRepo,
             SambhagRepository sambhagRepo,
             DistrictRepository districtRepo,
-            BlockRepository blockRepo
+            BlockRepository blockRepo,
+            ObjectMapper objectMapper
     ) {
-        return args -> {
+        this.stateRepo = stateRepo;
+        this.sambhagRepo = sambhagRepo;
+        this.districtRepo = districtRepo;
+        this.blockRepo = blockRepo;
+        this.objectMapper = objectMapper;
+    }
 
-            // Seed ONLY if no state data exists
-            if (stateRepo.count() > 0) {
-                return;
+    public void seedIfMissing() {
+        if (stateRepo.count() > 0) {
+            return;
+        }
+
+        try (InputStream inputStream = new ClassPathResource(
+                "data/madhya_pradesh_district_blocks.json"
+        ).getInputStream()) {
+            JsonNode root = objectMapper.readTree(inputStream);
+            JsonNode mpNode = root.get("Madhya Pradesh");
+
+            if (mpNode == null || !mpNode.isObject()) {
+                throw new IllegalStateException("Madhya Pradesh location data is missing from seed JSON.");
             }
 
-            try {
-                ClassPathResource resource =
-                        new ClassPathResource("data/madhya_pradesh_district_blocks.json");
+            State state = new State();
+            state.setName("Madhya Pradesh");
+            state.setCode("MP");
+            state = stateRepo.save(state);
 
-                InputStream is = resource.getInputStream();
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode root = mapper.readTree(is);
+            Iterator<Map.Entry<String, JsonNode>> divisionFields = mpNode.fields();
 
-                // Get "Madhya Pradesh" node
-                JsonNode mpNode = root.get("Madhya Pradesh");
+            while (divisionFields.hasNext()) {
+                Map.Entry<String, JsonNode> divisionEntry = divisionFields.next();
+                String sambhagName = divisionEntry.getKey().trim();
+                JsonNode districtsNode = divisionEntry.getValue();
 
-                // Create State
-                State state = new State();
-                state.setName("Madhya Pradesh");
-                state.setCode("MP");
-                state = stateRepo.save(state);
+                Sambhag sambhag = new Sambhag();
+                sambhag.setName(sambhagName);
+                sambhag.setState(state);
+                sambhag = sambhagRepo.save(sambhag);
 
-                // Iterate through divisions (Bhopal, Chambal, Gwalior, etc.)
-                Iterator<Map.Entry<String, JsonNode>> divisionFields = mpNode.fields();
+                Iterator<Map.Entry<String, JsonNode>> districtFields = districtsNode.fields();
 
-                while (divisionFields.hasNext()) {
-                    Map.Entry<String, JsonNode> divisionEntry = divisionFields.next();
-                    String sambhagName = divisionEntry.getKey().trim();
-                    JsonNode districtsNode = divisionEntry.getValue();
+                while (districtFields.hasNext()) {
+                    Map.Entry<String, JsonNode> districtEntry = districtFields.next();
+                    String districtName = districtEntry.getKey().trim();
+                    JsonNode blocksArray = districtEntry.getValue();
 
-                    // Create Sambhag (Division)
-                    Sambhag sambhag = new Sambhag();
-                    sambhag.setName(sambhagName);
-                    sambhag.setState(state);
-                    sambhag = sambhagRepo.save(sambhag);
+                    District district = new District();
+                    district.setName(districtName);
+                    district.setSambhag(sambhag);
+                    district = districtRepo.save(district);
 
-                    // Iterate through districts in this division
-                    Iterator<Map.Entry<String, JsonNode>> districtFields = districtsNode.fields();
-
-                    while (districtFields.hasNext()) {
-                        Map.Entry<String, JsonNode> districtEntry = districtFields.next();
-                        String districtName = districtEntry.getKey();
-                        JsonNode blocksArray = districtEntry.getValue();
-
-                        // Create District
-                        District district = new District();
-                        district.setName(districtName);
-                        district.setSambhag(sambhag);
-                        district = districtRepo.save(district);
-
-                        // Create Blocks
-                        for (JsonNode blockNameNode : blocksArray) {
-                            String blockName = blockNameNode.asText();
-
-                            Block block = new Block();
-                            block.setName(blockName);
-                            block.setDistrict(district);
-                            blockRepo.save(block);
-                        }
+                    for (JsonNode blockNameNode : blocksArray) {
+                        Block block = new Block();
+                        block.setName(blockNameNode.asText().trim());
+                        block.setDistrict(district);
+                        blockRepo.save(block);
                     }
                 }
-
-            } catch (Exception ex) {
-                // Log error silently
             }
-        };
+
+            log.info("Location seed data created successfully.");
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to seed location data.", ex);
+        }
     }
 }

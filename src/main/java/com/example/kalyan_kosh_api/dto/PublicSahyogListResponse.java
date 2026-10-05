@@ -13,9 +13,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PublicSahyogListResponse {
 
-    private String registrationNumber;
-    private String name;
-    private String department;
+private String registrationNumber;
+private String name;
+
+// TAB 2
+private String employeeCategory;
+
+private String department;
     private String state;
     private String sambhag;
     private String district;

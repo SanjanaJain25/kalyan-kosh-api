@@ -16,10 +16,13 @@ public class PublicMemberListResponse {
     private String id;
     private String registrationNumber;
 
-    private String name;
-    private String surname;
+private String name;
+private String surname;
 
-    private String department;
+// TAB 2
+private String employeeCategory;
+
+private String department;
 
     private String departmentState;
     private String departmentSambhag;

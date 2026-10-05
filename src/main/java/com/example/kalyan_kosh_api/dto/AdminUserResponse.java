@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.dto;
 
 import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,6 +49,10 @@ private String nominee2Relation;
     // System fields
     private Role role;
     private UserStatus status;
+    private MemberStatus memberStatus;
+    private Instant memberStatusUpdatedAt;
+    private String memberStatusUpdatedBy;
+    private Double totalSahyog;
     private Instant createdAt;
 private Instant updatedAt;
 private Instant lastLoginAt;
@@ -55,6 +60,8 @@ private Instant lastLoginAt;
     // Additional fields for admin
     private String homeAddress;
     private Integer pincode;
+    private String tehsil;
+private String employeeCategory;
     private LocalDate joiningDate;
     private LocalDate retirementDate;
 }

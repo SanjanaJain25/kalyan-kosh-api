@@ -1,5 +1,6 @@
 package com.example.kalyan_kosh_api.service.storage;
 
+import com.example.kalyan_kosh_api.portal.PortalContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,7 +41,8 @@ public class LocalFileStorageService implements FileStorageService {
         try {
             // Use absolute path from current working directory
             String userDir = System.getProperty("user.dir");
-            Path baseDir = Paths.get(userDir, BASE_UPLOAD_DIR, subdirectory);
+            String portalFolder = PortalContext.get().getSlug();
+            Path baseDir = Paths.get(userDir, BASE_UPLOAD_DIR, portalFolder, subdirectory);
 
             log.info("Storing file - UserDir: {}, BaseDir: {}, Subdirectory: {}",
                      userDir, baseDir.toAbsolutePath(), subdirectory);
@@ -75,7 +77,7 @@ public class LocalFileStorageService implements FileStorageService {
             }
 
             log.info("Successfully stored file: {}", destPath.toAbsolutePath());
-            return "/uploads/" + subdirectory + "/" + filename;
+            return "/uploads/" + portalFolder + "/" + subdirectory + "/" + filename;
         } catch (IOException e) {
             log.error("Failed to store file. Subdirectory: {}, CustomName: {}, Error: {}",
                       subdirectory, customName, e.getMessage(), e);

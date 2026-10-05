@@ -190,23 +190,31 @@ private Specification<User> buildManagerUserSpecification(
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             
-            // Location-based access control
-            if (!accessibleSambhagIds.isEmpty() || !accessibleDistrictIds.isEmpty() || !accessibleBlockIds.isEmpty()) {
+            // Location-based access control. A manager without any active
+            // assignment must see NO users (the old code accidentally showed all).
+            boolean hasAnyAccessibleLocation =
+                    !accessibleSambhagIds.isEmpty()
+                            || !accessibleDistrictIds.isEmpty()
+                            || !accessibleBlockIds.isEmpty();
+
+            if (!hasAnyAccessibleLocation) {
+                predicates.add(criteriaBuilder.disjunction());
+            } else {
                 List<Predicate> locationPredicates = new ArrayList<>();
-                
+
                 if (!accessibleSambhagIds.isEmpty()) {
                     locationPredicates.add(root.get("departmentSambhag").get("id").in(accessibleSambhagIds));
                 }
-                
+
                 if (!accessibleDistrictIds.isEmpty()) {
                     locationPredicates.add(root.get("departmentDistrict").get("id").in(accessibleDistrictIds));
                 }
-                
+
                 if (!accessibleBlockIds.isEmpty()) {
                     locationPredicates.add(root.get("departmentBlock").get("id").in(accessibleBlockIds));
                 }
-                
-                // OR condition: user belongs to any accessible location
+
+                // OR condition: user belongs to any accessible location.
                 predicates.add(criteriaBuilder.or(locationPredicates.toArray(new Predicate[0])));
             }
             

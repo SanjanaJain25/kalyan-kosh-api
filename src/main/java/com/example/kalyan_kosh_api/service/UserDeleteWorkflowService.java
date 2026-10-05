@@ -358,6 +358,22 @@ public int permanentlyDeleteAllUsersFromTrash(User actingUser, HttpServletReques
 @Transactional(readOnly = true)
 public List<Map<String, Object>> getDeletedUsersForTrash() {
     List<User> users = userRepository.findDeletedUsers(UserStatus.DELETED);
+    List<String> userIds = users.stream().map(User::getId).toList();
+    Map<String, Double> totalSahyogByUser = new HashMap<>();
+    Map<String, Long> sahyogCountByUser = new HashMap<>();
+
+    if (!userIds.isEmpty()) {
+        for (Object[] row : receiptRepository.sumVerifiedSahyogByUserIds(userIds)) {
+            if (row == null || row.length < 2 || row[0] == null) {
+                continue;
+            }
+            String id = String.valueOf(row[0]);
+            double total = row[1] instanceof Number ? ((Number) row[1]).doubleValue() : 0.0;
+            long count = row.length > 2 && row[2] instanceof Number ? ((Number) row[2]).longValue() : 0L;
+            totalSahyogByUser.put(id, total);
+            sahyogCountByUser.put(id, count);
+        }
+    }
 
     return users.stream().map(u -> {
         Map<String, Object> map = new HashMap<>();
@@ -368,6 +384,9 @@ public List<Map<String, Object>> getDeletedUsersForTrash() {
         map.put("mobileNumber", u.getMobileNumber());
         map.put("role", u.getRole());
         map.put("status", u.getStatus());
+        map.put("memberStatus", u.getMemberStatus() != null ? u.getMemberStatus() : MemberStatus.NORMAL);
+        map.put("totalSahyog", totalSahyogByUser.getOrDefault(u.getId(), 0.0));
+        map.put("sahyogCount", sahyogCountByUser.getOrDefault(u.getId(), 0L));
         map.put("deletedAt", u.getDeletedAt());
         map.put("deleteReason", u.getDeleteReason());
 

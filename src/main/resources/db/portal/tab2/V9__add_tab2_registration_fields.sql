@@ -1,0 +1,3 @@
+ALTER TABLE users
+    ADD COLUMN employee_category VARCHAR(255) NULL,
+    ADD COLUMN tehsil VARCHAR(150) NULL;

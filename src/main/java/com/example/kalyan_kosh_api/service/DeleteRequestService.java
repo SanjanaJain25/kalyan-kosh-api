@@ -54,6 +54,9 @@ if (pendingRequestExists) {
     @Transactional
     public DeleteRequest approveRequest(Long requestId, User approvedBy) {
         DeleteRequest request = getById(requestId);
+        if (request.getStatus() != DeleteRequestStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending delete requests can be approved.");
+        }
         request.setStatus(DeleteRequestStatus.APPROVED);
         request.setApprovedBy(approvedBy);
         request.setApprovedAt(Instant.now());
@@ -64,6 +67,9 @@ if (pendingRequestExists) {
     @Transactional
     public DeleteRequest rejectRequest(Long requestId, User rejectedBy, String rejectionReason) {
         DeleteRequest request = getById(requestId);
+        if (request.getStatus() != DeleteRequestStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending delete requests can be rejected.");
+        }
         request.setStatus(DeleteRequestStatus.REJECTED);
         request.setRejectedBy(rejectedBy);
         request.setRejectedAt(Instant.now());

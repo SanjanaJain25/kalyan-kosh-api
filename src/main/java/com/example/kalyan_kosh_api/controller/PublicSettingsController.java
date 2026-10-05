@@ -16,6 +16,12 @@ public class PublicSettingsController {
     public PublicSettingsController(SystemSettingService settingService) {
         this.settingService = settingService;
     }
+
+    @GetMapping("/sahyog-payment-settings")
+    public Map<String, Object> getSahyogPaymentSettings() {
+        return settingService.getSahyogPaymentSettings();
+    }
+
     @GetMapping("/home-display-content")
 public Map<String, String> getHomeDisplayContent() {
     return settingService.getHomeDisplayContentSettings();

@@ -696,4 +696,16 @@ List<Object[]> searchDonorsByBeneficiaryForExportNative(
     ORDER BY MAX(r.uploaded_at) DESC
     """, nativeQuery = true)
 List<Object[]> searchAllDonorsForExportNative();
+
+
+@Query("""
+    SELECT r.user.id, COALESCE(SUM(r.amount), 0), COUNT(r.id)
+    FROM Receipt r
+    WHERE r.user.id IN :userIds
+      AND r.amount > 0
+      AND r.status = com.example.kalyan_kosh_api.entity.ReceiptStatus.VERIFIED
+    GROUP BY r.user.id
+""")
+List<Object[]> sumVerifiedSahyogByUserIds(@Param("userIds") List<String> userIds);
+
 }

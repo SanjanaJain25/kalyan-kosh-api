@@ -1,6 +1,7 @@
 package com.example.kalyan_kosh_api.repository;
 
 import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import com.example.kalyan_kosh_api.entity.User;
 import com.example.kalyan_kosh_api.entity.UserStatus;
 import org.springframework.data.domain.Page;
@@ -1011,9 +1012,9 @@ List<User> findPendingProfileUsersForExport(
           AND u.joiningDate IS NOT NULL
           AND (:fromDate IS NULL OR u.joiningDate >= :fromDate)
           AND (:toDate IS NULL OR u.joiningDate <= :toDate)
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+          AND (:districtId IS NULL OR d.id = :districtId)
+          AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1025,9 +1026,9 @@ List<User> findPendingProfileUsersForExport(
           )
           AND (
                 :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
+                OR sa.id IN :scopeSambhagIds
+                OR d.id IN :scopeDistrictIds
+                OR b.id IN :scopeBlockIds
           )
         ORDER BY u.joiningDate ASC, u.createdAt DESC
     """,
@@ -1090,9 +1091,9 @@ Page<User> findUsersForJoiningDateReport(
           AND u.retirementDate IS NOT NULL
           AND (:fromDate IS NULL OR u.retirementDate >= :fromDate)
           AND (:toDate IS NULL OR u.retirementDate <= :toDate)
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+          AND (:districtId IS NULL OR d.id = :districtId)
+          AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1104,9 +1105,9 @@ Page<User> findUsersForJoiningDateReport(
           )
           AND (
                 :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
+                OR sa.id IN :scopeSambhagIds
+                OR d.id IN :scopeDistrictIds
+                OR b.id IN :scopeBlockIds
           )
         ORDER BY u.retirementDate ASC, u.createdAt DESC
     """,
@@ -1169,9 +1170,9 @@ Page<User> findUsersForRetirementDateReport(
                 u.lastLoginAt < :cutoff
                 OR (u.lastLoginAt IS NULL AND u.createdAt <= :cutoff)
           )
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+          AND (:districtId IS NULL OR d.id = :districtId)
+          AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1183,9 +1184,9 @@ Page<User> findUsersForRetirementDateReport(
           )
           AND (
                 :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
+                OR sa.id IN :scopeSambhagIds
+                OR d.id IN :scopeDistrictIds
+                OR b.id IN :scopeBlockIds
           )
         ORDER BY
           CASE WHEN u.lastLoginAt IS NULL THEN 0 ELSE 1 END ASC,
@@ -1255,9 +1256,9 @@ Page<User> findUsersNotLoggedInSinceReport(
                   AND r.amount > 0
                   AND r.paymentDate >= :cutoffDate
           )
-          AND (:sambhagId IS NULL OR CAST(sa.id AS string) = :sambhagId)
-          AND (:districtId IS NULL OR CAST(d.id AS string) = :districtId)
-          AND (:blockId IS NULL OR CAST(b.id AS string) = :blockId)
+          AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+          AND (:districtId IS NULL OR d.id = :districtId)
+          AND (:blockId IS NULL OR b.id = :blockId)
           AND (
                 :search IS NULL
                 OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -1269,9 +1270,9 @@ Page<User> findUsersNotLoggedInSinceReport(
           )
           AND (
                 :unrestricted = true
-                OR CAST(sa.id AS string) IN :scopeSambhagIds
-                OR CAST(d.id AS string) IN :scopeDistrictIds
-                OR CAST(b.id AS string) IN :scopeBlockIds
+                OR sa.id IN :scopeSambhagIds
+                OR d.id IN :scopeDistrictIds
+                OR b.id IN :scopeBlockIds
           )
         ORDER BY u.createdAt DESC
     """,
@@ -1558,4 +1559,108 @@ Page<User> searchNonDonorsPaginated(
 );
 long countByStatus(UserStatus status);
 long countByRoleAndStatusNot(Role role, UserStatus status);
+
+
+@Query(
+        value = """
+                SELECT u
+                FROM User u
+                LEFT JOIN FETCH u.departmentState st
+                LEFT JOIN FETCH u.departmentSambhag sa
+                LEFT JOIN FETCH u.departmentDistrict d
+                LEFT JOIN FETCH u.departmentBlock b
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                """,
+        countQuery = """
+                SELECT COUNT(u)
+                FROM User u
+                LEFT JOIN u.departmentSambhag sa
+                LEFT JOIN u.departmentDistrict d
+                LEFT JOIN u.departmentBlock b
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND u.status = com.example.kalyan_kosh_api.entity.UserStatus.DELETED
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                """
+)
+Page<User> searchPublicBinUsers(
+        @Param("sambhagId") UUID sambhagId,
+        @Param("districtId") UUID districtId,
+        @Param("blockId") UUID blockId,
+        @Param("name") String name,
+        @Param("userId") String userId,
+        Pageable pageable
+);
+
+
+@Query(
+        value = """
+                SELECT u
+                FROM User u
+                LEFT JOIN FETCH u.departmentState st
+                LEFT JOIN FETCH u.departmentSambhag sa
+                LEFT JOIN FETCH u.departmentDistrict d
+                LEFT JOIN FETCH u.departmentBlock b
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND u.memberStatus = :memberStatus
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                """,
+        countQuery = """
+                SELECT COUNT(u)
+                FROM User u
+                LEFT JOIN u.departmentSambhag sa
+                LEFT JOIN u.departmentDistrict d
+                LEFT JOIN u.departmentBlock b
+                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                  AND u.memberStatus = :memberStatus
+                  AND (:sambhagId IS NULL OR sa.id = :sambhagId)
+                  AND (:districtId IS NULL OR d.id = :districtId)
+                  AND (:blockId IS NULL OR b.id = :blockId)
+                  AND (
+                        :name IS NULL
+                        OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                        OR LOWER(COALESCE(u.surname, '')) LIKE LOWER(CONCAT('%', :name, '%'))
+                  )
+                  AND (:userId IS NULL OR LOWER(COALESCE(u.id, '')) LIKE LOWER(CONCAT('%', :userId, '%')))
+                """
+)
+Page<User> searchPublicUsersByMemberStatus(
+        @Param("memberStatus") MemberStatus memberStatus,
+        @Param("sambhagId") UUID sambhagId,
+        @Param("districtId") UUID districtId,
+        @Param("blockId") UUID blockId,
+        @Param("name") String name,
+        @Param("userId") String userId,
+        Pageable pageable
+);
+
 }

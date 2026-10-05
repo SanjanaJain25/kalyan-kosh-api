@@ -16,6 +16,8 @@ public class RegisterRequest {
     // Removed username field - now using email for authentication
     private String password;
     private String homeAddress;
+    private String tehsil;
+    private String employeeCategory;
     private Integer pincode;            // Added pincode
     private String dateOfBirth;         // "1999-09-11"
     private String joiningDate;         // Added joining date
@@ -67,6 +69,12 @@ public class RegisterRequest {
 
     public String getHomeAddress() { return homeAddress; }
     public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+
+    public String getTehsil() { return tehsil; }
+    public void setTehsil(String tehsil) { this.tehsil = tehsil; }
+
+    public String getEmployeeCategory() { return employeeCategory; }
+    public void setEmployeeCategory(String employeeCategory) { this.employeeCategory = employeeCategory; }
 
     public Integer getPincode() { return pincode; }
     public void setPincode(Integer pincode) { this.pincode = pincode; }

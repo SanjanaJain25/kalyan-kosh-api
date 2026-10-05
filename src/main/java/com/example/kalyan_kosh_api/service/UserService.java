@@ -7,6 +7,7 @@ import com.example.kalyan_kosh_api.dto.UserResponse;
 import com.example.kalyan_kosh_api.entity.Block;
 import com.example.kalyan_kosh_api.entity.District;
 import com.example.kalyan_kosh_api.entity.Role;
+import com.example.kalyan_kosh_api.entity.MemberStatus;
 import com.example.kalyan_kosh_api.entity.Sambhag;
 import com.example.kalyan_kosh_api.entity.State;
 import com.example.kalyan_kosh_api.entity.User;
@@ -46,6 +47,9 @@ import java.util.ArrayList;
 import com.example.kalyan_kosh_api.repository.DeathCaseRepository;
 import com.example.kalyan_kosh_api.dto.PublicMemberListResponse;
 import com.example.kalyan_kosh_api.dto.PublicUserResponse;
+import com.example.kalyan_kosh_api.portal.PortalCode;
+import com.example.kalyan_kosh_api.portal.PortalContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @Service
 public class UserService {
@@ -61,6 +65,7 @@ public class UserService {
 private final ReceiptRepository receiptRepo;
 private final SystemSettingService systemSettingService;
 private final DeathCaseRepository deathCaseRepository;
+private final JdbcTemplate jdbcTemplate;
 
 public UserService(UserRepository userRepo,
                    BlockRepository blockRepo,
@@ -72,7 +77,8 @@ public UserService(UserRepository userRepo,
                    EmailService emailService,
                    ReceiptRepository receiptRepo,
                    SystemSettingService systemSettingService,
-                   DeathCaseRepository deathCaseRepository) {
+                   DeathCaseRepository deathCaseRepository,
+                   JdbcTemplate jdbcTemplate) {
     this.userRepo = userRepo;
     this.blockRepo = blockRepo;
     this.districtRepo = districtRepo;
@@ -84,6 +90,7 @@ public UserService(UserRepository userRepo,
     this.receiptRepo = receiptRepo;
     this.systemSettingService = systemSettingService;
     this.deathCaseRepository = deathCaseRepository;
+    this.jdbcTemplate = jdbcTemplate;
 }
     private String normalizeString(String value) {
     if (value == null) return null;
@@ -227,7 +234,9 @@ private PublicUserResponse toPublicUserResponse(UserResponse user) {
         User user = userRepo.findByIdWithLocations(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        return toUserResponse(user);
+        UserResponse response = toUserResponse(user);
+        populateTab2ProfileFields(response, user.getId());
+        return response;
     }
 
 @Transactional(readOnly = true)
@@ -253,6 +262,12 @@ public UserResponse updateUser(String id, UpdateUserRequest req) {
 public UserResponse updateUser(String id, UpdateUserRequest req, boolean bypassProfileLocks) {
     User user = userRepo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+    boolean isTab2 = PortalContext.get() == PortalCode.TAB2;
+
+    if (isTab2 && !hasValue(req.getEmployeeCategory())) {
+        throw new IllegalArgumentException("कर्मचारी की श्रेणी आवश्यक है");
+    }
 
    // -------------------------
 // Simple fields with admin-controlled locks
@@ -439,7 +454,21 @@ if (canUpdateLockedStringField(lockDepartmentUniqueId, user.getDepartmentUniqueI
     user.setUpdatedAt(Instant.now());
 
     User savedUser = userRepo.save(user);
-    return toUserResponse(savedUser);
+
+    if (isTab2) {
+        userRepo.flush();
+
+        jdbcTemplate.update(
+                "UPDATE users SET employee_category = ?, tehsil = ? WHERE id = ?",
+                normalizeString(req.getEmployeeCategory()),
+                normalizeString(req.getTehsil()),
+                savedUser.getId()
+        );
+    }
+
+    UserResponse response = toUserResponse(savedUser);
+    populateTab2ProfileFields(response, savedUser.getId());
+    return response;
 }
 
 private String generateTimestampedFileName(String baseName) {
@@ -562,6 +591,87 @@ for (UserResponse u : users) {
     writer.flush();
 }
 
+
+
+@Transactional(readOnly = true)
+public PageResponse<PublicMemberListResponse> getPublicMembersByMemberStatusFiltered(
+        MemberStatus memberStatus,
+        String sambhagId,
+        String districtId,
+        String blockId,
+        String name,
+        String userId,
+        int page,
+        int size) {
+
+    if (memberStatus == null) {
+        throw new IllegalArgumentException("Member status is required");
+    }
+
+    int safePage = Math.max(page, 0);
+    int safeSize = Math.min(Math.max(size, 1), 200);
+
+    UUID cleanSambhagId = parseOptionalUuid(sambhagId);
+    UUID cleanDistrictId = parseOptionalUuid(districtId);
+    UUID cleanBlockId = parseOptionalUuid(blockId);
+
+    String cleanName = normalizeString(name);
+    String cleanUserId = normalizeString(userId);
+
+    Pageable pageable = PageRequest.of(
+            safePage,
+            safeSize,
+            Sort.by(Sort.Direction.DESC, "memberStatusUpdatedAt")
+                    .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+    );
+
+    Page<User> userPage = userRepo.searchPublicUsersByMemberStatus(
+            memberStatus,
+            cleanSambhagId,
+            cleanDistrictId,
+            cleanBlockId,
+            cleanName,
+            cleanUserId,
+            pageable
+    );
+
+    List<PublicMemberListResponse> content = userPage.getContent()
+            .stream()
+            .map(this::toPublicMemberListResponse)
+            .toList();
+
+    return new PageResponse<>(
+            content,
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages(),
+            userPage.isLast(),
+            userPage.isFirst()
+    );
+}
+
+private PublicMemberListResponse toPublicMemberListResponse(User user) {
+    return PublicMemberListResponse.builder()
+            .id(user.getId())
+            .registrationNumber(user.getId())
+            .name(user.getName())
+            .surname(user.getSurname())
+            .employeeCategory(getTab2EmployeeCategory(user.getId()))
+            .department(user.getDepartment())
+            .departmentState(user.getDepartmentState() != null ? user.getDepartmentState().getName() : null)
+            .departmentSambhag(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : null)
+            .departmentDistrict(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : null)
+            .departmentBlock(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : null)
+            .state(user.getDepartmentState() != null ? user.getDepartmentState().getName() : null)
+            .sambhag(user.getDepartmentSambhag() != null ? user.getDepartmentSambhag().getName() : null)
+            .district(user.getDepartmentDistrict() != null ? user.getDepartmentDistrict().getName() : null)
+            .block(user.getDepartmentBlock() != null ? user.getDepartmentBlock().getName() : null)
+            .schoolOfficeName(user.getSchoolOfficeName())
+            .schoolName(user.getSchoolOfficeName())
+            .createdAt(user.getCreatedAt())
+            .build();
+}
 public PageResponse<PublicMemberListResponse> getPublicMembersFiltered(
         String sambhagId,
         String districtId,
@@ -634,7 +744,11 @@ private PublicMemberListResponse toPublicMemberListResponse(UserResponse user) {
 
             .name(user.getName())
             .surname(user.getSurname())
-
+ .employeeCategory(
+                getTab2EmployeeCategory(
+                        user.getId()
+                )
+        )
             .department(user.getDepartment())
 
             .departmentState(user.getDepartmentState())
@@ -1365,6 +1479,12 @@ public void exportUsersCsvScoped(
      */
     @Transactional
     public UserResponse register(RegisterRequest req) {
+        boolean isTab2 = PortalContext.get() == PortalCode.TAB2;
+
+        if (isTab2 && !hasValue(req.getEmployeeCategory())) {
+            throw new IllegalArgumentException("कर्मचारी की श्रेणी आवश्यक है");
+        }
+
         // Check if user with this email already exists
         if (userRepo.findByEmail(req.getEmail()).isPresent()) {
             throw new IllegalArgumentException("User with this email already exists");
@@ -1488,6 +1608,17 @@ public void exportUsersCsvScoped(
         // Save user
         User savedUser = userRepo.save(u);
 
+        // TAB2-only fields are stored in TAB2 users columns without changing the shared User entity.
+        if (isTab2) {
+            userRepo.flush();
+            jdbcTemplate.update(
+                    "UPDATE users SET employee_category = ?, tehsil = ? WHERE id = ?",
+                    normalizeString(req.getEmployeeCategory()),
+                    normalizeString(req.getTehsil()),
+                    savedUser.getId()
+            );
+        }
+
         // Send registration confirmation email
         // Only use name field for greeting (surname is separate)
         String fullName = savedUser.getName();
@@ -1508,6 +1639,31 @@ try {
     System.err.println("📧 Error details: " + emailError.getMessage());
 }
         return toUserResponse(savedUser);
+    }
+
+
+
+    /**
+     * Populate fields that exist only in the TAB2 users table.
+     * These columns are intentionally not mapped in the shared User entity,
+     * so TAB1 remains completely unaffected.
+     */
+    private void populateTab2ProfileFields(UserResponse response, String userId) {
+        if (response == null || PortalContext.get() != PortalCode.TAB2) {
+            return;
+        }
+
+        jdbcTemplate.query(
+                "SELECT employee_category, tehsil FROM users WHERE id = ?",
+                rs -> {
+                    if (rs.next()) {
+                        response.setEmployeeCategory(rs.getString("employee_category"));
+                        response.setTehsil(rs.getString("tehsil"));
+                    }
+                    return null;
+                },
+                userId
+        );
     }
 
     /**
@@ -1556,6 +1712,7 @@ try {
         response.setNominee2Name(user.getNominee2Name());
         response.setNominee2Relation(user.getNominee2Relation());
         response.setRole(user.getRole());
+        response.setMemberStatus(user.getMemberStatus() != null ? user.getMemberStatus() : com.example.kalyan_kosh_api.entity.MemberStatus.NORMAL);
         response.setCreatedAt(user.getCreatedAt());
 if (
         user.getAssignedDeathCase() != null
@@ -1651,6 +1808,37 @@ private List<String> getNomineeQrCodesForResponse(
             .filter(qr -> qr != null && !qr.isBlank())
             .distinct()
             .toList();
+}
+
+private String getTab2EmployeeCategory(
+        String userId
+) {
+
+    if (userId == null ||
+        PortalContext.get() != PortalCode.TAB2) {
+
+        return null;
+    }
+
+    List<String> values =
+            jdbcTemplate.query(
+                    """
+                    SELECT employee_category
+                    FROM users
+                    WHERE id = ?
+                    """,
+
+                    (rs, rowNum) ->
+                            rs.getString(
+                                    "employee_category"
+                            ),
+
+                    userId
+            );
+
+    return values.isEmpty()
+            ? null
+            : values.get(0);
 }
 
     /**
