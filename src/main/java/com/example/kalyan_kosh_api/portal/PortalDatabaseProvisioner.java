@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,42 +21,161 @@ import java.util.Set;
 public class PortalDatabaseProvisioner {
 
     private static final Logger log = LoggerFactory.getLogger(PortalDatabaseProvisioner.class);
-    private static final String FLYWAY_HISTORY_TABLE = "flyway_schema_history";
+    private static final String COMMON_FLYWAY_HISTORY_TABLE = "flyway_schema_history";
 
     private final PortalDatabaseProperties properties;
+    private final PortalAvailabilityRegistry availabilityRegistry;
 
-    public PortalDatabaseProvisioner(PortalDatabaseProperties properties) {
+    public PortalDatabaseProvisioner(
+            PortalDatabaseProperties properties,
+            PortalAvailabilityRegistry availabilityRegistry
+    ) {
         this.properties = properties;
+        this.availabilityRegistry = availabilityRegistry;
     }
 
+    /**
+     * Prepares every configured portal independently.
+     *
+     * The default portal is required and remains fail-fast. Optional portals are
+     * isolated: if one cannot be prepared, it is marked FAILED and application
+     * startup continues so the primary portal remains available.
+     */
     public void prepareDatabases() {
         validateIdentifier(properties.getSourceDatabase(), "source database");
+
+        PortalCode defaultPortal = properties.getDefaultPortalCode();
+        if (!properties.isPortalEnabled(defaultPortal)) {
+            throw new IllegalStateException("Default portal is disabled: " + defaultPortal.name());
+        }
+
+        String defaultDatabase = properties.getDatabase(defaultPortal).getDatabaseName();
+        if (defaultDatabase == null
+                || !defaultDatabase.equalsIgnoreCase(properties.getSourceDatabase())) {
+            throw new IllegalStateException(
+                    "The default portal database must be the configured source database. "
+                            + "Default=" + defaultDatabase + ", source=" + properties.getSourceDatabase()
+            );
+        }
 
         if (!databaseExists(properties.getSourceDatabase())) {
             throw new IllegalStateException(
                     "Source database '" + properties.getSourceDatabase()
-                            + "' does not exist. Start the current single-portal backend/database first."
+                            + "' does not exist. The primary portal database must exist before startup."
             );
         }
 
+        for (PortalCode portalCode : PortalCode.values()) {
+            if (!properties.isPortalEnabled(portalCode)) {
+                availabilityRegistry.markDisabled(portalCode);
+            }
+        }
+
+        // Always prepare the primary/default portal first. Its failure is fatal.
+        prepareRequiredPortal(defaultPortal);
+
+        // Optional portals are isolated from the primary portal.
         for (PortalCode portalCode : properties.getEnabledPortalCodes()) {
-            String databaseName = properties.getDatabase(portalCode).getDatabaseName();
-            validateIdentifier(databaseName, portalCode.name() + " database");
-
-            if (!databaseExists(databaseName)) {
-                if (!properties.isAutoCreateDatabases()) {
-                    throw new IllegalStateException(
-                            "Database '" + databaseName + "' is missing and automatic creation is disabled."
-                    );
-                }
-                createDatabase(databaseName);
+            if (portalCode == defaultPortal) {
+                continue;
             }
+            prepareOptionalPortal(portalCode);
+        }
+    }
 
-            if (!databaseName.equalsIgnoreCase(properties.getSourceDatabase())) {
-                cloneMissingSchemaTables(properties.getSourceDatabase(), databaseName);
+    private void prepareRequiredPortal(PortalCode portalCode) {
+        availabilityRegistry.markPreparing(portalCode);
+        try {
+            preparePortal(portalCode);
+            availabilityRegistry.markReady(portalCode);
+            log.info("Portal {} database is READY", portalCode.name());
+        } catch (RuntimeException ex) {
+            availabilityRegistry.markFailed(portalCode, ex);
+            log.error("Required portal {} failed database preparation", portalCode.name(), ex);
+            throw ex;
+        }
+    }
+
+    private void prepareOptionalPortal(PortalCode portalCode) {
+        availabilityRegistry.markPreparing(portalCode);
+        try {
+            preparePortal(portalCode);
+            availabilityRegistry.markReady(portalCode);
+            log.info("Optional portal {} database is READY", portalCode.name());
+        } catch (RuntimeException ex) {
+            availabilityRegistry.markFailed(portalCode, ex);
+            log.error(
+                    "Optional portal {} failed database preparation and will remain unavailable. "
+                            + "The primary portal will continue running. Reason: {}",
+                    portalCode.name(),
+                    ex.getMessage(),
+                    ex
+            );
+        }
+    }
+
+    private void preparePortal(PortalCode portalCode) {
+        String databaseName = properties.getDatabase(portalCode).getDatabaseName();
+        validateIdentifier(databaseName, portalCode.name() + " database");
+
+        boolean isSourceDatabase = databaseName.equalsIgnoreCase(properties.getSourceDatabase());
+        if (portalCode != properties.getDefaultPortalCode() && isSourceDatabase) {
+            throw new IllegalStateException(
+                    "Optional portal " + portalCode.name()
+                            + " cannot use the primary/source database '" + databaseName + "'."
+            );
+        }
+
+        boolean databaseCreated = false;
+
+        if (!databaseExists(databaseName)) {
+            if (!properties.isAutoCreateDatabases()) {
+                throw new IllegalStateException(
+                        "Database '" + databaseName + "' is missing and automatic creation is disabled. "
+                                + "Provision it during deployment before enabling " + portalCode.name() + "."
+                );
             }
+            createDatabase(databaseName);
+            databaseCreated = true;
+        }
 
-            migrateDatabase(portalCode, databaseName);
+        if (!isSourceDatabase) {
+            initializeOptionalPortalSchemaIfNeeded(databaseName, databaseCreated);
+        }
+
+        migrateCommonDatabase(databaseName);
+        migratePortalSpecificDatabase(portalCode, databaseName);
+    }
+
+    /**
+     * A new optional portal starts from a snapshot of the current primary schema.
+     * We then baseline COMMON Flyway history at the source database's current
+     * version so historical common migrations are not replayed against columns
+     * and tables already present in the cloned schema.
+     */
+    private void initializeOptionalPortalSchemaIfNeeded(String databaseName, boolean databaseCreated) {
+        boolean hasApplicationTables = hasApplicationTables(databaseName);
+        boolean hasCommonHistory = tableExists(databaseName, COMMON_FLYWAY_HISTORY_TABLE);
+
+        if (!hasApplicationTables) {
+            cloneMissingSchemaTables(properties.getSourceDatabase(), databaseName);
+            baselineCommonHistoryAtSourceVersion(databaseName);
+            return;
+        }
+
+        if (!hasCommonHistory) {
+            throw new IllegalStateException(
+                    "Database '" + databaseName + "' already contains application tables but has no "
+                            + COMMON_FLYWAY_HISTORY_TABLE + ". Refusing to guess migration history. "
+                            + "Back up and explicitly baseline/recreate this optional portal before enabling it."
+            );
+        }
+
+        if (databaseCreated) {
+            // Defensive only: a just-created DB should have been empty above.
+            throw new IllegalStateException(
+                    "New portal database '" + databaseName + "' unexpectedly contained application tables."
+            );
         }
     }
 
@@ -90,12 +208,35 @@ public class PortalDatabaseProvisioner {
         }
     }
 
+    private boolean hasApplicationTables(String databaseName) {
+        return !readTableNames(databaseName).isEmpty();
+    }
+
+    private boolean tableExists(String databaseName, String tableName) {
+        String sql = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES "
+                + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE = 'BASE TABLE' LIMIT 1";
+        try (Connection connection = openServerConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, databaseName);
+            statement.setString(2, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to inspect table '" + tableName + "' in database '" + databaseName + "'.",
+                    ex
+            );
+        }
+    }
+
     private void cloneMissingSchemaTables(String sourceDatabase, String targetDatabase) {
         List<String> sourceTableNames = readTableNames(sourceDatabase);
         Set<String> targetTableNames = new HashSet<>(readTableNames(targetDatabase));
         List<String> tableNames = sourceTableNames.stream()
                 .filter(tableName -> !targetTableNames.contains(tableName))
                 .toList();
+
         if (sourceTableNames.isEmpty()) {
             throw new IllegalStateException(
                     "Source database '" + sourceDatabase + "' does not contain application tables."
@@ -106,7 +247,12 @@ public class PortalDatabaseProvisioner {
             return;
         }
 
-        log.info("Cloning {} missing table definitions from {} to {}", tableNames.size(), sourceDatabase, targetDatabase);
+        log.info(
+                "Cloning {} table definitions from {} to new/empty portal database {}",
+                tableNames.size(),
+                sourceDatabase,
+                targetDatabase
+        );
 
         try (Connection sourceConnection = openDatabaseConnection(sourceDatabase);
              Connection targetConnection = openDatabaseConnection(targetDatabase);
@@ -131,15 +277,17 @@ public class PortalDatabaseProvisioner {
         }
     }
 
-    private List<String> readTableNames(String sourceDatabase) {
+    private List<String> readTableNames(String databaseName) {
         String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
-                + "WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME <> ? ORDER BY TABLE_NAME";
+                + "WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE' "
+                + "AND TABLE_NAME NOT LIKE 'flyway\\_%\\_schema\\_history' ESCAPE '\\\\' "
+                + "AND TABLE_NAME <> ? ORDER BY TABLE_NAME";
         List<String> names = new ArrayList<>();
 
         try (Connection connection = openServerConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, sourceDatabase);
-            statement.setString(2, FLYWAY_HISTORY_TABLE);
+            statement.setString(1, databaseName);
+            statement.setString(2, COMMON_FLYWAY_HISTORY_TABLE);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     names.add(resultSet.getString(1));
@@ -147,7 +295,7 @@ public class PortalDatabaseProvisioner {
             }
             return names;
         } catch (SQLException ex) {
-            throw new IllegalStateException("Unable to read database tables for '" + sourceDatabase + "'.", ex);
+            throw new IllegalStateException("Unable to read database tables for '" + databaseName + "'.", ex);
         }
     }
 
@@ -164,24 +312,81 @@ public class PortalDatabaseProvisioner {
         }
     }
 
-    private void migrateDatabase(PortalCode portalCode, String databaseName) {
-        List<String> migrationLocations = new ArrayList<>();
-        migrationLocations.add("classpath:db/migration");
-
-        if (portalCode == PortalCode.TAB2) {
-            migrationLocations.add("classpath:db/portal/tab2");
+    private void baselineCommonHistoryAtSourceVersion(String targetDatabase) {
+        String sourceVersion = readCurrentSuccessfulFlywayVersion(properties.getSourceDatabase());
+        if (sourceVersion == null || sourceVersion.isBlank()) {
+            sourceVersion = properties.getFlywayBaselineVersion();
         }
 
         Flyway flyway = Flyway.configure()
+                .dataSource(properties.buildJdbcUrl(targetDatabase), properties.getUsername(), properties.getPassword())
+                .locations("classpath:db/migration")
+                .table(COMMON_FLYWAY_HISTORY_TABLE)
+                .baselineVersion(MigrationVersion.fromVersion(sourceVersion))
+                .baselineDescription("Cloned from " + properties.getSourceDatabase() + " at common version " + sourceVersion)
+                .load();
+
+        flyway.baseline();
+        log.info("Baselined common migration history for {} at version {}", targetDatabase, sourceVersion);
+    }
+
+    private String readCurrentSuccessfulFlywayVersion(String databaseName) {
+        if (!tableExists(databaseName, COMMON_FLYWAY_HISTORY_TABLE)) {
+            return properties.getFlywayBaselineVersion();
+        }
+
+        String sql = "SELECT version FROM `" + databaseName + "`.`" + COMMON_FLYWAY_HISTORY_TABLE + "` "
+                + "WHERE success = 1 AND version IS NOT NULL ORDER BY installed_rank DESC LIMIT 1";
+        try (Connection connection = openServerConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            return resultSet.next() ? resultSet.getString(1) : properties.getFlywayBaselineVersion();
+        } catch (SQLException ex) {
+            throw new IllegalStateException(
+                    "Unable to determine current Flyway version for source database '" + databaseName + "'.",
+                    ex
+            );
+        }
+    }
+
+    private void migrateCommonDatabase(String databaseName) {
+        Flyway flyway = Flyway.configure()
                 .dataSource(properties.buildJdbcUrl(databaseName), properties.getUsername(), properties.getPassword())
-                .locations(migrationLocations.toArray(new String[0]))
+                .locations("classpath:db/migration")
+                .table(COMMON_FLYWAY_HISTORY_TABLE)
                 .baselineOnMigrate(true)
                 .baselineVersion(MigrationVersion.fromVersion(properties.getFlywayBaselineVersion()))
-                .baselineDescription("Multi-portal schema baseline")
+                .baselineDescription("Multi-portal common schema baseline")
                 .load();
 
         flyway.migrate();
-        log.info("Flyway migration check completed for database: {}", databaseName);
+        log.info("Common Flyway migration check completed for database: {}", databaseName);
+    }
+
+    /**
+     * Portal-specific migrations use their own history table. This prevents a
+     * portal migration version (for example TAB2 V9) from colliding with common
+     * migration versions in flyway_schema_history.
+     */
+    private void migratePortalSpecificDatabase(PortalCode portalCode, String databaseName) {
+        if (portalCode == PortalCode.TAB1) {
+            return;
+        }
+
+        String location = "classpath:db/portal/" + portalCode.getSlug();
+        String historyTable = "flyway_" + portalCode.getSlug() + "_schema_history";
+
+        Flyway flyway = Flyway.configure()
+                .dataSource(properties.buildJdbcUrl(databaseName), properties.getUsername(), properties.getPassword())
+                .locations(location)
+                .table(historyTable)
+                .baselineOnMigrate(true)
+                .baselineVersion(MigrationVersion.fromVersion("0"))
+                .baselineDescription(portalCode.name() + " portal-specific baseline")
+                .load();
+
+        flyway.migrate();
+        log.info("{} specific Flyway migration check completed for database: {}", portalCode.name(), databaseName);
     }
 
     private Connection openServerConnection() throws SQLException {

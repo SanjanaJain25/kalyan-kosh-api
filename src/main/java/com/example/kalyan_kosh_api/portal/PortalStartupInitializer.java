@@ -16,6 +16,7 @@ public class PortalStartupInitializer implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(PortalStartupInitializer.class);
 
     private final PortalDatabaseProperties properties;
+    private final PortalAvailabilityRegistry availabilityRegistry;
     private final TransactionTemplate transactionTemplate;
     private final LocationSeeder locationSeeder;
     private final SuperAdminSeeder superAdminSeeder;
@@ -23,12 +24,14 @@ public class PortalStartupInitializer implements ApplicationRunner {
 
     public PortalStartupInitializer(
             PortalDatabaseProperties properties,
+            PortalAvailabilityRegistry availabilityRegistry,
             TransactionTemplate transactionTemplate,
             LocationSeeder locationSeeder,
             SuperAdminSeeder superAdminSeeder,
             SettingsInitializer settingsInitializer
     ) {
         this.properties = properties;
+        this.availabilityRegistry = availabilityRegistry;
         this.transactionTemplate = transactionTemplate;
         this.locationSeeder = locationSeeder;
         this.superAdminSeeder = superAdminSeeder;
@@ -37,15 +40,33 @@ public class PortalStartupInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        for (PortalCode portalCode : properties.getEnabledPortalCodes()) {
-            PortalContext.runWith(portalCode, () ->
-                    transactionTemplate.executeWithoutResult(status -> {
-                        log.info("Initializing seed data for {}", portalCode.name());
-                        locationSeeder.seedIfMissing();
-                        settingsInitializer.initializeDefaults();
-                        superAdminSeeder.seedIfMissing();
-                    })
-            );
+        PortalCode defaultPortal = properties.getDefaultPortalCode();
+
+        for (PortalCode portalCode : availabilityRegistry.getReadyPortalCodes()) {
+            try {
+                PortalContext.runWith(portalCode, () ->
+                        transactionTemplate.executeWithoutResult(status -> {
+                            log.info("Initializing seed data for {}", portalCode.name());
+                            locationSeeder.seedIfMissing();
+                            settingsInitializer.initializeDefaults();
+                            superAdminSeeder.seedIfMissing();
+                        })
+                );
+            } catch (RuntimeException ex) {
+                availabilityRegistry.markFailed(portalCode, ex);
+
+                if (portalCode == defaultPortal) {
+                    log.error("Primary portal {} seed initialization failed", portalCode.name(), ex);
+                    throw ex;
+                }
+
+                log.error(
+                        "Optional portal {} seed initialization failed and has been marked unavailable. "
+                                + "Primary portal remains online.",
+                        portalCode.name(),
+                        ex
+                );
+            }
         }
     }
 }

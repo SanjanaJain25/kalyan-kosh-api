@@ -12,7 +12,7 @@ public class PortalDatabaseProperties {
 
     private String defaultCode = "TAB1";
     private boolean requireHeader = false;
-    private boolean autoCreateDatabases = true;
+    private boolean autoCreateDatabases = false;
     private String serverUrl = "jdbc:mysql://localhost:3306";
     private String username = "root";
     private String password = "";
@@ -107,6 +107,10 @@ public class PortalDatabaseProperties {
     }
 
     public PortalDatabase getDatabase(PortalCode portalCode) {
+        if (portalCode == null) {
+            throw new IllegalArgumentException("Portal code is required.");
+        }
+
         PortalDatabase database = databases.get(portalCode.getSlug());
         if (database == null) {
             database = databases.get(portalCode.name().toLowerCase());
@@ -115,6 +119,14 @@ public class PortalDatabaseProperties {
             throw new IllegalStateException("Database configuration missing for " + portalCode.name());
         }
         return database;
+    }
+
+    public boolean isPortalEnabled(PortalCode portalCode) {
+        return getDatabase(portalCode).isEnabled();
+    }
+
+    public boolean isDefaultPortal(PortalCode portalCode) {
+        return getDefaultPortalCode() == portalCode;
     }
 
     public List<PortalCode> getEnabledPortalCodes() {
@@ -146,7 +158,7 @@ public class PortalDatabaseProperties {
     }
 
     public static class PortalDatabase {
-        private boolean enabled = true;
+        private boolean enabled = false;
         private String databaseName;
 
         public boolean isEnabled() {

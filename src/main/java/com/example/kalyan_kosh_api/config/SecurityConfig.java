@@ -3,6 +3,7 @@ package com.example.kalyan_kosh_api.config;
 import com.example.kalyan_kosh_api.security.CustomUserDetailsService;
 import com.example.kalyan_kosh_api.security.JwtAuthFilter;
 import com.example.kalyan_kosh_api.security.JwtUtil;
+import com.example.kalyan_kosh_api.portal.PortalAvailabilityRegistry;
 import com.example.kalyan_kosh_api.portal.PortalDatabaseProperties;
 import com.example.kalyan_kosh_api.portal.PortalHeaderFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -34,17 +35,20 @@ public class SecurityConfig {
 private final JwtUtil jwtUtil;
 private final SystemSettingService systemSettingService;
 private final PortalDatabaseProperties portalDatabaseProperties;
+private final PortalAvailabilityRegistry portalAvailabilityRegistry;
 
    public SecurityConfig(
         CustomUserDetailsService uds,
         JwtUtil jwtUtil,
         SystemSettingService systemSettingService,
-        PortalDatabaseProperties portalDatabaseProperties
+        PortalDatabaseProperties portalDatabaseProperties,
+        PortalAvailabilityRegistry portalAvailabilityRegistry
 ) {
     this.uds = uds;
     this.jwtUtil = jwtUtil;
     this.systemSettingService = systemSettingService;
     this.portalDatabaseProperties = portalDatabaseProperties;
+    this.portalAvailabilityRegistry = portalAvailabilityRegistry;
 }
 
     @Bean
@@ -67,7 +71,7 @@ public JwtAuthFilter jwtAuthFilter() {
 
     @Bean
     public PortalHeaderFilter portalHeaderFilter() {
-        return new PortalHeaderFilter(portalDatabaseProperties);
+        return new PortalHeaderFilter(portalDatabaseProperties, portalAvailabilityRegistry);
     }
 
     // These filters are managed by Spring Security; disable separate servlet registration.

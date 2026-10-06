@@ -13,9 +13,14 @@ public class PortalHeaderFilter extends OncePerRequestFilter {
     public static final String HEADER_NAME = "X-Portal-Code";
 
     private final PortalDatabaseProperties properties;
+    private final PortalAvailabilityRegistry availabilityRegistry;
 
-    public PortalHeaderFilter(PortalDatabaseProperties properties) {
+    public PortalHeaderFilter(
+            PortalDatabaseProperties properties,
+            PortalAvailabilityRegistry availabilityRegistry
+    ) {
         this.properties = properties;
+        this.availabilityRegistry = availabilityRegistry;
     }
 
     @Override
@@ -25,6 +30,13 @@ public class PortalHeaderFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        // CORS preflight must not require a portal header. No business data is
+        // accessed during OPTIONS requests.
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String headerValue = request.getHeader(HEADER_NAME);
 
         try {
@@ -32,7 +44,12 @@ public class PortalHeaderFilter extends OncePerRequestFilter {
 
             if (headerValue == null || headerValue.isBlank()) {
                 if (properties.isRequireHeader()) {
-                    writeInvalidPortalResponse(response, "Missing required " + HEADER_NAME + " header.");
+                    writePortalResponse(
+                            response,
+                            HttpServletResponse.SC_BAD_REQUEST,
+                            "INVALID_PORTAL",
+                            "Missing required " + HEADER_NAME + " header."
+                    );
                     return;
                 }
                 portalCode = properties.getDefaultPortalCode();
@@ -40,8 +57,24 @@ public class PortalHeaderFilter extends OncePerRequestFilter {
                 portalCode = PortalCode.fromValue(headerValue);
             }
 
-            if (!properties.getDatabase(portalCode).isEnabled()) {
-                writeInvalidPortalResponse(response, "Portal is disabled: " + portalCode.name());
+            if (!properties.isPortalEnabled(portalCode)) {
+                writePortalResponse(
+                        response,
+                        HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                        "PORTAL_DISABLED",
+                        "Portal is not enabled: " + portalCode.name()
+                );
+                return;
+            }
+
+            if (!availabilityRegistry.isReady(portalCode)) {
+                PortalAvailabilityRegistry.Status status = availabilityRegistry.getStatus(portalCode);
+                writePortalResponse(
+                        response,
+                        HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                        "PORTAL_UNAVAILABLE",
+                        "Portal is currently unavailable: " + portalCode.name() + " (" + status.name() + ")"
+                );
                 return;
             }
 
@@ -49,18 +82,28 @@ public class PortalHeaderFilter extends OncePerRequestFilter {
             response.setHeader(HEADER_NAME, portalCode.name());
             filterChain.doFilter(request, response);
         } catch (IllegalArgumentException | IllegalStateException ex) {
-            writeInvalidPortalResponse(response, ex.getMessage());
+            writePortalResponse(
+                    response,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "INVALID_PORTAL",
+                    ex.getMessage()
+            );
         } finally {
             PortalContext.clear();
         }
     }
 
-    private void writeInvalidPortalResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+    private void writePortalResponse(
+            HttpServletResponse response,
+            int status,
+            String errorCode,
+            String message
+    ) throws IOException {
+        response.setStatus(status);
         response.setContentType("application/json");
         String safeMessage = message == null ? "Invalid portal." : message.replace("\"", "'");
         response.getWriter().write(
-                "{\"success\":false,\"errorCode\":\"INVALID_PORTAL\",\"message\":\""
+                "{\"success\":false,\"errorCode\":\"" + errorCode + "\",\"message\":\""
                         + safeMessage + "\"}"
         );
     }
