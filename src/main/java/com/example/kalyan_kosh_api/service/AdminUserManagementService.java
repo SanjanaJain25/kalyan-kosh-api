@@ -192,6 +192,9 @@ List<AdminUserResponse> users = userPage.getContent().stream()
     ) {
         User user = getUserById(userId);
         validateNotReservedSuperAdmin(user);
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new IllegalArgumentException("User not found");
+        }
 
         if (request == null || request.getMemberStatus() == null) {
             throw new IllegalArgumentException("Member status is required");
@@ -213,7 +216,10 @@ List<AdminUserResponse> users = userPage.getContent().stream()
 @Transactional
 public void blockUser(String userId) {
     User user = getUserById(userId);
-    validateNotReservedSuperAdmin(user);// superadmin
+    validateNotReservedSuperAdmin(user);
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new IllegalArgumentException("User not found");
+        }// superadmin
 
     user.setStatus(UserStatus.BLOCKED);
     user.setUpdatedAt(Instant.now());
@@ -226,7 +232,10 @@ public void blockUser(String userId) {
 @Transactional
 public void unblockUser(String userId) {
     User user = getUserById(userId);
-    validateNotReservedSuperAdmin(user);// superadmin
+    validateNotReservedSuperAdmin(user);
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new IllegalArgumentException("User not found");
+        }// superadmin
 
     user.setStatus(UserStatus.ACTIVE);
     user.setUpdatedAt(Instant.now());
@@ -595,7 +604,9 @@ private Map<String, User> loadUsersInBatches(List<String> userIds) {
         List<User> users = userRepository.findAllById(userIds.subList(i, end));
 
         for (User user : users) {
-            userMap.put(user.getId(), user);
+            if (user.getStatus() != UserStatus.DELETED) {
+                userMap.put(user.getId(), user);
+            }
         }
     }
 
@@ -919,7 +930,8 @@ public void resetManagerDashboardPassword(String userId, String newPassword) {
 
     User user = getUserById(userId);
 
-    if (isReservedSuperAdmin(user)) {
+    // Only Trash / restore operations may retrieve deleted users.
+    if (user.getStatus() == UserStatus.DELETED || isReservedSuperAdmin(user)) {
         throw new RuntimeException(
                 "User not found with ID: " + userId
         );

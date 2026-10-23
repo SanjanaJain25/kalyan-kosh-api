@@ -65,15 +65,13 @@ public class ManagerUserService {
      * Check if manager can access specific user
      */
     public boolean canAccessUser(User manager, String userId) {
+        User targetUser = userRepository.findById(userId).orElse(null);
+        if (targetUser == null || targetUser.getStatus() == UserStatus.DELETED) {
+            return false;
+        }
         if (manager.getRole() == Role.ROLE_ADMIN || manager.getRole() == Role.ROLE_SUPERADMIN) {
             return true;
         }
-        
-        User targetUser = userRepository.findById(userId).orElse(null);
-        if (targetUser == null) {
-            return false;
-        }
-        
         return managerScopeService.canAccessUser(manager, targetUser);
     }
     
@@ -231,13 +229,17 @@ private Specification<User> buildManagerUserSpecification(
      */
 private Specification<User> buildLocationSpecification(String locationType, UUID locationId) {
         return (root, query, criteriaBuilder) -> {
+            Predicate notDeleted = criteriaBuilder.or(
+                    criteriaBuilder.isNull(root.get("status")),
+                    criteriaBuilder.notEqual(root.get("status"), UserStatus.DELETED)
+            );
             switch (locationType.toUpperCase()) {
                 case "SAMBHAG":
-                    return criteriaBuilder.equal(root.get("departmentSambhag").get("id"), locationId);
+                    return criteriaBuilder.and(notDeleted, criteriaBuilder.equal(root.get("departmentSambhag").get("id"), locationId));
                 case "DISTRICT":
-                    return criteriaBuilder.equal(root.get("departmentDistrict").get("id"), locationId);
+                    return criteriaBuilder.and(notDeleted, criteriaBuilder.equal(root.get("departmentDistrict").get("id"), locationId));
                 case "BLOCK":
-                    return criteriaBuilder.equal(root.get("departmentBlock").get("id"), locationId);
+                    return criteriaBuilder.and(notDeleted, criteriaBuilder.equal(root.get("departmentBlock").get("id"), locationId));
                 default:
                     throw new IllegalArgumentException("Invalid location type: " + locationType);
             }
@@ -256,6 +258,13 @@ private void addStandardFilters(List<Predicate> predicates,
                                String searchTerm, Role filterRole, UserStatus filterStatus,
                                String filterStateId, String filterSambhagId,
                                String filterDistrictId, String filterBlockId) {
+
+    // Ordinary user lists must never include records moved to Trash,
+    // even when a caller explicitly requests the DELETED status.
+    predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isNull(root.get("status")),
+            criteriaBuilder.notEqual(root.get("status"), UserStatus.DELETED)
+    ));
 
     // Search term filter
     if (searchTerm != null && !searchTerm.trim().isEmpty()) {

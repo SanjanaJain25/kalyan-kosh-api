@@ -79,6 +79,7 @@ public class PoolAssignmentService {
 
         // Rebalance all users, regardless of role
         List<User> eligibleUsers = users.stream()
+                .filter(u -> u.getStatus() != UserStatus.DELETED)
                 .filter(u -> overwrite
                         || u.getAssignedDeathCase() == null
                         || u.getAssignedDeathCase().getStatus() != DeathCaseStatus.OPEN)

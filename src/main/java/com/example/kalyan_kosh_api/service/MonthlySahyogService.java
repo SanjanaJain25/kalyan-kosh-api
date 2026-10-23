@@ -69,7 +69,7 @@ private final JdbcTemplate jdbcTemplate;
                             "Monthly Sahyog already generated for this date");
                 });
 
-        int totalMembers = (int) userRepo.count();
+        int totalMembers = (int) userRepo.countNonDeletedUsers();
 
         MonthlySahyog sahyog = MonthlySahyog.builder()
                 .sahyogDate(sahyogDate)
@@ -1352,7 +1352,7 @@ public PageResponse<DonorResponse> searchDonors(
         LocalDate startDate = sahyogDate.withDayOfMonth(1);
         LocalDate endDate = sahyogDate.withDayOfMonth(sahyogDate.lengthOfMonth());
 
-        long totalMembers = userRepo.count();
+        long totalMembers = userRepo.countNonDeletedUsers();
 
         long totalDeathCases = deathCaseRepo.countByCaseDateBetween(startDate, endDate);
 

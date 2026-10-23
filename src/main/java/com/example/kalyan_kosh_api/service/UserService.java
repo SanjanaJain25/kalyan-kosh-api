@@ -11,6 +11,7 @@ import com.example.kalyan_kosh_api.entity.MemberStatus;
 import com.example.kalyan_kosh_api.entity.Sambhag;
 import com.example.kalyan_kosh_api.entity.State;
 import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.repository.BlockRepository;
 import com.example.kalyan_kosh_api.repository.DistrictRepository;
 import com.example.kalyan_kosh_api.repository.SambhagRepository;
@@ -262,6 +263,9 @@ public UserResponse updateUser(String id, UpdateUserRequest req) {
 public UserResponse updateUser(String id, UpdateUserRequest req, boolean bypassProfileLocks) {
     User user = userRepo.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    if (user.getStatus() == UserStatus.DELETED) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+    }
 
     boolean isTab2 = PortalContext.get() == PortalCode.TAB2;
 
@@ -966,6 +970,14 @@ if (desiredUserId != null) {
 
     if (byUserId.isPresent()) {
         User u = byUserId.get();
+            if (u.getStatus() == UserStatus.DELETED) {
+                // Treat the deleted record as unavailable without exposing its details.
+                // The identifier remains reserved while the record is restorable.
+                return new AdminUserMatchResponse(
+                        true, "This identifier is unavailable.", "RESERVED",
+                        null, null, null, null, null, null, null, null
+                );
+            }
 
         return new AdminUserMatchResponse(
                 true,
@@ -992,6 +1004,14 @@ if (name != null && surname != null) {
         Optional<User> byDepartmentUniqueId = userRepo.findByDepartmentUniqueId(departmentUniqueId);
         if (byDepartmentUniqueId.isPresent()) {
             User u = byDepartmentUniqueId.get();
+            if (u.getStatus() == UserStatus.DELETED) {
+                // Treat the deleted record as unavailable without exposing its details.
+                // The identifier remains reserved while the record is restorable.
+                return new AdminUserMatchResponse(
+                        true, "This identifier is unavailable.", "RESERVED",
+                        null, null, null, null, null, null, null, null
+                );
+            }
             return new AdminUserMatchResponse(
                     true,
                     "An existing user was found with the same Department Unique ID.",
@@ -1012,6 +1032,14 @@ if (name != null && surname != null) {
         Optional<User> byMobile = userRepo.findByMobileNumber(mobileNumber);
         if (byMobile.isPresent()) {
             User u = byMobile.get();
+            if (u.getStatus() == UserStatus.DELETED) {
+                // Treat the deleted record as unavailable without exposing its details.
+                // The identifier remains reserved while the record is restorable.
+                return new AdminUserMatchResponse(
+                        true, "This identifier is unavailable.", "RESERVED",
+                        null, null, null, null, null, null, null, null
+                );
+            }
             return new AdminUserMatchResponse(
                     true,
                     "An existing user was found with the same mobile number.",
@@ -1032,6 +1060,14 @@ if (name != null && surname != null) {
         Optional<User> byEmail = userRepo.findByEmail(email);
         if (byEmail.isPresent()) {
             User u = byEmail.get();
+            if (u.getStatus() == UserStatus.DELETED) {
+                // Treat the deleted record as unavailable without exposing its details.
+                // The identifier remains reserved while the record is restorable.
+                return new AdminUserMatchResponse(
+                        true, "This identifier is unavailable.", "RESERVED",
+                        null, null, null, null, null, null, null, null
+                );
+            }
             return new AdminUserMatchResponse(
                     true,
                     "An existing user was found with the same email.",

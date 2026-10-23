@@ -22,9 +22,11 @@ public interface UserRepository extends JpaRepository<User, String>, JpaSpecific
     Optional<User> findByMobileNumber(String mobile);
     Optional<User> findByEmail(String email);
     Optional<User> findByDepartmentUniqueId(String departmentUniqueId);
-List<User> findAllByRoleOrderByCreatedAtAsc(Role role);
+@Query("SELECT u FROM User u WHERE u.role = :role AND (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) ORDER BY u.createdAt ASC")
+List<User> findAllByRoleOrderByCreatedAtAsc(@Param("role") Role role);
     // ✅ Find users by role
-    List<User> findByRole(Role role);
+    @Query("SELECT u FROM User u WHERE u.role = :role AND (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED)")
+    List<User> findByRole(@Param("role") Role role);
     List<User> findByStatusOrderByUpdatedAtDesc(UserStatus status);
 
 Optional<User> findByIdAndStatusNot(String id, UserStatus status);
@@ -33,7 +35,7 @@ Optional<User> findByIdAndStatusNot(String id, UserStatus status);
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE MONTH(u.createdAt) = :month " +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND MONTH(u.createdAt) = :month " +
        "AND YEAR(u.createdAt) = :year")
 List<User> findAllByCreatedMonthAndYear(
         @Param("month") int month,
@@ -49,7 +51,8 @@ List<User> findDeletedUsers(@Param("status") UserStatus status);
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "LEFT JOIN FETCH u.assignedDeathCase adc")
+       "LEFT JOIN FETCH u.assignedDeathCase adc " +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED)")
     List<User> findAllWithLocations();
 
 @Query(
@@ -58,9 +61,9 @@ List<User> findDeletedUsers(@Param("status") UserStatus status);
             "LEFT JOIN FETCH u.departmentSambhag sa " +
             "LEFT JOIN FETCH u.departmentDistrict d " +
             "LEFT JOIN FETCH u.departmentBlock b " +
-            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)",
+            "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)",
     countQuery = "SELECT COUNT(u) FROM User u " +
-            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)"
+            "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole)"
 )
 Page<User> findExportUsersPaged(
         @Param("reservedSuperAdminId") String reservedSuperAdminId,
@@ -290,7 +293,7 @@ long countAssignedUsersByDeathCaseId(@Param("deathCaseId") Long deathCaseId);
 @Query("""
     SELECT u
     FROM User u
-    WHERE LOWER(TRIM(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))))
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND LOWER(TRIM(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))))
           = LOWER(TRIM(:fullName))
     ORDER BY u.createdAt DESC
 """)
@@ -303,7 +306,7 @@ List<User> findByFullNameIgnoreCase(@Param("fullName") String fullName);
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
       AND (:sambhagId IS NULL OR sa.id = :sambhagId)
       AND (:districtId IS NULL OR d.id = :districtId)
       AND (:blockId IS NULL OR b.id = :blockId)
@@ -349,7 +352,7 @@ List<User> findPendingProfileUsersForExportScoped(
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
 AND (:sambhagId IS NULL OR sa.id = :sambhagId)
 AND (:districtId IS NULL OR d.id = :districtId)
 AND (:blockId IS NULL OR b.id = :blockId)
@@ -396,7 +399,7 @@ List<User> searchNonDonorsForExportScoped(
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
 AND (:sambhagId IS NULL OR sa.id = :sambhagId)
 AND (:districtId IS NULL OR d.id = :districtId)
 AND (:blockId IS NULL OR b.id = :blockId)
@@ -429,8 +432,9 @@ List<User> searchAllNonDonorsForExportScoped(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "LEFT JOIN FETCH u.assignedDeathCase adc",
-       countQuery = "SELECT COUNT(u) FROM User u")
+       "LEFT JOIN FETCH u.assignedDeathCase adc " +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED)",
+       countQuery = "SELECT COUNT(u) FROM User u WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED)")
        Page<User> findAllWithLocations(Pageable pageable);
 
     // ✅ Filtered + Paginated query with Sambhag, District, Block, Name, Mobile, UserId filters
@@ -443,7 +447,7 @@ List<User> searchAllNonDonorsForExportScoped(
                 LEFT JOIN FETCH u.departmentDistrict d
                 LEFT JOIN FETCH u.departmentBlock b
                 LEFT JOIN FETCH u.assignedDeathCase adc
-                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)
                   AND (:blockId IS NULL OR b.id = :blockId)
                   AND (
@@ -461,7 +465,7 @@ List<User> searchAllNonDonorsForExportScoped(
                 LEFT JOIN u.departmentSambhag sa
                 LEFT JOIN u.departmentDistrict d
                 LEFT JOIN u.departmentBlock b
-                WHERE (:sambhagId IS NULL OR sa.id = :sambhagId)
+                WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)
                   AND (:blockId IS NULL OR b.id = :blockId)
                   AND (
@@ -491,7 +495,7 @@ Page<User> findAllWithFilters(
     LEFT JOIN FETCH u.departmentSambhag sa
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
       AND (
             u.department IS NULL OR TRIM(u.department) = ''
             OR u.departmentState IS NULL
@@ -509,7 +513,7 @@ List<User> findLivePendingProfileUsers();
             "LEFT JOIN FETCH u.departmentSambhag sa " +
             "LEFT JOIN FETCH u.departmentDistrict d " +
             "LEFT JOIN FETCH u.departmentBlock b " +
-            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
+            "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
             "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%'))) " +
             "AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
             "     OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) " +
@@ -525,7 +529,7 @@ List<User> findLivePendingProfileUsers();
             "LEFT JOIN u.departmentSambhag sa " +
             "LEFT JOIN u.departmentDistrict d " +
             "LEFT JOIN u.departmentBlock b " +
-            "WHERE NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
+            "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND NOT (u.id = :reservedSuperAdminId AND u.role = :reservedSuperAdminRole) " +
             "AND (:userId IS NULL OR LOWER(u.id) LIKE LOWER(CONCAT('%', :userId, '%'))) " +
             "AND (:name IS NULL OR LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) " +
             "     OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) " +
@@ -559,7 +563,7 @@ Page<User> searchAdminUsers(
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b " +
             "LEFT JOIN FETCH u.assignedDeathCase adc " +
-           "WHERE u.id = :id")
+           "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id = :id")
     Optional<User> findByIdWithLocations(String id);
 
     // ✅ Find non-donors (users who haven't donated in a specific month/year)
@@ -568,7 +572,7 @@ Page<User> searchAdminUsers(
            "LEFT JOIN FETCH u.departmentSambhag sa " +
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b " +
-           "WHERE u.id NOT IN (" +
+           "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
            "    AND YEAR(r.paymentDate) = :year" +
@@ -581,13 +585,13 @@ Page<User> searchAdminUsers(
            "LEFT JOIN FETCH u.departmentSambhag sa " +
            "LEFT JOIN FETCH u.departmentDistrict d " +
            "LEFT JOIN FETCH u.departmentBlock b " +
-           "WHERE u.id NOT IN (" +
+           "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
            "    AND YEAR(r.paymentDate) = :year" +
            ")",
            countQuery = "SELECT COUNT(u) FROM User u " +
-           "WHERE u.id NOT IN (" +
+           "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
            "    SELECT DISTINCT r.user.id FROM Receipt r " +
            "    WHERE MONTH(r.paymentDate) = :month " +
            "    AND YEAR(r.paymentDate) = :year" +
@@ -606,7 +610,7 @@ Page<User> searchAdminUsers(
         LEFT JOIN FETCH u.departmentDistrict d
         LEFT JOIN FETCH u.departmentBlock b
         LEFT JOIN FETCH u.assignedDeathCase adc
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND NOT EXISTS (
               SELECT 1
               FROM Receipt r
@@ -618,7 +622,7 @@ Page<User> searchAdminUsers(
     countQuery = """
         SELECT COUNT(u)
         FROM User u
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND NOT EXISTS (
               SELECT 1
               FROM Receipt r
@@ -639,7 +643,7 @@ Page<User> findNoUtrEverUsersPaginated(Pageable pageable);
         LEFT JOIN FETCH u.departmentDistrict d
         LEFT JOIN FETCH u.departmentBlock b
         LEFT JOIN FETCH u.assignedDeathCase adc
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
                LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
                LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -663,7 +667,7 @@ Page<User> findNoUtrEverUsersPaginated(Pageable pageable);
         LEFT JOIN u.departmentSambhag sa
         LEFT JOIN u.departmentDistrict d
         LEFT JOIN u.departmentBlock b
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
                LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
                LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -700,7 +704,7 @@ Page<User> searchNoUtrEverUsersPaginated(
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -736,7 +740,7 @@ List<User> searchNoUtrEverUsersForExport(
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
     AND (:sambhagId IS NULL OR sa.id = :sambhagId)
       AND (:districtId IS NULL OR d.id = :districtId)
       AND (:blockId IS NULL OR b.id = :blockId)
@@ -766,7 +770,7 @@ List<User> findAllUsersForExport(
         LEFT JOIN FETCH u.departmentDistrict d
         LEFT JOIN FETCH u.departmentBlock b
         LEFT JOIN u.assignedDeathCase adc
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
                LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
                LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -825,7 +829,7 @@ List<User> findAllUsersForExport(
         LEFT JOIN u.departmentDistrict d
         LEFT JOIN u.departmentBlock b
         LEFT JOIN u.assignedDeathCase adc
-        WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+        WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
           AND (:name IS NULL OR
                LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
                LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -894,7 +898,7 @@ Page<User> searchNonDonorsByBeneficiaryPaginated(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE (" +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND (" +
        "   u.department IS NULL OR TRIM(u.department) = '' " +
        "   OR u.departmentState IS NULL " +
        "   OR u.departmentSambhag IS NULL " +
@@ -914,7 +918,7 @@ Page<User> searchNonDonorsByBeneficiaryPaginated(
        "LEFT JOIN u.departmentSambhag sa " +
        "LEFT JOIN u.departmentDistrict d " +
        "LEFT JOIN u.departmentBlock b " +
-       "WHERE (" +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND (" +
        "   u.department IS NULL OR TRIM(u.department) = '' " +
        "   OR u.departmentState IS NULL " +
        "   OR u.departmentSambhag IS NULL " +
@@ -945,7 +949,7 @@ Page<User> findPendingProfileUsersWithFilters(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE u.id NOT IN (" +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
        "    SELECT DISTINCT r.user.id FROM Receipt r " +
        "    WHERE MONTH(r.paymentDate) = :month " +
        "    AND YEAR(r.paymentDate) = :year" +
@@ -974,7 +978,7 @@ List<User> searchNonDonorsForExport(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER " +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER " +
        "AND (" +
        "   u.department IS NULL OR TRIM(u.department) = '' " +
        "   OR u.departmentState IS NULL " +
@@ -1334,7 +1338,7 @@ void clearAssignedDeathCaseReference(@Param("deathCaseId") Long deathCaseId);
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
            LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -1403,7 +1407,7 @@ List<User> searchNonDonorsByBeneficiaryForExport(
     LEFT JOIN FETCH u.departmentSambhag sa
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
       AND NOT EXISTS (
           SELECT 1
           FROM Receipt r
@@ -1460,7 +1464,7 @@ List<User> findAllUsersForExportScoped(
     LEFT JOIN FETCH u.departmentDistrict d
     LEFT JOIN FETCH u.departmentBlock b
     LEFT JOIN FETCH u.assignedDeathCase adc
-    WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+    WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
 
       AND (:name IS NULL OR
            LOWER(CONCAT(COALESCE(u.name, ''), ' ', COALESCE(u.surname, ''))) LIKE LOWER(CONCAT('%', :name, '%')) OR
@@ -1516,7 +1520,7 @@ List<User> searchNoUtrEverUsersForExportScoped(
        "LEFT JOIN FETCH u.departmentSambhag sa " +
        "LEFT JOIN FETCH u.departmentDistrict d " +
        "LEFT JOIN FETCH u.departmentBlock b " +
-       "WHERE u.id NOT IN (" +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
        "    SELECT DISTINCT r.user.id FROM Receipt r " +
        "    WHERE MONTH(r.paymentDate) = :month " +
        "    AND YEAR(r.paymentDate) = :year" +
@@ -1533,7 +1537,7 @@ List<User> searchNoUtrEverUsersForExportScoped(
        "LEFT JOIN u.departmentSambhag sa " +
        "LEFT JOIN u.departmentDistrict d " +
        "LEFT JOIN u.departmentBlock b " +
-       "WHERE u.id NOT IN (" +
+       "WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.id NOT IN (" +
        "    SELECT DISTINCT r.user.id FROM Receipt r " +
        "    WHERE MONTH(r.paymentDate) = :month " +
        "    AND YEAR(r.paymentDate) = :year" +
@@ -1557,6 +1561,8 @@ Page<User> searchNonDonorsPaginated(
         @Param("block") String block,
         Pageable pageable
 );
+@Query("SELECT COUNT(u) FROM User u WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED)")
+long countNonDeletedUsers();
 long countByStatus(UserStatus status);
 long countByRoleAndStatusNot(Role role, UserStatus status);
 
@@ -1620,7 +1626,7 @@ Page<User> searchPublicBinUsers(
                 LEFT JOIN FETCH u.departmentSambhag sa
                 LEFT JOIN FETCH u.departmentDistrict d
                 LEFT JOIN FETCH u.departmentBlock b
-                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
                   AND u.memberStatus = :memberStatus
                   AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)
@@ -1639,7 +1645,7 @@ Page<User> searchPublicBinUsers(
                 LEFT JOIN u.departmentSambhag sa
                 LEFT JOIN u.departmentDistrict d
                 LEFT JOIN u.departmentBlock b
-                WHERE u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
+                WHERE (u.status IS NULL OR u.status <> com.example.kalyan_kosh_api.entity.UserStatus.DELETED) AND u.role = com.example.kalyan_kosh_api.entity.Role.ROLE_USER
                   AND u.memberStatus = :memberStatus
                   AND (:sambhagId IS NULL OR sa.id = :sambhagId)
                   AND (:districtId IS NULL OR d.id = :districtId)

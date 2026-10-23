@@ -5,6 +5,7 @@ import com.example.kalyan_kosh_api.entity.District;
 import com.example.kalyan_kosh_api.entity.Sambhag;
 import com.example.kalyan_kosh_api.entity.State;
 import com.example.kalyan_kosh_api.entity.User;
+import com.example.kalyan_kosh_api.entity.UserStatus;
 import com.example.kalyan_kosh_api.repository.BlockRepository;
 import com.example.kalyan_kosh_api.repository.DistrictRepository;
 import com.example.kalyan_kosh_api.repository.SambhagRepository;
@@ -77,7 +78,9 @@ public class AdminUtilsController {
                     .orElseThrow(() -> new RuntimeException("No block found for district: " + district.getName()));
 
             // Find all users with NULL location data
-            List<User> allUsers = userRepo.findAll();
+            List<User> allUsers = userRepo.findAll().stream()
+                    .filter(user -> user.getStatus() != UserStatus.DELETED)
+                    .toList();
 
             for (User user : allUsers) {
                 boolean needsUpdate = false;
@@ -137,7 +140,9 @@ public class AdminUtilsController {
      */
     @GetMapping("/check-null-locations")
     public ResponseEntity<Map<String, Object>> checkNullLocations() {
-        List<User> allUsers = userRepo.findAll();
+        List<User> allUsers = userRepo.findAll().stream()
+                    .filter(user -> user.getStatus() != UserStatus.DELETED)
+                    .toList();
 
         int totalUsers = allUsers.size();
         int nullStateCount = 0;
