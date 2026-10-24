@@ -309,6 +309,7 @@ if (req.getHomeAddress() != null) user.setHomeAddress(normalizeString(req.getHom
 if (req.getSchoolOfficeName() != null) user.setSchoolOfficeName(normalizeString(req.getSchoolOfficeName()));
 if (req.getSankulName() != null) user.setSankulName(normalizeString(req.getSankulName()));
 if (req.getDepartment() != null) user.setDepartment(normalizeString(req.getDepartment()));
+if (req.getServiceType() != null) user.setServiceType(com.example.kalyan_kosh_api.util.ServiceTypeValues.normalize(req.getServiceType()));
 // -------------------------
 // Date fields
 // -------------------------
@@ -1326,6 +1327,7 @@ if (desiredUserId != null) {
     u.setSchoolOfficeName(schoolOfficeName);
     u.setSankulName(sankulName);
     u.setDepartment(department);
+    u.setServiceType(com.example.kalyan_kosh_api.util.ServiceTypeValues.normalize(req.getServiceType()));
     u.setDepartmentUniqueId(departmentUniqueId);
 
     u.setDepartmentState(state);
@@ -1565,6 +1567,7 @@ public void exportUsersCsvScoped(
         u.setSchoolOfficeName(req.getSchoolOfficeName());
         u.setSankulName(req.getSankulName());
         u.setDepartment(req.getDepartment());
+        u.setServiceType(com.example.kalyan_kosh_api.util.ServiceTypeValues.normalize(req.getServiceType()));
 
         // Set department unique ID only if provided
         if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().trim().isEmpty()) {
@@ -1724,6 +1727,7 @@ try {
         response.setSchoolOfficeName(user.getSchoolOfficeName());
         response.setSankulName(user.getSankulName());
         response.setDepartment(user.getDepartment());
+        response.setServiceType(user.getServiceType());
         response.setDepartmentUniqueId(user.getDepartmentUniqueId());
 
         // Convert entity relationships to string names

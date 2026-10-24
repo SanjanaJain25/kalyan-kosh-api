@@ -1134,6 +1134,7 @@ response.setNominee2Name(user.getNominee2Name());
 response.setNominee2Relation(user.getNominee2Relation());
         // Professional details
         response.setDepartment(user.getDepartment());
+        response.setServiceType(user.getServiceType());
         response.setDepartmentUniqueId(user.getDepartmentUniqueId());
         response.setSchoolOfficeName(user.getSchoolOfficeName());
         response.setSankulName(user.getSankulName());

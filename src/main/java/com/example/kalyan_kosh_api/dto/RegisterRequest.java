@@ -25,6 +25,7 @@ public class RegisterRequest {
     private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
     private String sankulName;          // संकुल का नाम
     private String department;
+    private String serviceType;
     private String departmentUniqueId;
     private String departmentState;      // "Madhya Pradesh"
     private String departmentSambhag;    // "Chambal"
@@ -93,6 +94,9 @@ public class RegisterRequest {
 
     public String getSankulName() { return sankulName; }
     public void setSankulName(String sankulName) { this.sankulName = sankulName; }
+
+    public String getServiceType() { return serviceType; }
+    public void setServiceType(String serviceType) { this.serviceType = serviceType; }
 
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }

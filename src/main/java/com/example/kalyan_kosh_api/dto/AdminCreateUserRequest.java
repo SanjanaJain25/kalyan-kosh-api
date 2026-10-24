@@ -22,6 +22,7 @@ public class AdminCreateUserRequest {
     private String schoolOfficeName;
     private String sankulName;
     private String department;
+    private String serviceType;
     private String departmentUniqueId;
 
     private String departmentState;

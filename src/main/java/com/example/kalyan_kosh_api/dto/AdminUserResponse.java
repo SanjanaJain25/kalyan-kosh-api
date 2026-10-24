@@ -42,6 +42,7 @@ private String nominee2Name;
 private String nominee2Relation;
     // Professional details
     private String department;
+    private String serviceType;
     private String departmentUniqueId;
     private String schoolOfficeName;
     private String sankulName;

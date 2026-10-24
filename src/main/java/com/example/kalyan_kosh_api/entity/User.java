@@ -47,6 +47,8 @@ public class User {
 
     //Professional Details
     private String department;
+    @Column(name = "service_type", nullable = true, length = 24)
+    private String serviceType; // Only नियमित / संविदा; old users remain NULL
     private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
     @Column(unique = true, nullable = true)  // ✅ Made nullable - users may not have this during registration
     private String departmentUniqueId;

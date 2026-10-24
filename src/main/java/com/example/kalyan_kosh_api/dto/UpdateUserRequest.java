@@ -25,6 +25,7 @@ public class UpdateUserRequest {
     private String schoolOfficeName;    // पदस्थ स्कूल/कार्यालय का नाम
     private String sankulName;          // संकुल का नाम
     private String department;
+    private String serviceType;
     private String departmentUniqueId;
     private String departmentState;
     private String departmentSambhag;

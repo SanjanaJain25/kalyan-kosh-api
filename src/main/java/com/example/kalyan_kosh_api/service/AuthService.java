@@ -150,6 +150,7 @@ public void verifyCurrentUserManagerDashboardPassword(String userId, String rawP
             u.setSchoolOfficeName(req.getSchoolOfficeName());
             u.setSankulName(req.getSankulName());
             u.setDepartment(req.getDepartment());
+            u.setServiceType(com.example.kalyan_kosh_api.util.ServiceTypeValues.normalize(req.getServiceType()));
 
             // Set department unique ID only if provided
             if (req.getDepartmentUniqueId() != null && !req.getDepartmentUniqueId().trim().isEmpty()) {
