@@ -244,11 +244,11 @@ public JwtAuthFilter jwtAuthFilter() {
 //        configuration.setAllowedOriginPatterns(List.of(
 //                "http://localhost:*",           // Local development
 //                "http://127.0.0.1:*",           // Local IP
-//                "https://pmums.com",            // Production domain (frontend)
-//                "https://www.pmums.com",        // Production www
-//                "https://backend.pmums.com",    // Production backend
-//                "http://pmums.com",             // HTTP version
-//                "http://www.pmums.com"          // HTTP www
+//                "https://pmums.in",            // Production domain (frontend)
+//                "https://www.pmums.in",        // Production www
+//                "https://backend.pmums.in",    // Production backend
+//                "http://pmums.in",             // HTTP version
+//                "http://www.pmums.in"          // HTTP www
 //        ));
 //
 //        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -267,8 +267,8 @@ public CorsConfigurationSource corsConfigurationSource() {
 
     // ✅ Exact origins only (IMPORTANT)
     configuration.setAllowedOrigins(List.of(
-            "https://pmums.com",
-            "https://www.pmums.com",
+            "https://pmums.in",
+            "https://www.pmums.in",
             "http://localhost:3000",
             "http://127.0.0.1:3000"
     ));

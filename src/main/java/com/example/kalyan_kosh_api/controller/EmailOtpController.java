@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth/email-otp")
 @CrossOrigin(
-    origins = {"https://pmums.com", "https://www.pmums.com", "http://localhost:3000", "http://localhost:5173"},
+    origins = {"https://pmums.in", "https://www.pmums.in", "http://localhost:3000", "http://localhost:5173"},
     allowedHeaders = "*",
     methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.DELETE},
     allowCredentials = "true",
